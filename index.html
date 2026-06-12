@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeSeekho — Paper Trading by ScaleAIQ</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0E14; --panel:#141A26; --panel2:#1B2332; --line:#242E42;
+    --text:#E9EDF5; --muted:#8B95AA;
+    --gain:#3DDC84; --loss:#FF6B6B; --accent:#7C3AED; --accent2:#2563EB;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+  .mono{font-family:'IBM Plex Mono',monospace}
+
+  .tape{background:var(--panel);border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap;padding:8px 0}
+  .tape-inner{display:inline-block;animation:scroll 32s linear infinite}
+  @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .tape-item{display:inline-block;margin:0 22px;font-family:'IBM Plex Mono',monospace;font-size:13px}
+  .tape-item .sym{color:var(--muted);margin-right:8px}
+  @media (prefers-reduced-motion: reduce){.tape-inner{animation:none}}
+
+  header{padding:16px 16px 8px;max-width:920px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:50px;height:50px;border-radius:12px;background:#fff;object-fit:contain;border:1px solid var(--line)}
+  .brand h1{font-size:21px;font-weight:700;letter-spacing:-0.5px}
+  .brand h1 span{color:var(--accent)}
+  .by{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:0.3px}
+  .statusbar{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--gain);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .badge{font-size:10px;background:var(--panel2);border:1px solid var(--line);color:#FFB020;padding:2px 9px;border-radius:20px;font-weight:600;letter-spacing:0.5px}
+
+  main{max-width:920px;margin:0 auto;padding:10px 16px 48px}
+
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .card .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px}
+  .card .val{font-size:18px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+  @media(max-width:560px){.summary{grid-template-columns:1fr 1fr}.summary .card:first-child{grid-column:1/-1}.card .val{font-size:16px}}
+
+  h2{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;font-weight:600}
+
+  .stock{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
+  .stock:hover{border-color:var(--accent)}
+  .stock .info{min-width:0;flex:1}
+  .stock .name{font-weight:600;font-size:15px}
+  .stock .full{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stock .hl{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px}
+  .stock .hl b{color:var(--gain);font-weight:500} .stock .hl i{color:var(--loss);font-style:normal}
+  .stock .px{text-align:right}
+  .stock .price{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;transition:color .3s}
+  .stock .chg{font-family:'IBM Plex Mono',monospace;font-size:12px}
+  .spark{width:64px;height:30px}
+  .flash-up{color:var(--gain)!important}
+  .flash-dn{color:var(--loss)!important}
+  .up{color:var(--gain)} .dn{color:var(--loss)}
+  .btn{border:none;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif}
+  .btn-buy{background:var(--gain);color:#06220f}
+  .btn-sell{background:transparent;color:var(--loss);border:1px solid var(--loss)}
+  .btn:active{transform:scale(0.96)}
+
+  .holding{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+  .h-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .h-top .name{font-weight:600}
+  .h-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:12px}
+  .h-grid .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+  .h-grid .v{font-family:'IBM Plex Mono',monospace;margin-top:2px}
+  .empty{color:var(--muted);font-size:13px;background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:18px;text-align:center}
+
+  .order{display:flex;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:6px;font-size:13px}
+  .order .o-side-buy{color:var(--gain);font-weight:600}
+  .order .o-side-sell{color:var(--loss);font-weight:600}
+  .order .o-time{color:var(--muted);font-size:11px}
+
+  .share-btn{display:block;width:100%;margin-top:22px;padding:14px;border:none;border-radius:12px;
+    background:linear-gradient(90deg,var(--accent2),var(--accent));color:#fff;font-weight:600;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif}
+  .share-btn:active{transform:scale(0.98)}
+
+  /* Detail sheet */
+  .overlay{position:fixed;inset:0;background:rgba(5,8,14,0.78);display:none;align-items:flex-end;justify-content:center;z-index:10}
+  .overlay.show{display:flex}
+  @media(min-width:600px){.overlay{align-items:center;padding:16px}}
+  .sheet{background:var(--panel2);border:1px solid var(--line);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto}
+  @media(min-width:600px){.sheet{border-radius:20px}}
+  .d-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+  .d-head h3{font-size:18px}
+  .d-head .full{font-size:12px;color:var(--muted)}
+  .d-close{background:var(--panel);border:1px solid var(--line);color:var(--muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px}
+  .d-price{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;margin:8px 0 2px}
+  .d-chg{font-family:'IBM Plex Mono',monospace;font-size:13px;margin-bottom:12px}
+  .chart-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:14px}
+  .chart-wrap canvas{width:100%;height:140px;display:block}
+  .chart-lbl{font-size:10px;color:var(--muted);text-align:right;margin-top:4px}
+  .range{margin-bottom:14px}
+  .range .r-lbls{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+  .range .r-bar{height:6px;background:var(--panel);border-radius:3px;position:relative;overflow:visible}
+  .range .r-fill{position:absolute;height:100%;background:linear-gradient(90deg,var(--loss),var(--gain));border-radius:3px;width:100%;opacity:0.35}
+  .range .r-dot{position:absolute;top:-3px;width:12px;height:12px;background:#fff;border-radius:50%;border:2px solid var(--accent);transform:translateX(-50%)}
+  .range .r-vals{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:5px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .stat .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+  .stat .v{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;margin-top:3px}
+  .d-actions{display:flex;gap:10px}
+  .d-actions .btn{flex:1;padding:13px;font-size:14px}
+  .btn-sell-solid{background:var(--loss);color:#2b0808}
+
+  /* Trade modal */
+  .modal{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:20px;width:100%;max-width:380px;margin:auto}
+  .modal h3{font-size:17px;margin-bottom:2px}
+  .modal .mprice{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:13px;margin-bottom:14px}
+  .qty-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .qty-row button{width:42px;height:42px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:20px;cursor:pointer}
+  .qty-row .qty{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;min-width:60px;text-align:center}
+  .total{display:flex;justify-content:space-between;font-size:14px;margin-bottom:16px;padding:10px;background:var(--panel);border-radius:10px}
+  .total .t-val{font-family:'IBM Plex Mono',monospace;font-weight:600}
+  .m-actions{display:flex;gap:10px}
+  .m-actions .btn{flex:1;padding:12px}
+  .btn-cancel{background:var(--panel);color:var(--muted);border:1px solid var(--line)}
+  .m-err{color:var(--loss);font-size:12px;margin-bottom:10px;display:none}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--accent);color:var(--text);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;transition:transform .3s;z-index:20;max-width:90vw;text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+
+  .note{margin-top:26px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+  .note b{color:#FFB020}
+</style>
+</head>
+<body>
+
+<div class="tape"><div class="tape-inner" id="tape"></div></div>
+
+<header>
+  <div class="brand">
+    <img class="logo" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFRIWFhUSFBQXGiEcFxgfGRQUHScdHyIjJSUlFhwpLCgkKyEkJST/2wBDAQYGBgkICREJCREkGBQYJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCT/wAARCADwAPADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6oooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACikY7VYjnAzXlPw2+LOseMfFL6TfW1jHCIpJA0KsGBUjHJJ9a6qGDqVqc6kNoas5q2Lp0Zwpz3loj0CLxPYzeJJvDyrP9shhE7MUGzacd89eR2rQvbh7W0lnjhed41LCJPvOfQVDq94ulaZeaj5Qka2heXHQttGcZ/CuT8D/El/F+qSWLacltshMu9Zd2cEDGMD1q4YWdWm61OHuxtfU56uNhRqLD1Z2nO/Lp93daeZ2dpO1zaxTPC8LSIGMb/eQnsfepqQEEkZGR1FLXG9zvimkk3cKKKKRQUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRXlnxc+LX/CLsdB0WRTqrrmabqLZT0x/tn9BzXXgsFVxdVUaKu3+HmznxOJhh6bqVNkdt4j8baH4WG3UbxRORlbeP5pD+Hb6nFcPe/GiediumabHGvZ7hix/IY/ma8ThvJbqZp55XllkO53diWY+pJrdsSWxjmvtaPDeGoRvU95/h93+Z+dZrxPjJNqi+ReW/wB7/Sx3kvxM8STHi6iiHokK/wBc1H/wsTxN/wBBH/yEn+Fc05S3iMs8kcMY6vIwUD8TXL6z8RNH09WSzZtQn6AR8ID7t/hmtlgMNsqa+5HzlHH5riZWpVZv5u352R6ppXxRv7bX9Lg1nV4o7W7n8lvNCIv3SclsDAGP5V31zqehrpGq3fhy40mW+t7SWVTZGN3UhSQSF9wK+MZG1vx1rcMCRPd3k7eXBbx8Ad9qg/Svdf2dPh94n8I+J9Uu9b0a4sIJLLykeXbhm8xTgYPoDXkZtgaFNe1i1FpfDor6n6NkccRToqlXk5yb1k23bTZN9joPhV4o8Q+M9R1HTPEc0tzZPZtlHhEYyWAPIA7E13+k+EPDnhS4N5ZQJaSuhj3yTMQQcHHzH2FeX/Fj4x+JfBvjKbR9L+wC2jgjkHmwlmJYZPORXo3iLwsvj7QtMFxeNasFW4LRoGyWTkYJ461wYyMm4VZfuqVTpHVbdUrHZRgowlGK9rVp7OWj36N3sdDbafa291cXkKYlutpkbcSGwMD2/KrVQ2duLO0gtlYsIY1jBPfAxU1eDJtve57VOChGyVuvzer/ABCiiipNAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAMvxTrsPhjw5qWtT4KWVu820/xEDgficD8a+KpNYudY1CfUL2Uy3NzI0sjk9WJya+pP2hHlT4R66Y89Id2P7vnJmvj+yvY4IXuJmxHGu5q/QuDqMI4epWe7dvklf8AU+ezyMp8sUdlHqFrp1qbu+uFggXjJ6k+gHUn2FUY/HGva7MbLwnpNy/bzI4DNKf+AgEL+tS/BDwOPjP46mbW3caPpcQmkt42I3AnCRg9s4JJ6nB/D7N0rSdK8O2kOnaXZ2mn24+WOGFAgOB2A6mss2z9Uqns4RucWE4ZpP8AeYjV9ui/z+Z8dQ/CH4neIpBNdaDqkrH+K8kVMfg7DFb1l+zZ48mA820sLf8A663Sn/0HNfW1FeE+I8T9mMV9/wDme0spopWu7fceCfDr4AeIPCvivTNbv77TDFaSGRo4mdmPykcZUDvXO/HPxt460b4jX1loeraxbWKQwmOO3B2AmME4wPXNfTtFcqzec63tq8VLS1vx8zdYGMKfs6ba1uYdnoWl6xp1jearpVjd3kltEZJbi3R3J2jqSM9c1B4W8Wr4h1DVrBNLuLJdLl8kPIMLLywyvHT5f1ro6K8/2qcWpK/bXb5HQ6b5k4u3fTcKKKKxNQooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigDF8a+HU8W+EtW0JyB9utXhVj/C5Hyn8Gwa/PTXUutOWbTLqNobiGcxTxt1VlJBB/Gv0lr5r/ac+B9zqhm8b+GrUzTgbtStIlyzgD/XKB1OPvD2z619Jw/mSoc+Hm7Ke3r/wUc2IoqbUuxw37KHjSz8L+OLnS9QlWGDW4VgjkY4AnU5QE++WH1xX0F+0L4Nu/GPw2vBpnmDU9Mcaha+USHJQHcqkc5KFse+K+G7LIKsCQQcgjqK+qvgl+0D9qit/D3jK5AlAEdtqTn7/AGCyn1/2u/f1rpzPL6ntFi6Cu1uvQxhiYxfJPQ8Q8I/tH/Ebwl5cS6ydVtUwPI1JfO49N/Dj/vqvbfCH7Y2gahsh8T6Ld6XKeGntT58X1I4YfgGrlfj/APs53dnfXPi3wZZm5sZyZrvT4Fy9ux5LxqOqHqQOR9Onz1HCc4IwR1z2rfD4HCY+HOl92jR0rmTsfox4Z8d+GPGUIl0DXLHUOMlI5B5i/VDhh+Irer827ETW8yT28skMqHKyRsVZT7Ecivbvh3+0P4r8NPFa65I2vacOD5x/0iMf7L/xfRs/UVhiuFKqXNh5c3k9H9+35G8Ytn1tRWR4W8V6T4y0mPVNHuhPA3DKRh427qy9jWvXytSnKnJwmrNdBNWCiiioAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoqK7u7ewtZru7mSC3gQySSOcKigZJJ9AK57wn8R/DPjaa4g0XUDLNAokaKWF4mMZ6OocDcp9RxWkaU5Rc4xbS3fYDL074zeFdR1pdND3tvDLJJDb6jcwGOzupI871jlPBIweuM44rp/+Eo0D/oOaX/4FR/41xFn8DvD8V/EL7ULzVNEtZZZ7LRLso9rbSSElj0yw+Y4BPGayb8fC631O6sNO+HLa41m/lTzaXpCzRRSd0LcDcO4HSvUeGwtWVqHM7LXRfrby8r7C1M34ifArwL48vXvvD2s6bpGtTEkrbyo8Ny5/vRg5DH1X8Qa8X8Q/CDxl4Hdm1LSZJrVT/wAfdp+9iI9SRyv/AAICvcL+y8DahYywQfC7xLpsrDMd1Z6OIpoXHIZGByCDXTfDjx9e3pj8P+K7a7sdXAb7JLeQGA6jEv8AEFPAfH3lBPqK9WhiMThafPTvKMd1K17d003p37em3HiMFCuuzPPvgt8YJNOEHh/xDcl7I4S1upDkwHsjH+76Ht9OnoPjv4EeCvHzSXdxYf2fqL8/bbHCOx9XH3X+pGfetbxF8K/CfiVmmutLjt7lv+Xi1/dPn1OOD+INa3hfRbvw9pi6bcai+oxQnbBLIm2RY+yt2OOx9K83GY6jKaxWEbhPqu/mrfimZYKliKD9lV96PR9vJny34v8A2bfFHhJJbvT2j1ywjyxa3UrMi+rR9/8AgJNcHaWmccV98V8dftHm18GfFUyaQkZivrWO6vLQcIJizAkY+6WABPuc85r6LI+IqlafscRG+m6/VHs0qiT95aF/4ZeK7vwPr0V7EzmzlIS7hB4kj9cf3h1B/wAa+s4Jo7mGOeFw8cih0YdGBGQa+M/D15Z63ZLeWbFo87XU/ejb+6w/zmvqT4XXb3ngbTDI25olaHPsrED9AKx4sw9OcYYqG+z8+33WO/HYeKpRrR6nV0UUV8QeSFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQBn+IdDtvEuhX+i3u8W1/A9vIUOGCsMZHvXn2nfAy0vbtLvxtqz+J5La1Sxsl8n7KsEKnIz5bZZvcn8K6Lxx44vfDmo6Toui6KNY1nVvNaC3e4EEapGoLszkH1GBWLov7QHgnUNMhub+/fTLsgia0khkkMLgkFdyqVbkdRXqYaGOhS5qCdn21fa+mqvZq+l7Acnb2XwWk1saW3h+8t7Z55LWPVJnmSylnTO6NZTJjIweuBx1rrh4otdHltfB/wx0jTtTlgTzZis+20s4znl5F3Zdj0HJPJNcVFN8H11b7Rc+Kb680lbmS8h0S4t5Xs453zucKY8n7xIBOATXSw+PdAFsPD/wAJtMtJ9VvnJ/dWbW9tZjADTzEqMgDGAOScCvTxFOU7XjOSt9u6in3d+y7aeYG6up/FX+Lw94W/DUZf/jdRTv8AEW8kgku/CvhGd7d/MhZ72RjG395SY+D7iqGteHdc8M6NNqutfFjWLa2t0DSyfY7cAn0UbMkk9B1rxG6+MPi+4up4rLxTqz2LErG06RJKV9TsUYP0PHrWmAy2WMvKgoWXW00VGNz6FXWviDbTQnUNJ8LW9uXXzHOoyAhM8kZTritu78beHbPPmavauw/hibzD/wCO5r5St7+5vpvOu7ma5lc5LyuXJP1Natx4n0/Qo/8ASJN84HEEfLn6+n416FXhiDtzP/wFW/Ns66eGUviZ7V4p+L9vY2E8unRiJI1Ja6uRgIPUL3/H8q+N/Guuz+LPEV5q87SM0zfKZDliPU+56/jXQeJ/E1/4mkxMfJtVOUt0Pyj3Pqa5ie3xnivWwWU0sLBqC1Z01KMFHlgtPzLPgLVJNJ8RwQ7yLa8IhlXtk/dP4H9Ca+7PhzYNpvgvTImGGeMzEf75LfyIr45+DHw8uvHvjyxgSNhYWMi3V7L2RFOQufViMD8T2r7pRFjRURQqqMADoBXzXEmIUVHDJ9bv9DkqVXGl7Dzv+AtFFFfJnIFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQBg+LfA+geN7aC312x+0i3cyQukjRyREjB2upBGRwRnmtHR9F07QNMt9L0u0itbK2XZFDGOEH+e9XaK0dWbgqbb5V06AeQXXxwvLLVZr240S0HheLVn0UyxzF77zlyC4hA5XI6D5sc1vD44eEc8Ra6P8AuD3P/wARXQL8PfCi+JT4nXQrIayTu+17Pm3Yxux03f7WM+9dDXbVrYNpctN7d7fpK/rp6AfJHx6+KaeONZt9N0x7mPSLFQ7JPE0TSTnqWVgCNowBn1PrXla65a2pwC0xHZDx+f8A+uvqfxT+zB4b8Xa9f6zfa7rizX07TvHG8YRST0GUzge9Za/sfeDk6a5rv/fUX/xFfX4PiHAYahGhSukl269fxKjNrY+cD4mv51KROLaM9o/vf99dfyxTISW5JyT1PrX0wn7JPhJOmt65/wB9Rf8AxFaNl+y54KtmBmvNaucdmnRR/wCOqDXR/rPgVrd/cdNOulufLxwBzXaeBvgr4m8fTxyR2zadpZOXvrlCFI/2F6ufpx719P6B8JPBPhp1lsPD9q0y9JrjMzg+oL5x+FdeAAMAYArzMbxbeLjhYW83/l/wfka1MbpaCOe8DeBdG+H2hx6To0G1M75pn5knfuzH+nQdq6GiivjalSVSTnN3bOBu+rCiiioEFFFFABRRRQAUUUUAFFFFABRRRQAVX1C+t9LsLm/un8u3tYnmlb+6igkn8hVisvxVo7eIfDGr6OjiN7+zmtlc9FLoVB/Wmt9QPlV/i18X/jP4ku7XwK1xYWUPzpBalI/KjzhTLK38R9M+uBxWh/whP7TX/QY1D/waxf41yPwk+J158AfEWtaT4h0G4kFwUjuYlISaJ4y2CueGUhj354INetj9svwp38O62Pxi/wDiq75qcXaEVYwTT+Jjfhf4L+N8PjSxufGmvX6aJb7pZo/t6SecwHyoVXnBJBPsK+g683+Hfx+8GfEe+XTNPnubHU2BKWl6gRpccnYQSrEDtnPtXPftHfGa++HVjZ6J4fZU1vUkMnnlQ32eEHG4KeCzHIGemD7VzSjOc+VqzNE0lc9poxXylpfwM+NXiezj1XUvGs+nT3KiQwXOoz+YoPI3BOFPt2rsfht8CvH/AIY8Z6frPiHxw2oafaFne1ju7iTzm2kKCHwMAnP4USpRS+IFJvoe+UV598Y/h3r3xD0rT7bw/wCJJdCubScyPIjyKJUK42nYQeuDXlH/AAzR8TByPihN7f6Rc/8AxVTGEWruVhttdD6Yr56+IvxK8WaN+0LoXhew1iWDRrmSyWW1EaEOHYhuSuefrWV8IPHXjfwZ8Wn+GXjLU5NUjkLRxySyGUxv5fmIyOfmKsvY9MjpzWd8Wf8Ak6zwz/1207/0M1rClyyaeuhLldXR9V0V4r+0f8Y9S+H1pY6B4cITW9UUuJ9oY28WdoKg8FmbIGemD7VxNj+z58XdctI9Q1b4h3Fjd3CiSS3e8uHaMnsSpAz7Dis40vd5pOw3LWyPqCivlXQ/GXxC+A3xC07w1421Z9Y0PUWVVleVpgEZtvmRs3zKVP3lPb8DX1VU1KfJ6McZXOf8d+J4/CPhi81NiPOC+XAp/ilbhfy6/QGuH+EHxLvvEWpXOka3d/aLh0822kKqucfeXgDtz+BrkvjH4huPGvj6w8GaS+9baUQnHQzt94n2Vfy+aq/xM8PP8KvEuia3oqlbYKm09jNGAGB/315/Fq+qweW0HhVh6v8AFqpuPlbb7/8AM+cxeLr/AFn29N/u6bSa733+4+ja8rk8aa2vxeGgC/Yad54TyNi4x5W7GcZ6+9ejaFrFr4h0ez1Wzbdb3cSyofTPY+4OQfpXhs91/wAZILDn/l7Uf+QK83KMPGUq8asdYwlv0a/U7c0nNqi6Umrzjt1X+R7F418Y6f4G0GbV9QJZVISKJfvTSHoo/qewBrxOw1b4i/Fy5lnsZJLfT1Yr+7kMNvH/ALORy5/P8Kp/tO6zcXnjnw94ajkKIYFdR28yWQpn8Ao/M19EaHotn4e0i00qwiWK3tYxGgAxnHUn3J5P1rupulleBp4hQUqtW7V9VFL9T3aVb2eqWp4tP4H+IvhGM6haXr3AjG5hZ3DOwHujAbvyNdp8Mviini1m0rUtkeqRqWVlGFnUdcDsw7ivQsjOMjPXFfOPxPVPAnxk0u/04CJbp4bvy04G4uUcfRsH8zVYStHOFPD14JVLNxklbboz0qVaOLi6VVLmtoz6Pooor5M8gKKKKACiiigAooqG9W5eznWzeNLoxsIWkBKq+PlJA6jOKAKGteGfD3iHaNZ0fTNRKcA3VukhX6FhxWQ3ws+HxBz4P8Pf+AUf+FeCXP7Ifiy9uJbm48cWck0zmSR2ilyzE5J+961H/wAMdeJe/jOx/wC/Mv8A8VXSoQX2zO77HHfFTS9D8J/HOxg8CmKIRXFpJ5Nq+5IbkuMouOn8OR2yR7V1X7Uato3xh8Na5exNLYeRbvjGQwinLOv1wR+dehfCz9l7SvAmtQa9rGqHWdQtTvt41h8uGJ+z4JJZh2zgDrivRfiR8NdD+J+g/wBk6yjqY28y3uosCW3fHVSex7g8H8qt14qS6pC5HZnQ6XqljrdhBqGm3UN3aXCh45omDKwPvVqvl4/sheI7F3j0vx4kVsTlR5MkZP1CvjNdL8N/2e/F/gbxnp2vXXjZb21tmbzrYeb++VlIxy2OpB59KylTha6kUpS6o5L4ta/4p+I/xwX4b6dr02i6dG6wKEkZFZvK8xnbaQXPYDOOB6k1s/8ADJWtf9FL1D/vxJ/8drqfi5+zpD8QfEC+J9G1ptF1gqiysYyySFRhXBBBVgABkegrkP8Ahmf4kYx/wtK4/wC/1z/8XWyqLlSjK3yJcXd3VziPBvhOTwV+05pOgSas+ryWdwA92wILk27Nggk9M469q6L4sf8AJ1nhr/rtp3/oZr0T4R/s5W/w88Qt4m1fWn1rVwrCIiMokRYYZySSWYgkZPqan8Y/A7UPE/xh0rx5FrFrBa2L2ztavExd/KbJwQcc0OtFzvfpYFB2PJf2uLGeD4m6JfPM9tbz2MaR3IB/dFJW3EY7ruU8e1dPafs8ePNQtYryz+MN5cW8yCSOWOWdldTyCCJeRXsvxL+GWifFLQhpesLJG8TGS2uoceZbvjGRnqD3B4P5GvEY/wBlDxhpgNvpXxFaC1B+RFWaL/x1XxShVTglezXkDjrexNJ+yf4k1XUbO4174hSajFbyKT50UkjhdwJCF3OM4r3L4h+L4PAng7UNbkK+ZDHst0b/AJaStwg/Pk+wNeYfDf4GeN/BPjGx1u/8eNqVlDvWa0Z5iJVZSMYZiOCQfwrpPjP8Lde+KA060stbtNO0+03SvFLGzNLKeAxwcYAzj6mtKHsqleCrz9zrp+HzFLmUHyLU+fPAPizxB4e1+TxRZ6FLrVzKJAJpYZHUOx+dgV/i6j8TXukd3efHD4YaraajpLabrdq5eGJonRfMAyjLu5wwyp/GvRvB/hq18HeGdO0Gz5is4RGXxgyN1Zj9WJP41sV6GPzmFap7SnTtKLVpX6LbT9DkoYFwjySldPdep4J+zJ44MqX/AINvnKywFrm1VzggZxIn4HBx7msS4uP+MqEiz/y+r/6T12N78CdStPimPG/h3WbOxiNyLlrSSJjkkYlXIPRst9N1WpPgrqMnxmHxA/ti1FqLgTfZPKbfgRbMbs46812PG4T29WvCVvaU3prpJ20IWGn7OFNr4ZfgcV+1n4WvIrnRPGdkjFbYfZJ3Uf6oht8bH2yWH1x61698MPiXpXxJ8OwXlrcRrqCRqt5absPDJjk4/uk8g/1rqNU0uy1rTrjTdRto7qzuUMcsMgyrqexr508T/sq6vpuptqHgTXxCmS0cFzI8UsXssq5yPqAfrXLQxGGxmFhhMVLklC/LLdWfRnqpLqWfH2k+NvhV40bxnZaxd6np9w4V5bliwCZ/1Mo6Bf7pGPwNJcaTdfGf4i6B4nsJopNMjMKX1qWHmaf5eXKsP4lc52sPXBxiovC/wU+LQ1mK71rxNa/ZwpimivLmS9SaI/eQxngqR6kevUVNrPwP8aeA/GUOu/DKZZbdiWMEsyoYh3jbcQHQ9u/4gGvcjjcOkoKrD2yi0ppWTXZ9E+zX/AfZTqwjGy0l3Poyis3w9e6nqGkQT6zpf9l6gRia2EqyqrDurKTkHt3rSr4OUXFuL6HEFFFFSAUUUUAFFFFAHNav45tNFaU3FrMYYbtrWWVSMRgQCYyH/ZwQD6degpZPF7xmaT+zs20Wmf2n5nnDcV2k7duOuQRnNbsljay7vMtoX3ks25AdxK7ST65Xj6cUpsrUqVNtCVMfkkbBgx/3f9326VV12EZek+JP7ROnrLaNbyXsUsyqSflCFBghlU5O8du1Oh8SwTWtncCFwLu7e0C5BKMpkGT7fuz+dWhoWlKsCDTLILbMXhHkriJj1K8cHgdKkg0rT7aR5ILG1id5PNZkiUFn5+Y4HXk8+5paDOd/4T+M6VLfiwJINu0UKy7neOd9qMwVTjvkDd0I61Ym8b29rrFtpVxZyxzXK2+x8/IXlLfJk4O5QpOCBkZ9DWsdD0oxTwnTLLy7hg8yeQuJGByCwxyc881MNOsgExaW48vbs/dj5duduPTGTj0yad49halPRtYn1OK8kmshb/Zp5IAFlDlyhwT0GKyYPHX2mygki01hdyySIbaSYRmLYgdt5YDDbSOMc5znHNdOkUcYYJGihyWYAY3E9SaqHQtJNoLP+zLE2wfzPJ8hdm7124xn3oTQGcvjC1fTb/UI7eUxWdrHdYYgM6vHvA9jii58USJNFHa2AuA2oHT2YzBNrBd27ocjGePatVtK097lrlrG1ad4/KaUxLuZP7pOM49qdb6dZWkEVvb2lvDDE26OOOMKqHnkAdDyefei6Awr7xtFaK7JZPKIVuZZiZVTbHBJ5bEZ+8xPIX8yOMt/4Tu2OrXWlixuWuYPOMaAj9+scauSn4ttwehxngit2bStPuBGJrG1lEbmVA8Sna5OSwyODnnNPbT7R3LtaQMx3ZYxgk7gA35gAH1wKLrsBW0HWE1vTo7sIsTsWV4gxJjZTgqcgEEdwQMVBF4jhkhtZfJcC4vZLIDI+VkaQbj7Hyz+dX7XTrOxVVtbSCAICqiOMLgE5IGO2eabDpVhbSSSQ2NtE8knmuyRKCz8/MTjk8nn3NLQZzOkfEqx1hSYrG5j2RQPJvI+R5JRH5fuV3KxPTDCtKHxPJ9ouIrmwEKxX6WCsswbezKG3YwMDDL+ta39n2YUKLWAABVAEY4AIIH4EA/hSXWmWN7C8N1Z208UjiR0kjDKzDGCQRyeBz7U7rsLUx5PFji71mCLTJphpa9UJzM2xG2r8uP4/UnjpTbfxlHPcaXF9l2x36n9/vPlpIGK+Xnb97Knhtp+pBA120bTGeWRtOtC8yeXKxhXMiYA2txyMAcH0FKmkadG8DpYWqvbDbCwiUGIei8cfhRdBqZWu+M7Tw/JOtzBK0du9sJZFIwiysw3keihCT7VTtviBFdyaWkOmXLHUGl2rn50VJhFuwAfXcckYGe/FdPJaW0jmR7eJ3OMsyAk4zj8snH1ojtbeJt0cESNhhlUAOGOT+Z5PvRddgOas/H9nqcUn9nW/wBonF8bGNGmVVc7WcSFudqlUbHGcjGK1LfWbibWm09rJI4ltkuTP54P3iQF249VPOfSrkulafPCYJbG1kiKqhRolKlV+6MY6DJwO1SGytWUKbaEqFVMbBjapyo+gPI9KG10AmoooqRhRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQByMngG8kmeQeOPFih2LbFnh2rk9B+66Cnp4Fu0P/ACOnilvrPF/8brq6K6/r1ba6+5f5GbpRe5zQ8HXIGP8AhLfEZ+s0X/xuj/hDrn/obfEX/f6L/wCN10tFL65V7r7l/kEKMYO6/U5v/hD7kf8AM2eIv+/0X/xupE8KXCMD/wAJPrzYOcNLHz/45XQUUnjKr6r7l/kdEaso7foFFFFcxmFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQB//Z" alt="ScaleAIQ">
+    <div>
+      <h1>Trade<span>Seekho</span> <span class="badge">DEMO</span></h1>
+      <div class="by">by ScaleAIQ · Intelligent Solutions. Limitless Impact.</div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <span class="dot"></span><span id="clock">Simulated live feed</span>
+    <span style="flex:1"></span>
+    <span id="acct" style="display:none;align-items:center;gap:6px">
+      <img id="acct-img" style="width:24px;height:24px;border-radius:50%" alt="">
+      <span id="acct-name" style="color:var(--text);font-weight:500"></span>
+      <button onclick="doLogout()" style="background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer">Logout</button>
+    </span>
+  </div>
+</header>
+
+<main>
+  <div class="summary">
+    <div class="card"><div class="lbl">Available Cash</div><div class="val" id="cash">₹1,00,000</div></div>
+    <div class="card"><div class="lbl">Holdings Value</div><div class="val" id="holdval">₹0</div></div>
+    <div class="card"><div class="lbl">Aaj ka P&L</div><div class="val" id="pnl">₹0</div></div>
+  </div>
+
+  <h2>Watchlist · NSE <span style="float:right;font-size:10px;letter-spacing:0;text-transform:none">👆 stock pe tap karo — full details</span></h2>
+  <div id="watchlist"></div>
+
+  <h2>Mere Holdings</h2>
+  <div id="holdings"><div class="empty">Abhi koi holding nahi. Upar se koi stock BUY karke shuru karo! 🚀</div></div>
+
+  <h2>Recent Orders</h2>
+  <div id="orders"><div class="empty">Koi order nahi abhi. Pehla trade karo!</div></div>
+
+  <button class="share-btn" onclick="sharePnl()">📲 Apna P&L WhatsApp pe share karo</button>
+
+  <div class="note">
+    Prices simulated hain (demo ke liye). Real version me <b>live NSE data</b> aayega.<br>
+    Yeh tool sirf seekhne ke liye hai — koi investment advice nahi.<br>
+    <a href="privacy.html" style="color:var(--muted)">Privacy Policy</a> · <a href="terms.html" style="color:var(--muted)">Terms &amp; Conditions</a> · © 2026 ScaleAIQ
+  </div>
+</main>
+
+<!-- Stock detail sheet -->
+<div class="overlay" id="d-overlay">
+  <div class="sheet">
+    <div class="d-head">
+      <div><h3 id="d-sym">RELIANCE</h3><div class="full" id="d-full">Reliance Industries · NSE</div></div>
+      <button class="d-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="d-price" id="d-price">₹2,950.00</div>
+    <div class="d-chg" id="d-chg">+12.40 (+0.42%)</div>
+
+    <div class="chart-wrap">
+      <canvas id="d-chart" width="640" height="280"></canvas>
+      <div class="chart-lbl">Intraday · live updating</div>
+    </div>
+
+    <div class="range">
+      <div class="r-lbls"><span>Day Low</span><span>Day Range</span><span>Day High</span></div>
+      <div class="r-bar"><div class="r-fill"></div><div class="r-dot" id="d-rangedot"></div></div>
+      <div class="r-vals"><span class="dn" id="d-dlow">0</span><span class="up" id="d-dhigh">0</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">Open</div><div class="v" id="d-open">—</div></div>
+      <div class="stat"><div class="k">Prev. Close</div><div class="v" id="d-pclose">—</div></div>
+      <div class="stat"><div class="k">52W High</div><div class="v up" id="d-52h">—</div></div>
+      <div class="stat"><div class="k">52W Low</div><div class="v dn" id="d-52l">—</div></div>
+      <div class="stat"><div class="k">Volume</div><div class="v" id="d-vol">—</div></div>
+      <div class="stat"><div class="k">Aapke Shares</div><div class="v" id="d-owned">0</div></div>
+    </div>
+
+    <div class="d-actions">
+      <button class="btn btn-sell-solid" id="d-sellbtn" onclick="openTradeFromDetail('sell')">SELL</button>
+      <button class="btn btn-buy" onclick="openTradeFromDetail('buy')">BUY</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trade modal -->
+<div class="overlay" id="overlay" style="align-items:center;padding:16px">
+  <div class="modal">
+    <h3 id="m-title">RELIANCE</h3>
+    <div class="mprice" id="m-price">₹2,950.00 per share</div>
+    <div class="qty-row">
+      <button onclick="chgQty(-1)">−</button>
+      <div class="qty" id="m-qty">1</div>
+      <button onclick="chgQty(1)">+</button>
+    </div>
+    <div class="total"><span>Total</span><span class="t-val" id="m-total">₹2,950.00</span></div>
+    <div class="m-err" id="m-err"></div>
+    <div class="m-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-buy" id="m-confirm" onclick="confirmTrade()">Confirm Buy</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login screen -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:30;align-items:center;justify-content:center;padding:24px">
+  <div style="max-width:340px;width:100%;text-align:center">
+    <img src="data:image/jpeg;base64,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" alt="ScaleAIQ" style="width:84px;height:84px;border-radius:20px;background:#fff;object-fit:contain;margin-bottom:18px">
+    <h1 style="font-size:26px;margin-bottom:6px">Trade<span style="color:var(--accent)">Seekho</span></h1>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:26px">Virtual ₹1 lakh se stock market seekho.<br>Zero risk, full practice. 📈</p>
+    <button onclick="doLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border:none;border-radius:12px;background:#fff;color:#1a1a1a;font-weight:600;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+      Google se login karo
+    </button>
+    <div id="login-err" style="color:var(--loss);font-size:12px;margin-top:12px;display:none"></div>
+    <p style="color:var(--muted);font-size:11px;margin-top:22px;line-height:1.6">Login karke aap hamari <a href="terms.html" style="color:var(--accent)">Terms</a> aur <a href="privacy.html" style="color:var(--accent)">Privacy Policy</a> se agree karte ho.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG — YAHAN APNI IDs DAALO (Setup Guide Step 2 & 4 dekho)
+// ============================================================
+const CONFIG = {
+  GA_ID: "G-SXDSK3T06X",
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
+
+// ---- Google Analytics loader + event tracking ----
+if(!CONFIG.GA_ID.includes("XXXX")){
+  const gs = document.createElement("script");
+  gs.async = true;
+  gs.src = "https://www.googletagmanager.com/gtag/js?id=" + CONFIG.GA_ID;
+  document.head.appendChild(gs);
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function(){ dataLayer.push(arguments); };
+  gtag('js', new Date());
+  gtag('config', CONFIG.GA_ID);
+}
+function track(event, params){
+  if(window.gtag) gtag('event', event, params || {});
+}
+
+// ---- Stock universe: price, 52w range, volume base ----
+function mkStock(sym, full, price, w52l, w52h, volBase){
+  return {sym, full, price, prev:price, open:price, prevClose:+(price*(1-(Math.random()-0.45)*0.01)).toFixed(2),
+    dayHigh:price, dayLow:price, w52l, w52h, vol:Math.round(volBase*(0.2+Math.random()*0.3)), volBase,
+    trend:(Math.random()-0.5)*0.4, history:[price]};
+}
+const stocks = [
+  mkStock("RELIANCE","Reliance Industries",2950,2220,3025,8500000),
+  mkStock("TCS","Tata Consultancy Services",4120,3310,4585,2400000),
+  mkStock("HDFCBANK","HDFC Bank",1685,1363,1794,18000000),
+  mkStock("INFY","Infosys",1540,1185,2006,7300000),
+  mkStock("TATAMOTORS","Tata Motors",1020,557,1179,21000000),
+  mkStock("SBIN","State Bank of India",845,543,912,17500000),
+  mkStock("ZOMATO","Zomato (Eternal)",265,98,304,52000000),
+  mkStock("ITC","ITC Limited",438,399,528,12800000),
+  mkStock("ADANIENT","Adani Enterprises",2380,2025,3743,2900000),
+  mkStock("BHARTIARTL","Bharti Airtel",1450,901,1536,6200000),
+  mkStock("WIPRO","Wipro",495,385,580,9400000),
+  mkStock("PAYTM","One97 (Paytm)",820,310,998,11500000),
+  mkStock("IRCTC","IRCTC",935,635,1148,4800000),
+  mkStock("HAL","Hindustan Aeronautics",4480,1768,5675,3100000),
+];
+
+let cash = 100000;
+let holdings = {};
+let modalStock = null, modalSide = "buy", modalQty = 1;
+let detailIdx = null;
+const orders = [];
+const MAX_HIST = 90;
+
+const fmt = n => "₹" + n.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const fmtVol = n => n >= 10000000 ? (n/10000000).toFixed(2)+" Cr" : n >= 100000 ? (n/100000).toFixed(2)+" L" : n.toLocaleString("en-IN");
+
+// ---- Realistic price engine: momentum + mean reversion + noise ----
+function tick(){
+  stocks.forEach(s=>{
+    s.prev = s.price;
+    // trend slowly evolves (momentum)
+    s.trend += (Math.random()-0.5)*0.12;
+    s.trend = Math.max(-0.8, Math.min(0.8, s.trend));
+    // mean reversion pull toward open (intraday behaviour)
+    const pull = (s.open - s.price)/s.open * 0.15;
+    const noise = (Math.random()-0.5);
+    const movePct = (s.trend*0.35 + pull*100*0.01 + noise) * 0.0018;
+    s.price = Math.max(1, +(s.price * (1+movePct)).toFixed(2));
+    if(s.price > s.dayHigh) s.dayHigh = s.price;
+    if(s.price < s.dayLow) s.dayLow = s.price;
+    s.vol += Math.round(s.volBase * (0.0005 + Math.random()*0.002));
+    s.history.push(s.price);
+    if(s.history.length > MAX_HIST) s.history.shift();
+  });
+  renderTape(); renderWatchlist(); renderHoldings(); renderSummary();
+  if(detailIdx !== null) renderDetail();
+  updateClock();
+}
+
+function updateClock(){
+  const t = new Date().toLocaleTimeString("en-IN", {hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:"Asia/Kolkata"});
+  document.getElementById("clock").textContent = "IST " + t + " · Simulated live feed";
+}
+
+function renderTape(){
+  const items = stocks.map(s=>{
+    const chg = ((s.price - s.prevClose)/s.prevClose*100);
+    const cls = chg >= 0 ? "up":"dn";
+    const arrow = chg >= 0 ? "▲":"▼";
+    return `<span class="tape-item"><span class="sym">${s.sym}</span><span class="${cls}">${s.price.toFixed(2)} ${arrow} ${Math.abs(chg).toFixed(2)}%</span></span>`;
+  }).join("");
+  document.getElementById("tape").innerHTML = items + items;
+}
+
+function sparkline(canvas, hist, up){
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  if(hist.length < 2) return;
+  const min = Math.min(...hist), max = Math.max(...hist);
+  const span = (max-min) || 1;
+  ctx.beginPath();
+  hist.forEach((p,i)=>{
+    const x = i/(hist.length-1)*w;
+    const y = h - ((p-min)/span)*(h-4) - 2;
+    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+  });
+  ctx.strokeStyle = up ? "#3DDC84" : "#FF6B6B";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function renderWatchlist(){
+  const wl = document.getElementById("watchlist");
+  // build rows once, then update — simpler: rebuild each tick (small list, fine for demo)
+  wl.innerHTML = stocks.map((s,i)=>{
+    const chg = s.price - s.prevClose;
+    const pct = (chg/s.prevClose*100);
+    const cls = chg >= 0 ? "up":"dn";
+    const sign = chg >= 0 ? "+":"";
+    const flash = s.price > s.prev ? "flash-up" : (s.price < s.prev ? "flash-dn" : "");
+    return `<div class="stock" onclick="openDetail(${i})">
+      <div class="info">
+        <div class="name">${s.sym}</div>
+        <div class="full">${s.full}</div>
+        <div class="hl">H <b>${s.dayHigh.toFixed(2)}</b> · L <i>${s.dayLow.toFixed(2)}</i></div>
+      </div>
+      <canvas class="spark" id="spark-${i}" width="128" height="60"></canvas>
+      <div class="px">
+        <div class="price ${flash}">${s.price.toFixed(2)}</div>
+        <div class="chg ${cls}">${sign}${chg.toFixed(2)} (${sign}${pct.toFixed(2)}%)</div>
+      </div>
+    </div>`;
+  }).join("");
+  stocks.forEach((s,i)=>{
+    const c = document.getElementById("spark-"+i);
+    if(c) sparkline(c, s.history.slice(-40), s.price >= s.prevClose);
+  });
+}
+
+function renderHoldings(){
+  const el = document.getElementById("holdings");
+  const syms = Object.keys(holdings);
+  if(!syms.length){
+    el.innerHTML = `<div class="empty">Abhi koi holding nahi. Kisi stock pe tap karke BUY karo! 🚀</div>`;
+    return;
+  }
+  el.innerHTML = syms.map(sym=>{
+    const h = holdings[sym];
+    const s = stocks.find(x=>x.sym===sym);
+    const cur = h.qty * s.price;
+    const pl = cur - h.qty * h.avg;
+    const cls = pl >= 0 ? "up":"dn";
+    const sign = pl >= 0 ? "+":"";
+    return `<div class="holding">
+      <div class="h-top"><span class="name">${sym}</span><span class="mono ${cls}" style="font-weight:600">${sign}${fmt(pl)}</span></div>
+      <div class="h-grid">
+        <div><div class="k">Qty</div><div class="v">${h.qty}</div></div>
+        <div><div class="k">Avg Buy</div><div class="v">${h.avg.toFixed(2)}</div></div>
+        <div><div class="k">LTP</div><div class="v">${s.price.toFixed(2)}</div></div>
+        <div><div class="k">Value</div><div class="v">${fmtInt(cur)}</div></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderSummary(){
+  let holdval = 0, invested = 0;
+  for(const sym in holdings){
+    const s = stocks.find(x=>x.sym===sym);
+    holdval += holdings[sym].qty * s.price;
+    invested += holdings[sym].qty * holdings[sym].avg;
+  }
+  const pnl = holdval - invested;
+  document.getElementById("cash").textContent = fmtInt(cash);
+  document.getElementById("holdval").textContent = fmtInt(holdval);
+  const pnlEl = document.getElementById("pnl");
+  pnlEl.textContent = (pnl >= 0 ? "+" : "−") + fmtInt(Math.abs(pnl));
+  pnlEl.style.color = pnl > 0 ? "var(--gain)" : (pnl < 0 ? "var(--loss)" : "var(--text)");
+}
+
+// ---- Detail sheet ----
+function openDetail(i){
+  detailIdx = i;
+  renderDetail();
+  document.getElementById("d-overlay").classList.add("show");
+}
+function closeDetail(){
+  detailIdx = null;
+  document.getElementById("d-overlay").classList.remove("show");
+}
+function renderDetail(){
+  const s = stocks[detailIdx];
+  const chg = s.price - s.prevClose;
+  const pct = chg/s.prevClose*100;
+  const cls = chg >= 0 ? "up":"dn";
+  const sign = chg >= 0 ? "+":"";
+  document.getElementById("d-sym").textContent = s.sym;
+  document.getElementById("d-full").textContent = s.full + " · NSE";
+  document.getElementById("d-price").textContent = fmt(s.price);
+  const chgEl = document.getElementById("d-chg");
+  chgEl.textContent = `${sign}${chg.toFixed(2)} (${sign}${pct.toFixed(2)}%)`;
+  chgEl.className = "d-chg " + cls;
+  document.getElementById("d-open").textContent = s.open.toFixed(2);
+  document.getElementById("d-pclose").textContent = s.prevClose.toFixed(2);
+  document.getElementById("d-52h").textContent = s.w52h.toFixed(2);
+  document.getElementById("d-52l").textContent = s.w52l.toFixed(2);
+  document.getElementById("d-vol").textContent = fmtVol(s.vol);
+  const owned = holdings[s.sym] ? holdings[s.sym].qty : 0;
+  document.getElementById("d-owned").textContent = owned;
+  document.getElementById("d-sellbtn").style.opacity = owned ? "1" : "0.4";
+  document.getElementById("d-dlow").textContent = s.dayLow.toFixed(2);
+  document.getElementById("d-dhigh").textContent = s.dayHigh.toFixed(2);
+  const span = (s.dayHigh - s.dayLow) || 1;
+  document.getElementById("d-rangedot").style.left = (((s.price - s.dayLow)/span)*100).toFixed(1) + "%";
+  // chart
+  const c = document.getElementById("d-chart");
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+  const hist = s.history;
+  if(hist.length > 1){
+    const min = Math.min(...hist), max = Math.max(...hist);
+    const span2 = (max-min)||1;
+    // baseline = prevClose
+    const ybase = c.height - ((s.prevClose-min)/span2)*(c.height-20) - 10;
+    if(ybase > 0 && ybase < c.height){
+      ctx.strokeStyle = "#2A3550"; ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(0,ybase); ctx.lineTo(c.width,ybase); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.beginPath();
+    hist.forEach((p,i)=>{
+      const x = i/(hist.length-1)*c.width;
+      const y = c.height - ((p-min)/span2)*(c.height-20) - 10;
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+    });
+    const up = s.price >= s.prevClose;
+    ctx.strokeStyle = up ? "#3DDC84" : "#FF6B6B";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // gradient fill
+    const grad = ctx.createLinearGradient(0,0,0,c.height);
+    grad.addColorStop(0, up ? "rgba(61,220,132,0.25)" : "rgba(255,107,107,0.25)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.lineTo(c.width, c.height); ctx.lineTo(0, c.height); ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+}
+function openTradeFromDetail(side){
+  const owned = holdings[stocks[detailIdx].sym];
+  if(side === "sell" && !owned){ showToast("Pehle kharido, phir becho! 😄"); return; }
+  openModal(detailIdx, side);
+}
+
+// ---- Trade modal ----
+function openModal(i, side){
+  modalStock = stocks[i]; modalSide = side; modalQty = 1;
+  document.getElementById("m-title").textContent = modalStock.sym + (side==="sell" ? " — Sell" : " — Buy");
+  document.getElementById("m-confirm").textContent = side==="sell" ? "Confirm Sell" : "Confirm Buy";
+  document.getElementById("m-confirm").className = "btn " + (side==="sell" ? "btn-sell-solid" : "btn-buy");
+  document.getElementById("m-err").style.display = "none";
+  updateModal();
+  document.getElementById("overlay").classList.add("show");
+}
+function updateModal(){
+  document.getElementById("m-qty").textContent = modalQty;
+  document.getElementById("m-price").textContent = fmt(modalStock.price) + " per share";
+  document.getElementById("m-total").textContent = fmt(modalQty * modalStock.price);
+}
+function chgQty(d){ modalQty = Math.max(1, modalQty + d); updateModal(); }
+function closeModal(){ document.getElementById("overlay").classList.remove("show"); }
+
+function confirmTrade(){
+  const total = modalQty * modalStock.price;
+  const err = document.getElementById("m-err");
+  if(modalSide === "buy"){
+    if(total > cash){
+      err.textContent = "Cash kam hai! Available: " + fmtInt(cash);
+      err.style.display = "block"; return;
+    }
+    cash -= total;
+    const h = holdings[modalStock.sym];
+    if(h){ h.avg = (h.avg*h.qty + total)/(h.qty + modalQty); h.qty += modalQty; }
+    else holdings[modalStock.sym] = {qty: modalQty, avg: modalStock.price};
+    showToast(`✅ ${modalQty} × ${modalStock.sym} kharida @ ${fmt(modalStock.price)}`);
+    logOrder("BUY", modalStock.sym, modalQty, modalStock.price);
+  } else {
+    const h = holdings[modalStock.sym];
+    if(!h || modalQty > h.qty){
+      err.textContent = "Itne shares nahi hain! Aapke paas: " + (h ? h.qty : 0);
+      err.style.display = "block"; return;
+    }
+    cash += total;
+    h.qty -= modalQty;
+    if(h.qty === 0) delete holdings[modalStock.sym];
+    showToast(`💰 ${modalQty} × ${modalStock.sym} becha @ ${fmt(modalStock.price)}`);
+    logOrder("SELL", modalStock.sym, modalQty, modalStock.price);
+  }
+  closeModal();
+  renderWatchlist(); renderHoldings(); renderSummary();
+  if(detailIdx !== null) renderDetail();
+  track(modalSide === "buy" ? "trade_buy" : "trade_sell", {stock: modalStock.sym, qty: modalQty});
+  if(window.cloudSave) window.cloudSave(getState());
+}
+
+function renderOrders(){
+  document.getElementById("orders").innerHTML = orders.length ? orders.map(o=>
+    `<div class="order"><span><span class="o-side-${o.side.toLowerCase()}">${o.side}</span> ${o.qty} × ${o.sym}</span>
+     <span class="mono">${fmt(o.price)} <span class="o-time">${o.t}</span></span></div>`).join("")
+    : `<div class="empty">Koi order nahi abhi. Pehla trade karo!</div>`;
+}
+function logOrder(side, sym, qty, price){
+  const t = new Date().toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit", timeZone:"Asia/Kolkata"});
+  orders.unshift({side, sym, qty, price, t});
+  if(orders.length > 20) orders.pop();
+  renderOrders();
+}
+
+// ---- Cloud state (Firebase hooks set in module script) ----
+function getState(){
+  return {cash, holdings, orders: orders.slice(0,20), updatedAt: Date.now()};
+}
+function applyState(st){
+  if(!st) return;
+  cash = typeof st.cash === "number" ? st.cash : cash;
+  holdings = st.holdings || {};
+  orders.length = 0;
+  (st.orders || []).forEach(o=>orders.push(o));
+  renderWatchlist(); renderHoldings(); renderSummary(); renderOrders();
+}
+
+function sharePnl(){
+  let holdval = 0, invested = 0;
+  for(const sym in holdings){
+    const s = stocks.find(x=>x.sym===sym);
+    holdval += holdings[sym].qty * s.price;
+    invested += holdings[sym].qty * holdings[sym].avg;
+  }
+  const pnl = holdval - invested;
+  const emoji = pnl >= 0 ? "📈🔥" : "📉😅";
+  const msg = `${emoji} TradeSeekho pe mera virtual trading P&L: ${pnl>=0?"+":""}${fmtInt(pnl)}!\n\nVirtual ₹1 lakh se stock market seekho — zero risk. Tum bhi try karo!\n\n— TradeSeekho by ScaleAIQ`;
+  track("share_pnl", {pnl: Math.round(pnl)});
+  if(navigator.share){ navigator.share({text: msg}).catch(()=>{}); }
+  else window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+}
+
+// Close overlays on backdrop tap
+document.getElementById("d-overlay").addEventListener("click", e=>{ if(e.target.id==="d-overlay") closeDetail(); });
+document.getElementById("overlay").addEventListener("click", e=>{ if(e.target.id==="overlay") closeModal(); });
+
+// Seed some history so charts aren't empty at start
+for(let i=0;i<35;i++){
+  stocks.forEach(s=>{
+    const drift = (Math.random()-0.5)*s.price*0.002;
+    s.price = Math.max(1,+(s.price+drift).toFixed(2));
+    if(s.price>s.dayHigh)s.dayHigh=s.price;
+    if(s.price<s.dayLow)s.dayLow=s.price;
+    s.history.push(s.price);
+  });
+}
+
+renderTape(); renderWatchlist(); renderHoldings(); renderSummary(); updateClock();
+setInterval(tick, 2000);
+
+// Show login screen only when Firebase is configured
+if(!DEMO_MODE){
+  document.getElementById("login-screen").style.display = "flex";
+}
+</script>
+
+<script type="module">
+// ============ FIREBASE (auto-skipped in demo mode) ============
+const cfg = window.CONFIG || CONFIG;
+if(!DEMO_MODE){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, getDoc, setDoc } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+    let uid = null;
+    let saveTimer = null;
+
+    window.doLogin = async function(){
+      const err = document.getElementById("login-err");
+      err.style.display = "none";
+      try{
+        await signInWithPopup(auth, provider);
+        track("login", {method: "google"});
+      }catch(e){
+        // Popup blocked on some mobile browsers -> redirect flow
+        if(e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment"){
+          signInWithRedirect(auth, provider);
+        } else {
+          err.textContent = "Login nahi hua: " + (e.message || e.code);
+          err.style.display = "block";
+        }
+      }
+    };
+
+    window.doLogout = async function(){
+      await signOut(auth);
+      location.reload();
+    };
+
+    window.cloudSave = function(state){
+      if(!uid) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async ()=>{
+        try{ await setDoc(doc(db, "users", uid), {
+          ...state,
+          displayName: auth.currentUser?.displayName || "",
+          email: auth.currentUser?.email || "",
+          photoURL: auth.currentUser?.photoURL || ""
+        }, {merge:true}); }
+        catch(e){ console.error("Save failed", e); }
+      }, 400);
+    };
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(user){
+        uid = user.uid;
+        document.getElementById("login-screen").style.display = "none";
+        const chip = document.getElementById("acct");
+        chip.style.display = "inline-flex";
+        document.getElementById("acct-name").textContent = (user.displayName || "Trader").split(" ")[0];
+        document.getElementById("acct-img").src = user.photoURL || "";
+        try{
+          const snap = await getDoc(doc(db, "users", uid));
+          if(snap.exists()){
+            applyState(snap.data());
+            showToast("Welcome back, " + (user.displayName||"Trader").split(" ")[0] + "! Portfolio load ho gaya ✅");
+          } else {
+            window.cloudSave(getState()); // first time -> create record
+            showToast("Account ban gaya! ₹1,00,000 virtual cash ready 🚀");
+          }
+        }catch(e){ console.error("Load failed", e); }
+      } else {
+        document.getElementById("login-screen").style.display = "flex";
+      }
+    });
+  }catch(e){
+    console.error("Firebase init failed:", e);
+    document.getElementById("login-screen").style.display = "none";
+  }
+} else {
+  // Demo mode stubs
+  window.doLogin = ()=>{};
+  window.doLogout = ()=>{};
+}
+</script>
+</body>
+</html>
