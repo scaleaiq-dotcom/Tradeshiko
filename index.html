@@ -20,6 +20,28 @@
   .mono{font-family:'JetBrains Mono',monospace}
   a{color:inherit;text-decoration:none}
 
+  /* ===== Live Ticker Bar ===== */
+  .ticker-bar{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;
+    white-space:nowrap;padding:7px 0;position:sticky;top:0;z-index:6}
+  .ticker-track{display:inline-block;animation:tickerscroll 40s linear infinite}
+  @keyframes tickerscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .ticker-bar:hover .ticker-track{animation-play-state:paused}
+  .tk-item{display:inline-block;margin:0 16px;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .tk-item .tk-sym{color:var(--subtle);margin-right:6px;font-weight:600}
+  @media (prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+
+  /* ===== Search + Sort Bar ===== */
+  .toolbar{display:flex;gap:8px;padding:2px 14px 10px}
+  .search-box{flex:1;display:flex;align-items:center;gap:8px;background:var(--card);
+    border:1px solid var(--border);border-radius:11px;padding:9px 13px}
+  .search-box input{flex:1;background:none;border:none;color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
+  .search-box input:focus{outline:none}
+  .search-box input::placeholder{color:var(--muted)}
+  .sort-btn{background:var(--card);border:1px solid var(--border);border-radius:11px;
+    padding:9px 12px;font-size:11px;font-weight:700;color:var(--subtle);cursor:pointer;
+    font-family:'Inter',sans-serif;white-space:nowrap}
+  .sort-btn:active{border-color:var(--accent)}
+
   /* ===== App Shell ===== */
   .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;
     position:relative;background:var(--bg)}
@@ -98,22 +120,23 @@
     display:flex;align-items:center;gap:11px;opacity:0.45;cursor:pointer}
   .stk-lock .stk-ico{background:#1E2D45;font-size:14px}
 
-  /* ===== Upgrade Cards (dual option) ===== */
-  .upg-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 12px;
-    position:relative;cursor:pointer;transition:border-color .15s;text-align:center}
-  .upg-card.lite-card:active{border-color:var(--accent)}
+  /* ===== Upgrade Cards (dual option with features) ===== */
+  .upg-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 13px;
+    position:relative;transition:border-color .15s}
   .upg-card.max-card{border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.04)}
-  .upg-card.max-card:active{border-color:var(--gold)}
   .upg-card-badge{position:absolute;top:-7px;left:50%;transform:translateX(-50%);
-    font-size:7.5px;font-weight:800;padding:2px 8px;border-radius:20px;
-    background:linear-gradient(135deg,#D97706,var(--gold));color:#fff;letter-spacing:0.05em}
-  .upg-card-name{font-size:12.5px;font-weight:800;color:#A5B4FC;margin-bottom:2px}
-  .upg-card-stocks{font-size:9.5px;color:var(--muted);font-weight:600;margin-bottom:7px}
-  .upg-card-price{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:9px}
+    font-size:7px;font-weight:800;padding:2px 8px;border-radius:20px;
+    background:linear-gradient(135deg,#D97706,var(--gold));color:#fff;letter-spacing:0.04em;white-space:nowrap}
+  .upg-card-name{font-size:13px;font-weight:800;color:#A5B4FC;margin-bottom:3px;text-align:center}
+  .upg-card-price{font-size:19px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:10px;text-align:center}
   .upg-card-price span{font-size:9px;color:var(--muted);font-weight:600}
-  .upg-card-btn{font-size:10.5px;font-weight:800;padding:7px;border-radius:9px;color:#fff}
+  .upg-feats{list-style:none;margin-bottom:11px;display:flex;flex-direction:column;gap:5px}
+  .upg-feats li{font-size:10px;color:var(--subtle);padding-left:16px;position:relative;line-height:1.3}
+  .upg-feats li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:800;font-size:10px}
+  .upg-card-btn{font-size:11px;font-weight:800;padding:9px;border-radius:9px;color:#fff;text-align:center;cursor:pointer}
   .upg-card-btn.lite{background:linear-gradient(135deg,var(--accent),var(--accent2))}
   .upg-card-btn.max{background:linear-gradient(135deg,#D97706,var(--gold))}
+  .upg-card-btn:active{transform:scale(0.97)}
 
   /* ===== Footer ===== */
   .app-footer{padding:18px 16px 8px;text-align:center;border-top:1px solid var(--border);margin:8px 14px 0}
@@ -234,6 +257,9 @@
     </div>
   </div>
 
+  <!-- ===== Live Ticker Bar ===== -->
+  <div class="ticker-bar"><div class="ticker-track" id="ticker-track"></div></div>
+
   <!-- ===== Header ===== -->
   <div class="hdr">
     <div class="logo-row">
@@ -288,33 +314,59 @@
     <!-- Stocks Section -->
     <div class="sec-hdr">
       <span class="sec-title">Watchlist · NSE</span>
-      <button class="sec-link" onclick="showToast('Pro Max unlocks all 50 stocks')">All stocks →</button>
+      <button class="sec-link" onclick="refreshPrices()">⟳ Refresh</button>
+    </div>
+
+    <!-- Search + Sort -->
+    <div class="toolbar">
+      <div class="search-box">
+        <span style="font-size:13px;color:var(--muted)">🔍</span>
+        <input type="text" id="search-input" placeholder="Search stocks..." oninput="renderWatchlist()">
+      </div>
+      <button class="sort-btn" id="sort-btn" onclick="cycleSort()">▲ Gainers</button>
     </div>
 
     <div class="stocks" id="watchlist">
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
     </div>
 
-    <!-- Upgrade Banner — Free sees BOTH plans, Lite sees only Max -->
+    <!-- Upgrade Banner — Free sees BOTH plans with features, Lite sees only Max -->
     <div id="upgrade-zone" style="margin:0 14px 16px">
-      <div class="sec-title" style="margin-bottom:9px;font-size:12.5px">⬆️ Unlock more stocks</div>
+      <div class="sec-title" style="margin-bottom:9px;font-size:12.5px">⬆️ Unlock more — choose your plan</div>
       <div id="upgrade-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
         <!-- Pro Lite card -->
-        <div class="upg-card lite-card" onclick="goPlan('lite')">
+        <div class="upg-card lite-card">
           <div class="upg-card-name">Pro Lite</div>
-          <div class="upg-card-stocks">30 stocks</div>
           <div class="upg-card-price">₹199<span>/yr</span></div>
-          <div class="upg-card-btn lite">Choose</div>
+          <ul class="upg-feats">
+            <li>30 stocks</li>
+            <li>₹5 Lakh capital</li>
+            <li>+₹50K monthly</li>
+            <li>Leaderboard</li>
+            <li>Community chat</li>
+            <li>Referral rewards</li>
+          </ul>
+          <div class="upg-card-btn lite" onclick="goPlan('lite')">Choose Lite</div>
         </div>
         <!-- Pro Max card -->
-        <div class="upg-card max-card" onclick="goPlan('max')">
-          <div class="upg-card-badge">BEST</div>
+        <div class="upg-card max-card">
+          <div class="upg-card-badge">BEST VALUE</div>
           <div class="upg-card-name" style="color:var(--gold)">Pro Max</div>
-          <div class="upg-card-stocks">50 stocks</div>
           <div class="upg-card-price">₹499<span>/yr</span></div>
-          <div class="upg-card-btn max">Choose</div>
+          <ul class="upg-feats">
+            <li>All 50 stocks</li>
+            <li>₹10 Lakh capital</li>
+            <li>+₹1 Lakh monthly</li>
+            <li>Leaderboard + badge</li>
+            <li>Community chat</li>
+            <li>Referral rewards</li>
+            <li>Certificate PDF</li>
+            <li>Priority features</li>
+          </ul>
+          <div class="upg-card-btn max" onclick="goPlan('max')">Choose Max</div>
         </div>
       </div>
+      <div style="text-align:center;margin-top:8px"><a href="plans.html" style="font-size:10.5px;color:var(--accent);font-weight:700">Compare all plans →</a></div>
     </div>
 
     <!-- Footer -->
@@ -510,8 +562,33 @@ function tick(){
     s.history.push(s.price);
     if(s.history.length > MAX_HIST) s.history.shift();
   });
-  renderWatchlist(); renderSummary(); updateClock();
+  renderTicker(); renderWatchlist(); renderSummary(); updateClock();
   if(detailIdx !== null) renderDetail();
+}
+
+function renderTicker(){
+  const track = document.getElementById("ticker-track");
+  if(!track) return;
+  const items = stocks.map(s=>{
+    const up = s.price >= s.prevClose;
+    const arrow = up ? "▲" : "▼";
+    const cls = up ? "g" : "r";
+    return `<span class="tk-item"><span class="tk-sym">${s.sym}</span><span class="${cls}">${s.price.toFixed(2)} ${arrow}</span></span>`;
+  }).join("");
+  track.innerHTML = items + items; // duplicate for seamless loop
+}
+
+function refreshPrices(){
+  tick();
+  showToast("✓ Prices refreshed");
+}
+
+let sortMode = 0; // 0=gainers, 1=losers, 2=name, 3=default
+const SORT_LABELS = ["▲ Gainers","▼ Losers","A–Z Name","↕ Default"];
+function cycleSort(){
+  sortMode = (sortMode + 1) % 4;
+  document.getElementById("sort-btn").textContent = SORT_LABELS[sortMode];
+  renderWatchlist();
 }
 
 function updateClock(){
@@ -539,36 +616,57 @@ function sparkline(canvas, hist, up){
 
 function renderWatchlist(){
   const wl = document.getElementById("watchlist");
-  const visibleCount = userPlan === "free" ? FREE_LIMIT : stocks.length;
-  wl.innerHTML = stocks.map((s,i)=>{
-    const chg = s.price - s.prevClose;
-    const pct = (chg/s.prevClose*100);
-    const cls = chg >= 0 ? "g":"r";
-    const sign = chg >= 0 ? "+":"";
-    const locked = i >= visibleCount;
-    const initials = s.sym.slice(0,2);
-    if(locked){
-      return `<div class="stk-lock" onclick="location.href='plans.html'">
-        <div class="stk-ico">🔒</div>
-        <div class="stk-info"><div class="stk-name" style="color:var(--muted)">${s.sym}</div><div class="stk-sec">${s.sector}</div></div>
-        <div class="stk-price-col"><div class="stk-price" style="color:var(--muted)">₹ ---</div><div class="stk-chg" style="color:var(--muted)">Pro only</div></div>
+  const visibleCount = userPlan === "free" ? FREE_LIMIT : (userPlan === "lite" ? 30 : stocks.length);
+  const searchEl = document.getElementById("search-input");
+  const q = searchEl ? searchEl.value.trim().toUpperCase() : "";
+
+  // Build list with original index preserved (gating depends on original index)
+  let list = stocks.map((s,i)=>({s, i, locked: i >= visibleCount}));
+
+  // Search filter
+  if(q){
+    list = list.filter(o => o.s.sym.includes(q) || o.s.full.toUpperCase().includes(q) || o.s.sector.toUpperCase().includes(q));
+  }
+
+  // Sort
+  const chgPct = o => (o.s.price - o.s.prevClose)/o.s.prevClose*100;
+  if(sortMode === 0) list.sort((a,b)=>chgPct(b)-chgPct(a));       // gainers
+  else if(sortMode === 1) list.sort((a,b)=>chgPct(a)-chgPct(b));  // losers
+  else if(sortMode === 2) list.sort((a,b)=>a.s.sym.localeCompare(b.s.sym)); // name
+
+  if(!list.length){
+    wl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12.5px;padding:24px">No stocks match "${q}"</div>`;
+  } else {
+    wl.innerHTML = list.map(o=>{
+      const s = o.s, i = o.i;
+      const chg = s.price - s.prevClose;
+      const pct = (chg/s.prevClose*100);
+      const cls = chg >= 0 ? "g":"r";
+      const sign = chg >= 0 ? "+":"";
+      const initials = s.sym.slice(0,2);
+      if(o.locked){
+        return `<div class="stk-lock" onclick="location.href='plans.html'">
+          <div class="stk-ico">🔒</div>
+          <div class="stk-info"><div class="stk-name" style="color:var(--muted)">${s.sym}</div><div class="stk-sec">${s.sector}</div></div>
+          <div class="stk-price-col"><div class="stk-price" style="color:var(--muted)">₹ ---</div><div class="stk-chg" style="color:var(--muted)">Pro only</div></div>
+        </div>`;
+      }
+      return `<div class="stk" onclick="openDetail(${i})">
+        <div class="stk-ico" style="background:${sectorColor(s.sector)}">${initials}</div>
+        <div class="stk-info"><div class="stk-name">${s.sym}</div><div class="stk-sec">${s.sector}</div></div>
+        <canvas class="spark" id="spark-${i}" width="88" height="44"></canvas>
+        <div class="stk-price-col">
+          <div class="stk-price" id="price-${i}">${s.price.toFixed(2)}</div>
+          <div class="stk-chg ${cls}">${sign}${chg.toFixed(2)} (${sign}${pct.toFixed(2)}%)</div>
+        </div>
       </div>`;
-    }
-    return `<div class="stk" onclick="openDetail(${i})">
-      <div class="stk-ico" style="background:${sectorColor(s.sector)}">${initials}</div>
-      <div class="stk-info"><div class="stk-name">${s.sym}</div><div class="stk-sec">${s.sector}</div></div>
-      <canvas class="spark" id="spark-${i}" width="88" height="44"></canvas>
-      <div class="stk-price-col">
-        <div class="stk-price" id="price-${i}">${s.price.toFixed(2)}</div>
-        <div class="stk-chg ${cls}">${sign}${chg.toFixed(2)} (${sign}${pct.toFixed(2)}%)</div>
-      </div>
-    </div>`;
-  }).join("");
-  stocks.forEach((s,i)=>{
-    if(i >= visibleCount) return;
-    const c = document.getElementById("spark-"+i);
-    if(c) sparkline(c, s.history.slice(-30), s.price >= s.prevClose);
-  });
+    }).join("");
+    list.forEach(o=>{
+      if(o.locked) return;
+      const c = document.getElementById("spark-"+o.i);
+      if(c) sparkline(c, o.s.history.slice(-30), o.s.price >= o.s.prevClose);
+    });
+  }
 
   // upgrade zone: Free sees both, Lite sees only Max, Max sees none
   const upgZone = document.getElementById("upgrade-zone");
@@ -798,7 +896,7 @@ for(let i=0;i<35;i++){
   });
 }
 
-renderWatchlist(); renderSummary(); updateClock(); updatePlanBadge();
+renderTicker(); renderWatchlist(); renderSummary(); updateClock(); updatePlanBadge();
 setInterval(tick, 5000); // 5-second refresh, matches Angel One Phase 2 plan
 
 // Don't show login screen immediately — wait for Firebase to confirm auth status.

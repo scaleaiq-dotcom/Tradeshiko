@@ -21,6 +21,51 @@
   .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;background:var(--bg)}
   .screen{flex:1;padding-bottom:84px}
 
+  /* Live Ticker Bar */
+  .ticker-bar{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;
+    white-space:nowrap;padding:7px 0;position:sticky;top:0;z-index:6}
+  .ticker-track{display:inline-block;animation:tickerscroll 40s linear infinite}
+  @keyframes tickerscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .tk-item{display:inline-block;margin:0 16px;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .tk-item .tk-sym{color:var(--subtle);margin-right:6px;font-weight:600}
+  @media (prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+
+  /* Quick action buttons on holding row */
+  .hold-actions{display:flex;gap:8px;padding:10px 13px 0}
+  .ha-btn{flex:1;padding:9px;border-radius:9px;font-size:11.5px;font-weight:800;cursor:pointer;
+    border:none;font-family:'Inter',sans-serif;text-align:center}
+  .ha-buy{background:linear-gradient(135deg,#064E3B,var(--green));color:#fff}
+  .ha-sell{background:linear-gradient(135deg,#7F1D1D,var(--red));color:#fff}
+  .ha-btn:active{transform:scale(0.97)}
+  .quick-sell{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:var(--red);
+    font-size:10px;font-weight:800;padding:5px 11px;border-radius:8px;cursor:pointer;flex-shrink:0;
+    font-family:'Inter',sans-serif;margin-left:6px}
+  .quick-sell:active{transform:scale(0.95)}
+
+  /* Trade modal */
+  .overlay-trade{position:fixed;inset:0;background:rgba(5,8,14,0.8);display:none;align-items:center;justify-content:center;z-index:45;padding:18px}
+  .overlay-trade.show{display:flex}
+  .modal{background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:22px;width:100%;max-width:380px}
+  .modal h3{font-size:16px;font-weight:800;margin-bottom:3px}
+  .modal .mprice{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12.5px;margin-bottom:16px}
+  .qty-input-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .qty-input-row input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:11px;
+    padding:13px 15px;font-size:20px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace;
+    text-align:center;-moz-appearance:textfield}
+  .qty-input-row input::-webkit-outer-spin-button,.qty-input-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .qty-input-row input:focus{outline:none;border-color:var(--accent)}
+  .max-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+    border-radius:11px;padding:13px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
+  .qty-hint{font-size:10.5px;color:var(--muted);text-align:center;margin-bottom:14px}
+  .total{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:16px;padding:11px 13px;background:var(--card);border-radius:11px}
+  .total .t-val{font-family:'JetBrains Mono',monospace;font-weight:700}
+  .m-err{color:var(--red);font-size:11.5px;margin-bottom:10px;display:none}
+  .m-actions{display:flex;gap:10px}
+  .btn{border:none;border-radius:12px;padding:13px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:'Inter',sans-serif;flex:1}
+  .btn-buy{background:linear-gradient(135deg,#064E3B,var(--green));color:#fff}
+  .btn-sell{background:linear-gradient(135deg,#7F1D1D,var(--red));color:#fff}
+  .btn-cancel{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+
   .hdr{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:center;
     position:sticky;top:0;z-index:5;background:rgba(9,13,22,0.92);backdrop-filter:blur(12px)}
   .hdr-title{font-size:16px;font-weight:800}
@@ -127,6 +172,9 @@
 <body>
 <div class="app">
 
+  <!-- Live Ticker Bar -->
+  <div class="ticker-bar"><div class="ticker-track" id="ticker-track"></div></div>
+
   <!-- Header -->
   <div class="hdr">
     <div class="logo-row">
@@ -204,6 +252,25 @@
     <div class="confirm-actions">
       <button class="cbtn cbtn-cancel" onclick="closeReset()">Cancel</button>
       <button class="cbtn cbtn-confirm" onclick="doReset()">Yes, Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trade Modal -->
+<div class="overlay-trade" id="overlay-trade">
+  <div class="modal">
+    <h3 id="m-title">RELIANCE — Sell</h3>
+    <div class="mprice" id="m-price">₹2,950.00 per share</div>
+    <div class="qty-input-row">
+      <input type="number" inputmode="numeric" min="1" id="m-qty-input" value="1" oninput="onQtyInput()">
+      <button class="max-btn" id="m-max-btn" onclick="setMaxQty()">ALL</button>
+    </div>
+    <div class="qty-hint" id="m-qty-hint">—</div>
+    <div class="total"><span>Total</span><span class="t-val" id="m-total">₹2,950.00</span></div>
+    <div class="m-err" id="m-err"></div>
+    <div class="m-actions">
+      <button class="btn btn-cancel" onclick="closeTrade()">Cancel</button>
+      <button class="btn btn-sell" id="m-confirm" onclick="confirmTrade()">Confirm Sell</button>
     </div>
   </div>
 </div>
@@ -322,6 +389,7 @@ function render(){
             <div class="hold-value">${fmtInt(cur)}</div>
             <div class="hold-pnl-sm ${cls}">${sign}${fmt(pl)} (${sign}${plpct.toFixed(1)}%)</div>
           </div>
+          <button class="quick-sell" onclick="event.stopPropagation();openTrade('${sym}','sell')">SELL</button>
           <span class="hold-caret">▼</span>
         </div>
         <div class="hold-details">
@@ -330,6 +398,10 @@ function render(){
             <div class="hg"><span class="k">Avg Buy</span><span class="v">${h.avg.toFixed(2)}</span></div>
             <div class="hg"><span class="k">LTP</span><span class="v">${px.toFixed(2)}</span></div>
             <div class="hg"><span class="k">Invested</span><span class="v">${fmtInt(h.qty*h.avg)}</span></div>
+          </div>
+          <div class="hold-actions">
+            <button class="ha-btn ha-buy" onclick="openTrade('${sym}','buy')">▲ Buy More</button>
+            <button class="ha-btn ha-sell" onclick="openTrade('${sym}','sell')">▼ Sell</button>
           </div>
         </div>
       </div>`;
@@ -396,6 +468,91 @@ function showToast(msg){
 
 document.getElementById("reset-overlay").addEventListener("click",e=>{if(e.target.id==="reset-overlay")closeReset();});
 
+function renderTicker(){
+  const track = document.getElementById("ticker-track");
+  if(!track) return;
+  const items = stockMeta.map(m=>{
+    const sym = m[0];
+    const px = priceMap[sym];
+    const up = Math.random() > 0.45;
+    const arrow = up ? "▲" : "▼";
+    const cls = up ? "g" : "r";
+    return `<span class="tk-item"><span class="tk-sym">${sym}</span><span class="${cls}">${px.toFixed(2)} ${arrow}</span></span>`;
+  }).join("");
+  track.innerHTML = items + items;
+}
+
+// ===== Trade (buy more / sell) from holdings =====
+let tradeSym = null, tradeSide = "sell", tradeQty = 1;
+function openTrade(sym, side){
+  tradeSym = sym; tradeSide = side; tradeQty = 1;
+  const px = priceMap[sym] || (holdings[sym] ? holdings[sym].avg : 0);
+  document.getElementById("m-title").textContent = sym + (side==="sell" ? " — Sell" : " — Buy More");
+  document.getElementById("m-price").textContent = fmt(px) + " per share";
+  document.getElementById("m-qty-input").value = 1;
+  document.getElementById("m-max-btn").textContent = side==="sell" ? "ALL" : "MAX";
+  const cb = document.getElementById("m-confirm");
+  cb.textContent = side==="sell" ? "Confirm Sell" : "Confirm Buy";
+  cb.className = "btn " + (side==="sell" ? "btn-sell" : "btn-buy");
+  document.getElementById("m-err").style.display = "none";
+  updateTradeModal();
+  document.getElementById("overlay-trade").classList.add("show");
+}
+function tradeMaxQty(){
+  const px = priceMap[tradeSym] || 1;
+  if(tradeSide === "buy") return Math.max(0, Math.floor(cash / px));
+  const h = holdings[tradeSym]; return h ? h.qty : 0;
+}
+function onQtyInput(){
+  let v = parseInt(document.getElementById("m-qty-input").value) || 0;
+  if(v < 1) v = 1;
+  tradeQty = v; updateTradeModal();
+}
+function setMaxQty(){
+  tradeQty = Math.max(1, tradeMaxQty());
+  document.getElementById("m-qty-input").value = tradeQty;
+  updateTradeModal();
+}
+function updateTradeModal(){
+  const px = priceMap[tradeSym] || 1;
+  document.getElementById("m-total").textContent = fmt(tradeQty * px);
+  const mx = tradeMaxQty();
+  document.getElementById("m-qty-hint").textContent = tradeSide==="buy"
+    ? `You can afford up to ${mx} shares (cash ${fmtInt(cash)})`
+    : `You own ${mx} shares`;
+}
+function closeTrade(){ document.getElementById("overlay-trade").classList.remove("show"); }
+function confirmTrade(){
+  const px = priceMap[tradeSym] || 1;
+  const total = tradeQty * px;
+  const err = document.getElementById("m-err");
+  const t = new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"});
+  if(tradeSide === "buy"){
+    if(total > cash){ err.textContent = "Cash kam hai! Available: "+fmtInt(cash); err.style.display="block"; return; }
+    cash -= total;
+    const h = holdings[tradeSym];
+    if(h){ h.avg = (h.avg*h.qty + total)/(h.qty+tradeQty); h.qty += tradeQty; }
+    else holdings[tradeSym] = {qty:tradeQty, avg:px};
+    orders.unshift({side:"BUY", sym:tradeSym, qty:tradeQty, price:px, t});
+    showToast(`✅ ${tradeQty} × ${tradeSym} kharida @ ${fmt(px)}`);
+  } else {
+    const h = holdings[tradeSym];
+    if(!h || tradeQty > h.qty){ err.textContent = "Itne shares nahi! Aapke paas: "+(h?h.qty:0); err.style.display="block"; return; }
+    cash += total;
+    h.qty -= tradeQty;
+    if(h.qty === 0) delete holdings[tradeSym];
+    orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, t});
+    showToast(`💰 ${tradeQty} × ${tradeSym} becha @ ${fmt(px)}`);
+  }
+  if(orders.length > 30) orders.pop();
+  closeTrade();
+  render();
+  track("trade_"+tradeSide, {stock:tradeSym, qty:tradeQty});
+  if(window.cloudSave) window.cloudSave(getState());
+}
+document.getElementById("overlay-trade").addEventListener("click", e=>{ if(e.target.id==="overlay-trade") closeTrade(); });
+
+renderTicker();
 render();
 </script>
 
