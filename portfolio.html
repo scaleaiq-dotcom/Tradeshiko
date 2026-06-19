@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Portfolio — TradeSeekho</title>
+<meta name="theme-color" content="#090D16">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090D16; --surface:#0F1623; --card:#141E2E; --card2:#1A2540;
+    --border:#1E2D45; --border2:#243352;
+    --accent:#3B82F6; --accent2:#6366F1;
+    --green:#10B981; --green2:#059669; --red:#EF4444; --gold:#F59E0B;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8; --purple:#8B5CF6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overscroll-behavior-y:none}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+  .screen{flex:1;padding-bottom:84px}
+
+  .hdr{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:center;
+    position:sticky;top:0;z-index:5;background:rgba(9,13,22,0.92);backdrop-filter:blur(12px)}
+  .hdr-title{font-size:16px;font-weight:800}
+  .logo-row{display:flex;align-items:center;gap:9px}
+  .logo-img{width:30px;height:30px;border-radius:8px;object-fit:contain}
+  .hdr-link{font-size:11px;color:var(--accent);font-weight:700}
+
+  .g{color:var(--green)} .r{color:var(--red)}
+
+  /* Summary card */
+  .port-card{margin:8px 14px 14px;background:linear-gradient(135deg,#111E38,#0B1628);
+    border:1px solid var(--border2);border-radius:18px;padding:18px 17px}
+  .port-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:5px}
+  .port-val{font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+  .port-pnl{font-size:12.5px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:15px}
+  .port-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .stat{display:flex;flex-direction:column;gap:2px}
+  .stat-l{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:600}
+  .stat-v{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace}
+
+  .sec-hdr{padding:2px 16px 9px;display:flex;justify-content:space-between;align-items:center}
+  .sec-title{font-size:12.5px;font-weight:800}
+  .sec-sub{font-size:10.5px;color:var(--muted);font-weight:600}
+
+  /* Holdings */
+  .hold-list{padding:0 14px;display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+  .hold{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 13px}
+  .hold-top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+  .hold-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;flex-shrink:0;color:#fff}
+  .hold-name{font-size:13px;font-weight:700;flex:1}
+  .hold-pnl-big{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;text-align:right}
+  .hold-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .hg{display:flex;flex-direction:column;gap:2px}
+  .hg .k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .hg .v{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600}
+
+  /* Orders */
+  .order{display:flex;justify-content:space-between;align-items:center;background:var(--card);
+    border:1px solid var(--border);border-radius:11px;padding:10px 13px;margin-bottom:6px;font-size:12.5px}
+  .o-side-buy{color:var(--green);font-weight:800}
+  .o-side-sell{color:var(--red);font-weight:800}
+  .o-time{color:var(--muted);font-size:10.5px}
+
+  .empty{color:var(--muted);font-size:12.5px;background:var(--card);border:1px dashed var(--border);
+    border-radius:13px;padding:20px;text-align:center;margin:0 14px 16px}
+
+  /* Reset card */
+  .reset-card{margin:6px 14px 16px;background:linear-gradient(135deg,#0F1C35,#141E2E);
+    border:1px solid var(--border2);border-radius:14px;padding:14px 15px}
+  .reset-title{font-size:11.5px;font-weight:800;color:var(--subtle);margin-bottom:5px}
+  .reset-desc{font-size:10.5px;color:var(--muted);line-height:1.55;margin-bottom:12px}
+  .reset-btn{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:var(--red);
+    font-size:11.5px;font-weight:800;padding:10px 16px;border-radius:10px;width:100%;cursor:pointer;
+    font-family:'Inter',sans-serif}
+  .reset-btn:active{transform:scale(0.98)}
+
+  /* Footer */
+  .app-footer{padding:18px 16px 8px;text-align:center;border-top:1px solid var(--border);margin:8px 14px 0}
+  .footer-powered{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+  .footer-powered img{height:20px;background:#fff;border-radius:5px;padding:2px}
+  .footer-powered span{font-size:10px;color:var(--muted)}
+  .footer-links{font-size:10px;color:var(--muted);line-height:1.8}
+  .footer-links a{color:var(--accent)}
+
+  /* Bottom nav */
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:72px;
+    background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-around;padding:0 4px 10px;z-index:10}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px;border-radius:11px;cursor:pointer;flex:1;max-width:80px}
+  .nav-i.act{background:rgba(59,130,246,0.12)}
+  .nav-icon{font-size:18px;line-height:1}
+  .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .nav-i.act .nav-lbl{color:var(--accent)}
+
+  /* Toast + confirm modal */
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--card2);border:1px solid var(--accent);color:var(--text);padding:12px 20px;
+    border-radius:13px;font-size:13.5px;font-weight:600;transition:transform .3s;z-index:60;max-width:88%;text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .overlay{position:fixed;inset:0;background:rgba(5,8,14,0.8);display:none;align-items:center;justify-content:center;z-index:40;padding:20px}
+  .overlay.show{display:flex}
+  .confirm-box{background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:22px;max-width:340px;width:100%;text-align:center}
+  .confirm-box h3{font-size:16px;font-weight:800;margin-bottom:8px}
+  .confirm-box p{font-size:12px;color:var(--subtle);line-height:1.6;margin-bottom:18px}
+  .confirm-actions{display:flex;gap:10px}
+  .cbtn{flex:1;padding:12px;border-radius:11px;font-size:13px;font-weight:800;cursor:pointer;border:none;font-family:'Inter',sans-serif}
+  .cbtn-cancel{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+  .cbtn-confirm{background:linear-gradient(135deg,#7F1D1D,var(--red));color:#fff}
+
+  .skeleton{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);
+    background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:13px;height:70px;margin-bottom:7px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="logo-row">
+      <img class="logo-img" src="logo.png" alt="TradeSeekho">
+      <span class="hdr-title">💼 My Portfolio</span>
+    </div>
+    <a class="hdr-link" href="index.html">Market →</a>
+  </div>
+
+  <div class="screen">
+
+    <!-- Summary -->
+    <div class="port-card">
+      <div class="port-lbl">Total Value</div>
+      <div class="port-val" id="port-val">₹1,00,000</div>
+      <div class="port-pnl g" id="port-pnl">▲ +₹0 (+0.00%)</div>
+      <div class="port-stats">
+        <div class="stat"><span class="stat-l">Cash Left</span><span class="stat-v" id="s-cash">₹1,00,000</span></div>
+        <div class="stat"><span class="stat-l">In Stocks</span><span class="stat-v" id="s-stocks">₹0</span></div>
+        <div class="stat"><span class="stat-l">Peak</span><span class="stat-v" style="color:var(--gold)" id="s-peak">₹1,00,000</span></div>
+      </div>
+    </div>
+
+    <!-- Holdings -->
+    <div class="sec-hdr">
+      <span class="sec-title">Holdings</span>
+      <span class="sec-sub" id="hold-count">0 stocks</span>
+    </div>
+    <div id="holdings"><div class="skeleton"></div><div class="skeleton"></div></div>
+
+    <!-- Orders -->
+    <div class="sec-hdr">
+      <span class="sec-title">Recent Orders</span>
+      <span class="sec-sub" id="order-count">—</span>
+    </div>
+    <div id="orders"><div class="empty">No orders yet. Make your first trade from the Market tab!</div></div>
+
+    <!-- Reset -->
+    <div class="reset-card">
+      <div class="reset-title">🔄 Reset Portfolio</div>
+      <div class="reset-desc">Lost all money or want a fresh start? Reset anytime — free. Your leaderboard peak stays, Pro status stays. Only your holdings and cash reset to the starting amount.</div>
+      <button class="reset-btn" id="reset-btn" onclick="askReset()">Start Fresh → Get <span id="reset-amt">₹1 Lakh</span></button>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+      <div class="footer-powered">
+        <img src="scaleaiq-logo.png" alt="ScaleAIQ">
+        <span>Powered by ScaleAIQ</span>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="contact.html">Contact</a><br>
+        Virtual trading only · Not investment advice · © 2026 ScaleAIQ
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-i" onclick="location.href='index.html'"><span class="nav-icon">📊</span><span class="nav-lbl">Market</span></div>
+    <div class="nav-i act" onclick="location.href='portfolio.html'"><span class="nav-icon">💼</span><span class="nav-lbl">Portfolio</span></div>
+    <div class="nav-i" onclick="location.href='leaderboard.html'"><span class="nav-icon">🏆</span><span class="nav-lbl">Ranks</span></div>
+    <div class="nav-i" onclick="location.href='community.html'"><span class="nav-icon">💬</span><span class="nav-lbl">Community</span></div>
+    <div class="nav-i" onclick="location.href='profile.html'"><span class="nav-icon">👤</span><span class="nav-lbl">Profile</span></div>
+  </div>
+
+</div>
+
+<!-- Reset confirm modal -->
+<div class="overlay" id="reset-overlay">
+  <div class="confirm-box">
+    <h3>Reset Portfolio?</h3>
+    <p>This will sell all holdings and reset your cash to <strong id="reset-confirm-amt">₹1 Lakh</strong>.<br><br>Your peak value of <strong id="reset-peak" style="color:var(--gold)">₹1 Lakh</strong> stays on the leaderboard. This can't be undone.</p>
+    <div class="confirm-actions">
+      <button class="cbtn cbtn-cancel" onclick="closeReset()">Cancel</button>
+      <button class="cbtn cbtn-confirm" onclick="doReset()">Yes, Reset</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CONFIG = {
+  GA_ID: "G-SXDSK3T06X",
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
+
+if(!CONFIG.GA_ID.includes("XXXX")){
+  const gs=document.createElement("script");gs.async=true;
+  gs.src="https://www.googletagmanager.com/gtag/js?id="+CONFIG.GA_ID;document.head.appendChild(gs);
+  window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments);};
+  gtag('js',new Date());gtag('config',CONFIG.GA_ID);
+}
+function track(e,p){if(window.gtag)gtag('event',e,p||{});}
+
+// Same stock universe + mock prices (Phase 2: read shared prices from Firebase)
+function mkStock(sym, full, sector, price){
+  return {sym, full, sector, price:+(price*(0.98+Math.random()*0.04)).toFixed(2)};
+}
+const stockMeta = [
+  ["RELIANCE","Reliance Industries","Energy",2950],["TCS","Tata Consultancy Services","IT",4120],
+  ["HDFCBANK","HDFC Bank","Banking",1685],["INFY","Infosys","IT",1540],
+  ["TATAMOTORS","Tata Motors","Auto",1020],["SBIN","State Bank of India","Banking",845],
+  ["ITC","ITC Limited","FMCG",438],["BHARTIARTL","Bharti Airtel","Telecom",1450],
+  ["WIPRO","Wipro","IT",495],["HAL","Hindustan Aeronautics","Defence",4480]
+];
+const priceMap = {};
+stockMeta.forEach(m=>{ priceMap[m[0]] = mkStock(m[0],m[1],m[2],m[3]).price; });
+
+const PLAN_START = {free:100000, lite:500000, max:1000000};
+
+let cash = 100000;
+let holdings = {};
+let orders = [];
+let userPlan = "free";
+let peakValue = 100000;
+
+const fmt = n => "₹" + n.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const fmtLakh = n => n>=100000 ? "₹"+(n/100000).toFixed(n%100000===0?0:1)+" Lakh" : fmtInt(n);
+
+function sectorColor(sector){
+  const map={Energy:"linear-gradient(135deg,#1E3A5F,#2563EB)",IT:"linear-gradient(135deg,#1A3A2A,#059669)",
+    Banking:"linear-gradient(135deg,#3B1A1A,#DC2626)",Auto:"linear-gradient(135deg,#3A2A1A,#D97706)",
+    FMCG:"linear-gradient(135deg,#1A2A3A,#0EA5E9)",Telecom:"linear-gradient(135deg,#2A1A3A,#8B5CF6)",
+    Defence:"linear-gradient(135deg,#1A1A3A,#4F46E5)"};
+  return map[sector]||"linear-gradient(135deg,#1E3A5F,#2563EB)";
+}
+function sectorOf(sym){ const m = stockMeta.find(x=>x[0]===sym); return m?m[2]:"NSE"; }
+
+function render(){
+  let holdval=0, invested=0;
+  const syms = Object.keys(holdings);
+  syms.forEach(sym=>{
+    const px = priceMap[sym] || holdings[sym].avg;
+    holdval += holdings[sym].qty * px;
+    invested += holdings[sym].qty * holdings[sym].avg;
+  });
+  const total = cash + holdval;
+  if(total > peakValue) peakValue = total;
+
+  document.getElementById("port-val").textContent = fmtInt(total);
+  document.getElementById("s-cash").textContent = fmtInt(cash);
+  document.getElementById("s-stocks").textContent = fmtInt(holdval);
+  document.getElementById("s-peak").textContent = fmtInt(peakValue);
+
+  const start = PLAN_START[userPlan];
+  const pnl = total - start;
+  const pct = (pnl/start*100);
+  const pnlEl = document.getElementById("port-pnl");
+  pnlEl.textContent = (pnl>=0?"▲ +":"▼ ")+fmtInt(Math.abs(pnl))+` (${pnl>=0?"+":""}${pct.toFixed(2)}%)`;
+  pnlEl.className = "port-pnl "+(pnl>=0?"g":"r");
+
+  // holdings
+  const hEl = document.getElementById("holdings");
+  document.getElementById("hold-count").textContent = syms.length + (syms.length===1?" stock":" stocks");
+  if(!syms.length){
+    hEl.innerHTML = `<div class="empty">No holdings yet. Buy your first stock from the Market tab! 🚀</div>`;
+  } else {
+    hEl.innerHTML = syms.map(sym=>{
+      const h = holdings[sym];
+      const px = priceMap[sym] || h.avg;
+      const cur = h.qty*px;
+      const pl = cur - h.qty*h.avg;
+      const plpct = (pl/(h.qty*h.avg)*100);
+      const cls = pl>=0?"g":"r";
+      const sign = pl>=0?"+":"";
+      const sec = sectorOf(sym);
+      return `<div class="hold">
+        <div class="hold-top">
+          <div class="hold-ico" style="background:${sectorColor(sec)}">${sym.slice(0,2)}</div>
+          <span class="hold-name">${sym}</span>
+          <span class="hold-pnl-big ${cls}">${sign}${fmt(pl)}</span>
+        </div>
+        <div class="hold-grid">
+          <div class="hg"><span class="k">Qty</span><span class="v">${h.qty}</span></div>
+          <div class="hg"><span class="k">Avg Buy</span><span class="v">${h.avg.toFixed(2)}</span></div>
+          <div class="hg"><span class="k">LTP</span><span class="v">${px.toFixed(2)}</span></div>
+          <div class="hg"><span class="k">Value</span><span class="v">${fmtInt(cur)}</span></div>
+        </div>
+        <div style="margin-top:6px;font-size:10px;color:var(--muted)" class="mono">Return: <span class="${cls}">${sign}${plpct.toFixed(2)}%</span></div>
+      </div>`;
+    }).join("");
+  }
+
+  // orders
+  const oEl = document.getElementById("orders");
+  document.getElementById("order-count").textContent = orders.length ? orders.length+" total" : "—";
+  if(!orders.length){
+    oEl.innerHTML = `<div class="empty">No orders yet. Make your first trade from the Market tab!</div>`;
+  } else {
+    oEl.innerHTML = orders.slice(0,20).map(o=>
+      `<div class="order">
+        <span><span class="o-side-${o.side.toLowerCase()}">${o.side}</span> ${o.qty} × ${o.sym}</span>
+        <span class="mono">${fmt(o.price)} <span class="o-time">${o.t}</span></span>
+      </div>`).join("");
+  }
+
+  // reset button amount
+  document.getElementById("reset-amt").textContent = fmtLakh(start);
+  document.getElementById("reset-confirm-amt").textContent = fmtLakh(start);
+  document.getElementById("reset-peak").textContent = fmtInt(peakValue);
+}
+
+function applyState(st){
+  if(!st) return;
+  cash = typeof st.cash==="number" ? st.cash : cash;
+  holdings = st.holdings || {};
+  orders = st.orders || [];
+  userPlan = st.plan || "free";
+  peakValue = typeof st.peakValue==="number" ? st.peakValue : PLAN_START[userPlan];
+  render();
+}
+function getState(){
+  return {cash, holdings, orders:orders.slice(0,20), plan:userPlan, peakValue, updatedAt:Date.now()};
+}
+
+// Reset flow
+function askReset(){ document.getElementById("reset-overlay").classList.add("show"); }
+function closeReset(){ document.getElementById("reset-overlay").classList.remove("show"); }
+function doReset(){
+  const start = PLAN_START[userPlan];
+  cash = start;
+  holdings = {};
+  orders.unshift({side:"RESET", sym:"Portfolio", qty:"", price:0, t:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"})});
+  // peakValue stays unchanged
+  closeReset();
+  render();
+  track("portfolio_reset", {plan:userPlan});
+  if(window.cloudSave) window.cloudSave(getState());
+  showToast("✅ Fresh start! "+fmtLakh(start)+" ready. Peak value saved 🏆");
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove("show"),2800);
+}
+
+document.getElementById("reset-overlay").addEventListener("click",e=>{if(e.target.id==="reset-overlay")closeReset();});
+
+render();
+</script>
+
+<script type="module">
+if(!DEMO_MODE){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let uid = null, saveTimer = null;
+
+    window.cloudSave = function(state){
+      if(!uid) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async ()=>{
+        try{ await setDoc(doc(db,"users",uid), state, {merge:true}); }
+        catch(e){ console.error("Save failed", e); }
+      }, 400);
+    };
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(user){
+        uid = user.uid;
+        try{
+          const snap = await getDoc(doc(db,"users",uid));
+          if(snap.exists()) applyState(snap.data());
+        }catch(e){ console.error("Load failed", e); }
+      } else {
+        // not logged in -> send to home where login screen shows
+        location.href = "index.html";
+      }
+    });
+  }catch(e){ console.error("Firebase init failed:", e); }
+}
+</script>
+</body>
+</html>
