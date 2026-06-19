@@ -45,18 +45,26 @@
   .sec-title{font-size:12.5px;font-weight:800}
   .sec-sub{font-size:10.5px;color:var(--muted);font-weight:600}
 
-  /* Holdings */
-  .hold-list{padding:0 14px;display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
-  .hold{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 13px}
-  .hold-top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
-  .hold-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    font-size:11px;font-weight:800;flex-shrink:0;color:#fff}
-  .hold-name{font-size:13px;font-weight:700;flex:1}
-  .hold-pnl-big{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;text-align:right}
-  .hold-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  /* Holdings - compact expandable rows */
+  .hold-list{padding:0 14px;display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .hold{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .hold-row{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer}
+  .hold-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:10.5px;font-weight:800;flex-shrink:0;color:#fff}
+  .hold-mid{flex:1;min-width:0}
+  .hold-name{font-size:12.5px;font-weight:700}
+  .hold-qty-line{font-size:9.5px;color:var(--muted);margin-top:1px}
+  .hold-right{text-align:right;flex-shrink:0}
+  .hold-value{font-size:12.5px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .hold-pnl-sm{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:1px}
+  .hold-caret{font-size:10px;color:var(--muted);margin-left:4px;transition:transform .2s}
+  .hold.open .hold-caret{transform:rotate(180deg)}
+  .hold-details{display:none;padding:0 13px 12px;border-top:1px solid var(--border)}
+  .hold.open .hold-details{display:block}
+  .hold-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-top:10px}
   .hg{display:flex;flex-direction:column;gap:2px}
   .hg .k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
-  .hg .v{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600}
+  .hg .v{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600}
 
   /* Orders */
   .order{display:flex;justify-content:space-between;align-items:center;background:var(--card);
@@ -202,6 +210,12 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Auth loading guard — covers screen until Firebase confirms login, prevents flash -->
+<div id="auth-loading" style="position:fixed;inset:0;background:var(--bg);z-index:70;display:flex;align-items:center;justify-content:center">
+  <img src="logo.png" alt="" style="width:64px;height:64px;border-radius:16px;opacity:0.9;animation:fadepulse 1.2s infinite">
+</div>
+<style>@keyframes fadepulse{0%,100%{opacity:0.4}50%{opacity:1}}</style>
+
 <script>
 const CONFIG = {
   GA_ID: "G-SXDSK3T06X",
@@ -288,7 +302,7 @@ function render(){
   if(!syms.length){
     hEl.innerHTML = `<div class="empty">No holdings yet. Buy your first stock from the Market tab! 🚀</div>`;
   } else {
-    hEl.innerHTML = syms.map(sym=>{
+    hEl.innerHTML = syms.map((sym,idx)=>{
       const h = holdings[sym];
       const px = priceMap[sym] || h.avg;
       const cur = h.qty*px;
@@ -297,19 +311,27 @@ function render(){
       const cls = pl>=0?"g":"r";
       const sign = pl>=0?"+":"";
       const sec = sectorOf(sym);
-      return `<div class="hold">
-        <div class="hold-top">
+      return `<div class="hold" id="hold-${idx}">
+        <div class="hold-row" onclick="toggleHold(${idx})">
           <div class="hold-ico" style="background:${sectorColor(sec)}">${sym.slice(0,2)}</div>
-          <span class="hold-name">${sym}</span>
-          <span class="hold-pnl-big ${cls}">${sign}${fmt(pl)}</span>
+          <div class="hold-mid">
+            <div class="hold-name">${sym}</div>
+            <div class="hold-qty-line">${h.qty} ${h.qty===1?'share':'shares'} · ${sec}</div>
+          </div>
+          <div class="hold-right">
+            <div class="hold-value">${fmtInt(cur)}</div>
+            <div class="hold-pnl-sm ${cls}">${sign}${fmt(pl)} (${sign}${plpct.toFixed(1)}%)</div>
+          </div>
+          <span class="hold-caret">▼</span>
         </div>
-        <div class="hold-grid">
-          <div class="hg"><span class="k">Qty</span><span class="v">${h.qty}</span></div>
-          <div class="hg"><span class="k">Avg Buy</span><span class="v">${h.avg.toFixed(2)}</span></div>
-          <div class="hg"><span class="k">LTP</span><span class="v">${px.toFixed(2)}</span></div>
-          <div class="hg"><span class="k">Value</span><span class="v">${fmtInt(cur)}</span></div>
+        <div class="hold-details">
+          <div class="hold-grid">
+            <div class="hg"><span class="k">Qty</span><span class="v">${h.qty}</span></div>
+            <div class="hg"><span class="k">Avg Buy</span><span class="v">${h.avg.toFixed(2)}</span></div>
+            <div class="hg"><span class="k">LTP</span><span class="v">${px.toFixed(2)}</span></div>
+            <div class="hg"><span class="k">Invested</span><span class="v">${fmtInt(h.qty*h.avg)}</span></div>
+          </div>
         </div>
-        <div style="margin-top:6px;font-size:10px;color:var(--muted)" class="mono">Return: <span class="${cls}">${sign}${plpct.toFixed(2)}%</span></div>
       </div>`;
     }).join("");
   }
@@ -331,6 +353,11 @@ function render(){
   document.getElementById("reset-amt").textContent = fmtLakh(start);
   document.getElementById("reset-confirm-amt").textContent = fmtLakh(start);
   document.getElementById("reset-peak").textContent = fmtInt(peakValue);
+}
+
+function toggleHold(idx){
+  const el = document.getElementById("hold-"+idx);
+  if(el) el.classList.toggle("open");
 }
 
 function applyState(st){
@@ -399,12 +426,18 @@ if(!DEMO_MODE){
           const snap = await getDoc(doc(db,"users",uid));
           if(snap.exists()) applyState(snap.data());
         }catch(e){ console.error("Load failed", e); }
+        // reveal page now that we're confirmed logged in
+        const al = document.getElementById("auth-loading");
+        if(al) al.style.display = "none";
       } else {
         // not logged in -> send to home where login screen shows
         location.href = "index.html";
       }
     });
-  }catch(e){ console.error("Firebase init failed:", e); }
+  }catch(e){ console.error("Firebase init failed:", e);
+    const al=document.getElementById("auth-loading"); if(al) al.style.display="none"; }
+} else {
+  const al=document.getElementById("auth-loading"); if(al) al.style.display="none";
 }
 </script>
 </body>

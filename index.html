@@ -192,10 +192,16 @@
     width:100%;max-width:380px;margin:auto}
   .modal h3{font-size:16px;font-weight:800;margin-bottom:3px}
   .modal .mprice{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12.5px;margin-bottom:16px}
-  .qty-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;justify-content:center}
-  .qty-row button{width:42px;height:42px;border-radius:11px;background:var(--card);border:1px solid var(--border);
-    color:var(--text);font-size:19px;cursor:pointer}
-  .qty-row .qty{font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:800;min-width:56px;text-align:center}
+  .qty-input-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .qty-input-row input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:11px;
+    padding:13px 15px;font-size:20px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace;
+    text-align:center;-moz-appearance:textfield}
+  .qty-input-row input::-webkit-outer-spin-button,.qty-input-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .qty-input-row input:focus{outline:none;border-color:var(--accent)}
+  .max-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+    border-radius:11px;padding:13px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
+  .max-btn:active{transform:scale(0.96)}
+  .qty-hint{font-size:10.5px;color:var(--muted);text-align:center;margin-bottom:14px}
   .total{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:16px;padding:11px 13px;
     background:var(--card);border-radius:11px}
   .total .t-val{font-family:'JetBrains Mono',monospace;font-weight:700}
@@ -379,11 +385,11 @@
   <div class="modal">
     <h3 id="m-title">RELIANCE — Buy</h3>
     <div class="mprice mono" id="m-price">₹2,950.00 per share</div>
-    <div class="qty-row">
-      <button onclick="chgQty(-1)">−</button>
-      <div class="qty mono" id="m-qty">1</div>
-      <button onclick="chgQty(1)">+</button>
+    <div class="qty-input-row">
+      <input type="number" inputmode="numeric" min="1" id="m-qty-input" value="1" oninput="onQtyInput()">
+      <button class="max-btn" id="m-max-btn" onclick="setMaxQty()">MAX</button>
     </div>
+    <div class="qty-hint" id="m-qty-hint">You can afford up to —</div>
     <div class="total"><span>Total</span><span class="t-val mono" id="m-total">₹2,950.00</span></div>
     <div class="m-err" id="m-err"></div>
     <div class="m-actions">
@@ -394,6 +400,12 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Auth loading guard — prevents login screen flash for already-logged-in users -->
+<div id="auth-loading" style="position:fixed;inset:0;background:var(--bg);z-index:70;display:flex;align-items:center;justify-content:center">
+  <img src="logo.png" alt="" style="width:64px;height:64px;border-radius:16px;opacity:0.9;animation:fadepulse 1.2s infinite">
+</div>
+<style>@keyframes fadepulse{0%,100%{opacity:0.4}50%{opacity:1}}</style>
 
 <script>
 // ============================================================
@@ -665,15 +677,44 @@ function openModal(i, side){
   confirmBtn.textContent = side==="sell" ? "Confirm Sell" : "Confirm Buy";
   confirmBtn.className = "btn " + (side==="sell" ? "btn-sell" : "btn-buy");
   document.getElementById("m-err").style.display = "none";
+  document.getElementById("m-qty-input").value = 1;
+  // MAX button label differs for buy vs sell
+  const maxBtn = document.getElementById("m-max-btn");
+  maxBtn.textContent = side==="sell" ? "ALL" : "MAX";
   updateModal();
   document.getElementById("overlay-trade").classList.add("show");
 }
+function maxAffordable(){
+  if(modalSide === "buy"){
+    return Math.max(0, Math.floor(cash / modalStock.price));
+  } else {
+    const h = holdings[modalStock.sym];
+    return h ? h.qty : 0;
+  }
+}
+function onQtyInput(){
+  let v = parseInt(document.getElementById("m-qty-input").value) || 0;
+  if(v < 1) v = 1;
+  modalQty = v;
+  updateModal();
+}
+function setMaxQty(){
+  const mx = maxAffordable();
+  modalQty = Math.max(1, mx);
+  document.getElementById("m-qty-input").value = modalQty;
+  updateModal();
+}
 function updateModal(){
-  document.getElementById("m-qty").textContent = modalQty;
   document.getElementById("m-price").textContent = fmt(modalStock.price) + " per share";
   document.getElementById("m-total").textContent = fmt(modalQty * modalStock.price);
+  const mx = maxAffordable();
+  const hint = document.getElementById("m-qty-hint");
+  if(modalSide === "buy"){
+    hint.textContent = `You can afford up to ${mx} shares (cash ${fmtInt(cash)})`;
+  } else {
+    hint.textContent = `You own ${mx} shares`;
+  }
 }
-function chgQty(d){ modalQty = Math.max(1, modalQty + d); updateModal(); }
 function closeModal(){ document.getElementById("overlay-trade").classList.remove("show"); }
 
 function confirmTrade(){
@@ -760,9 +801,9 @@ for(let i=0;i<35;i++){
 renderWatchlist(); renderSummary(); updateClock(); updatePlanBadge();
 setInterval(tick, 5000); // 5-second refresh, matches Angel One Phase 2 plan
 
-if(!DEMO_MODE){
-  document.getElementById("login-screen").style.display = "flex";
-}
+// Don't show login screen immediately — wait for Firebase to confirm auth status.
+// This prevents the login screen from flashing for users who are already logged in.
+// (Firebase module below will reveal it only if there's genuinely no user.)
 </script>
 
 <script type="module">
@@ -816,9 +857,11 @@ if(!DEMO_MODE){
     };
 
     onAuthStateChanged(auth, async (user)=>{
+      const al = document.getElementById("auth-loading");
       if(user){
         uid = user.uid;
         document.getElementById("login-screen").style.display = "none";
+        if(al) al.style.display = "none";
         const av = document.getElementById("avatar");
         const initial = (user.displayName || "T").charAt(0).toUpperCase();
         if(user.photoURL){
@@ -840,15 +883,18 @@ if(!DEMO_MODE){
         }catch(e){ console.error("Load failed", e); }
       } else {
         document.getElementById("login-screen").style.display = "flex";
+        if(al) al.style.display = "none";
       }
     });
   }catch(e){
     console.error("Firebase init failed:", e);
     document.getElementById("login-screen").style.display = "none";
+    const al=document.getElementById("auth-loading"); if(al) al.style.display="none";
   }
 } else {
   window.doLogin = ()=>{};
   window.doLogout = ()=>{};
+  const al=document.getElementById("auth-loading"); if(al) al.style.display="none";
 }
 </script>
 </body>
