@@ -15,13 +15,15 @@ const LIVE_PRICES_DOC = 'livePrices/current';
 
 module.exports = async function handler(req, res) {
   try {
+    const force = req.query && req.query.force === 'true';
+
     const db = getDb();
     const liveRef = db.doc(LIVE_PRICES_DOC);
     const liveSnap = await liveRef.get();
     const existing = liveSnap.exists ? liveSnap.data() : null;
 
     const now = Date.now();
-    if (existing && existing.fetchedAt && (now - existing.fetchedAt) < THROTTLE_MS) {
+    if (!force && existing && existing.fetchedAt && (now - existing.fetchedAt) < THROTTLE_MS) {
       // Too soon — someone else's poll already refreshed this recently.
       return res.status(200).json({ success: true, skipped: true, ageMs: now - existing.fetchedAt });
     }
@@ -37,7 +39,7 @@ module.exports = async function handler(req, res) {
     const beforeClose = hour < 15 || (hour === 15 && minute <= 30);
     const marketOpen = isWeekday && afterOpen && beforeClose;
 
-    if (!marketOpen && existing) {
+    if (!force && !marketOpen && existing) {
       // Market closed and we already have last-known prices cached —
       // no need to call Angel One, just confirm we're serving stale-but-fine data.
       return res.status(200).json({ success: true, marketOpen: false, usingLastKnown: true });
@@ -111,7 +113,7 @@ module.exports = async function handler(req, res) {
       fetchedAt: now
     });
 
-    res.status(200).json({ success: true, count: Object.keys(prices).length, indices, marketOpen: true, debug });
+    res.status(200).json({ success: true, count: Object.keys(prices).length, indices, marketOpen, forced: force, debug });
   } catch (err) {
     console.error('update-prices error:', err);
     res.status(500).json({ success: false, error: err.message });
