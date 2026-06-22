@@ -63,6 +63,7 @@
   .cmt-txt{font-size:12px;color:var(--subtle);line-height:1.55;margin-bottom:9px}
   .cmt-acts{display:flex;gap:14px;align-items:center}
   .cmt-act{font-size:10.5px;color:var(--muted);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px}
+  .cmt-act.liked{color:var(--accent);font-weight:800}
   .cmt-sent{font-size:10px;font-weight:700;margin-left:auto}
   .cmt-sent.bull{color:var(--green)} .cmt-sent.bear{color:var(--red)}
 
@@ -205,6 +206,7 @@ if(!CONFIG.GA_ID.includes("XXXX")){
 function track(e,p){if(window.gtag)gtag('event',e,p||{});}
 
 let currentSentiment = "neutral";
+let likedPostsSet = new Set(); // postIds the current user has already liked
 function setSentiment(s){
   currentSentiment = (currentSentiment===s) ? "neutral" : s;
   document.getElementById("sent-bull").classList.toggle("act", currentSentiment==="bullish");
@@ -251,7 +253,7 @@ function renderFeed(items){
       </div>
       <div class="cmt-txt">${escapeHtml(p.text)}</div>
       <div class="cmt-acts">
-        <span class="cmt-act" onclick="likePost('${p.id}')">👍 ${p.likes||0}</span>
+        <span class="cmt-act ${likedPostsSet && likedPostsSet.has(p.id) ? 'liked' : ''}" id="like-btn-${p.id}" onclick="toggleLike('${p.id}')">👍 <span id="like-count-${p.id}">${p.likes||0}</span></span>
         <span class="cmt-act" onclick="toggleReplyBox('${p.id}')">💬 Reply${p.replyCount?' ('+p.replyCount+')':''}</span>
         ${sentTag}
       </div>
@@ -282,7 +284,7 @@ if(!DEMO_MODE){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, doc, updateDoc, increment, where } =
+    const { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, doc, updateDoc, increment, where, setDoc, deleteDoc } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const app = initializeApp(CONFIG.firebase);
     const auth = getAuth(app);
@@ -303,10 +305,37 @@ if(!DEMO_MODE){
       }catch(e){ console.error("Post failed", e); alert("Post nahi hua, try again"); }
     };
 
-    window.likePost = async function(postId){
-      try{ await updateDoc(doc(db,"posts",postId), {likes: increment(1)}); loadFeed(); }
-      catch(e){ console.error("Like failed", e); }
+    window.toggleLike = async function(postId){
+      if(!uid) { alert("Please login first"); return; }
+      const likeDocId = postId + "_" + uid;
+      const btn = document.getElementById("like-btn-"+postId);
+      const countEl = document.getElementById("like-count-"+postId);
+      const alreadyLiked = likedPostsSet.has(postId);
+      try{
+        if(alreadyLiked){
+          await deleteDoc(doc(db,"postLikes",likeDocId));
+          await updateDoc(doc(db,"posts",postId), {likes: increment(-1)});
+          likedPostsSet.delete(postId);
+          if(btn) btn.classList.remove("liked");
+          if(countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent||"0") - 1);
+        } else {
+          await setDoc(doc(db,"postLikes",likeDocId), {postId, uid, createdAt: Date.now()});
+          await updateDoc(doc(db,"posts",postId), {likes: increment(1)});
+          likedPostsSet.add(postId);
+          if(btn) btn.classList.add("liked");
+          if(countEl) countEl.textContent = parseInt(countEl.textContent||"0") + 1;
+        }
+      }catch(e){ console.error("Like toggle failed", e); }
     };
+
+    async function loadMyLikes(){
+      try{
+        const q = query(collection(db,"postLikes"), where("uid","==",uid));
+        const snap = await getDocs(q);
+        likedPostsSet = new Set();
+        snap.forEach(d=>likedPostsSet.add(d.data().postId));
+      }catch(e){ console.error("Load likes failed", e); }
+    }
 
     // ===== Replies =====
     const openReplyBoxes = new Set(); // postIds currently expanded — preserved across re-renders
@@ -395,6 +424,7 @@ if(!DEMO_MODE){
       const al = document.getElementById("auth-loading");
       if(user){
         uid = user.uid;
+        await loadMyLikes();
         await loadFeed();
         if(al) al.style.display = "none";
       } else {

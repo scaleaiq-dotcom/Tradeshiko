@@ -227,6 +227,7 @@
   .cmt-txt{font-size:11.5px;color:var(--subtle);line-height:1.5;margin-bottom:8px}
   .cmt-acts{display:flex;gap:14px;align-items:center}
   .cmt-act{font-size:10px;color:var(--muted);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px}
+  .cmt-act.liked{color:var(--accent);font-weight:800}
   .cmt-sent{font-size:9.5px;font-weight:700;margin-left:auto}
   .cmt-sent.bull{color:var(--green)} .cmt-sent.bear{color:var(--red)}
 
@@ -674,6 +675,7 @@ function sectorColor(sector){
 
 // ---- Mock price tick (Phase 2 replaces this with Angel One + Firebase reads) ----
 let liveData = {};      // populated by Firestore listener: {SYMBOL: {ltp, open, high, low, close, volume}}
+let likedPostsSetIdx = new Set(); // postIds the current user has already liked
 let liveDataActive = false; // true once we've received at least one real update
 let marketOpenStatus = null; // true/false/null(unknown) — from server
 
@@ -1164,7 +1166,7 @@ if(!DEMO_MODE){
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, orderBy, limit, getDocs, increment, updateDoc, onSnapshot } =
+    const { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, query, where, orderBy, limit, getDocs, increment, updateDoc, onSnapshot } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
     // ===== Live price listener — pushes Angel One data instantly to all open tabs =====
@@ -1265,7 +1267,7 @@ if(!DEMO_MODE){
             </div>
             <div class="cmt-txt">${escapeHtml(p.text)}</div>
             <div class="cmt-acts">
-              <span class="cmt-act" onclick="likePost('${p.id}')">👍 ${p.likes||0}</span>
+              <span class="cmt-act ${likedPostsSetIdx && likedPostsSetIdx.has(p.id) ? 'liked' : ''}" id="like-btn-${p.id}" onclick="toggleLike('${p.id}')">👍 <span id="like-count-${p.id}">${p.likes||0}</span></span>
               <span class="cmt-act" onclick="toggleReplyBox('${p.id}')">💬 Reply${p.replyCount?' ('+p.replyCount+')':''}</span>
               ${sentTag}
             </div>
@@ -1281,10 +1283,36 @@ if(!DEMO_MODE){
       }catch(e){ console.error("Load comments failed", e); listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;padding:14px">Couldn't load comments</div>`; }
     };
 
-    window.likePost = async function(postId){
-      try{ await updateDoc(doc(db,"posts",postId), {likes: increment(1)}); }
-      catch(e){ console.error("Like failed", e); }
+    window.toggleLike = async function(postId){
+      if(!uid){ showToast("Please login first"); return; }
+      const likeDocId = postId + "_" + uid;
+      const btn = document.getElementById("like-btn-"+postId);
+      const countEl = document.getElementById("like-count-"+postId);
+      const alreadyLiked = likedPostsSetIdx.has(postId);
+      try{
+        if(alreadyLiked){
+          await deleteDoc(doc(db,"postLikes",likeDocId));
+          await updateDoc(doc(db,"posts",postId), {likes: increment(-1)});
+          likedPostsSetIdx.delete(postId);
+          if(btn) btn.classList.remove("liked");
+          if(countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent||"0") - 1);
+        } else {
+          await setDoc(doc(db,"postLikes",likeDocId), {postId, uid, createdAt: Date.now()});
+          await updateDoc(doc(db,"posts",postId), {likes: increment(1)});
+          likedPostsSetIdx.add(postId);
+          if(btn) btn.classList.add("liked");
+          if(countEl) countEl.textContent = parseInt(countEl.textContent||"0") + 1;
+        }
+      }catch(e){ console.error("Like toggle failed", e); }
     };
+    async function loadMyLikesIdx(){
+      try{
+        const q = query(collection(db,"postLikes"), where("uid","==",uid));
+        const snap = await getDocs(q);
+        likedPostsSetIdx = new Set();
+        snap.forEach(d=>likedPostsSetIdx.add(d.data().postId));
+      }catch(e){ console.error("Load likes failed", e); }
+    }
 
     // ===== Replies (shared pattern with community.html) =====
     const openReplyBoxesIdx = new Set();
@@ -1444,6 +1472,7 @@ if(!DEMO_MODE){
         document.getElementById("login-screen").style.display = "none";
         if(al) al.style.display = "none";
         startLivePriceListener();
+        loadMyLikesIdx();
         const av = document.getElementById("avatar");
         const initial = (user.displayName || "T").charAt(0).toUpperCase();
         if(user.photoURL){
