@@ -8,7 +8,7 @@
 // roughly once every 5 seconds, total — not once per user.
 
 const { getDb } = require('../lib/firebase-admin');
-const { fetchQuotes } = require('../lib/angelone');
+const { fetchQuotes, INDEX_TOKENS } = require('../lib/angelone');
 
 const THROTTLE_MS = 5000;
 const LIVE_PRICES_DOC = 'livePrices/current';
@@ -53,13 +53,20 @@ module.exports = async function handler(req, res) {
     }
     const tokenMap = tokenSnap.data().tokens || {};
     const symbols = Object.keys(tokenMap);
-    const tokens = symbols.map(s => tokenMap[s]);
+    const stockTokens = symbols.map(s => tokenMap[s]);
 
-    if (tokens.length === 0) {
+    if (stockTokens.length === 0) {
       return res.status(400).json({ success: false, error: 'Symbol token list is empty.' });
     }
 
-    const quoteData = await fetchQuotes(tokens);
+    // Build exchange-grouped token request: NSE gets all 50 stocks + Nifty,
+    // BSE gets Sensex (Angel One's quote API accepts multiple exchanges per call)
+    const exchangeTokens = {
+      NSE: [...stockTokens, INDEX_TOKENS.NIFTY.token],
+      BSE: [INDEX_TOKENS.SENSEX.token]
+    };
+
+    const quoteData = await fetchQuotes(exchangeTokens);
     const fetched = quoteData.fetched || [];
 
     // Build a clean prices object keyed by our symbol names
@@ -67,7 +74,16 @@ module.exports = async function handler(req, res) {
     Object.keys(tokenMap).forEach(sym => { tokenToSymbol[tokenMap[sym]] = sym; });
 
     const prices = {};
+    const indices = {};
     fetched.forEach(item => {
+      if (item.symbolToken === INDEX_TOKENS.NIFTY.token) {
+        indices.NIFTY = { ltp: item.ltp, close: item.close, open: item.open, high: item.high, low: item.low };
+        return;
+      }
+      if (item.symbolToken === INDEX_TOKENS.SENSEX.token) {
+        indices.SENSEX = { ltp: item.ltp, close: item.close, open: item.open, high: item.high, low: item.low };
+        return;
+      }
       const sym = tokenToSymbol[item.symbolToken];
       if (!sym) return;
       prices[sym] = {
@@ -82,11 +98,12 @@ module.exports = async function handler(req, res) {
 
     await liveRef.set({
       prices,
+      indices,
       marketOpen: true,
       fetchedAt: now
     });
 
-    res.status(200).json({ success: true, count: Object.keys(prices).length, marketOpen: true });
+    res.status(200).json({ success: true, count: Object.keys(prices).length, indices, marketOpen: true });
   } catch (err) {
     console.error('update-prices error:', err);
     res.status(500).json({ success: false, error: err.message });
