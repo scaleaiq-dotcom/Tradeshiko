@@ -150,10 +150,10 @@
   .nav-i.act .nav-lbl{color:var(--accent)}
 
   /* Toast + confirm modal */
-  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(80px);
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(140px);
     background:var(--card2);border:1px solid var(--accent);color:var(--text);padding:12px 20px;
-    border-radius:13px;font-size:13.5px;font-weight:600;transition:transform .3s;z-index:60;max-width:88%;text-align:center}
-  .toast.show{transform:translateX(-50%) translateY(0)}
+    border-radius:13px;font-size:13.5px;font-weight:600;transition:transform .35s,opacity .35s;z-index:60;max-width:88%;text-align:center;opacity:0;pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
   .overlay{position:fixed;inset:0;background:rgba(5,8,14,0.8);display:none;align-items:center;justify-content:center;z-index:40;padding:20px}
   .overlay.show{display:flex}
   .confirm-box{background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:22px;max-width:340px;width:100%;text-align:center}
@@ -208,7 +208,7 @@
     <!-- Orders -->
     <div class="sec-hdr">
       <span class="sec-title">Recent Orders</span>
-      <span class="sec-sub" id="order-count">—</span>
+      <a class="sec-sub" href="reports.html" style="color:var(--accent);font-weight:700">Daily Report →</a>
     </div>
     <div id="orders"><div class="empty">No orders yet. Make your first trade from the Market tab!</div></div>
 
@@ -326,6 +326,8 @@ let holdings = {};
 let orders = [];
 let userPlan = "free";
 let peakValue = 100000;
+let planStartDate = null;
+let lastTopupDate = null;
 
 const fmt = n => "₹" + n.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
@@ -408,17 +410,24 @@ function render(){
     }).join("");
   }
 
-  // orders
+  // orders — show only latest 5 (full history goes to daily report)
   const oEl = document.getElementById("orders");
-  document.getElementById("order-count").textContent = orders.length ? orders.length+" total" : "—";
+  const ocEl = document.getElementById("order-count");
+  const tradeOrders = orders.filter(o=>o.side==="BUY"||o.side==="SELL");
+  if(ocEl) ocEl.textContent = tradeOrders.length ? tradeOrders.length+" total" : "—";
   if(!orders.length){
     oEl.innerHTML = `<div class="empty">No orders yet. Make your first trade from the Market tab!</div>`;
   } else {
-    oEl.innerHTML = orders.slice(0,20).map(o=>
-      `<div class="order">
+    oEl.innerHTML = orders.slice(0,5).map(o=>{
+      if(o.side==="RESET"){
+        return `<div class="order"><span><span style="color:var(--gold);font-weight:800">RESET</span> Portfolio</span><span class="o-time">${o.t}</span></div>`;
+      }
+      const chg = o.charges ? ` <span style="font-size:9px;color:var(--muted)">−₹${o.charges.toFixed(2)}</span>` : "";
+      return `<div class="order">
         <span><span class="o-side-${o.side.toLowerCase()}">${o.side}</span> ${o.qty} × ${o.sym}</span>
-        <span class="mono">${fmt(o.price)} <span class="o-time">${o.t}</span></span>
-      </div>`).join("");
+        <span class="mono">${fmt(o.price)}${chg} <span class="o-time">${o.t}</span></span>
+      </div>`;
+    }).join("");
   }
 
   // reset button amount
@@ -439,10 +448,13 @@ function applyState(st){
   orders = st.orders || [];
   userPlan = st.plan || "free";
   peakValue = typeof st.peakValue==="number" ? st.peakValue : PLAN_START[userPlan];
+  planStartDate = st.planStartDate || null;
+  lastTopupDate = st.lastTopupDate || null;
   render();
 }
 function getState(){
-  return {cash, holdings, orders:orders.slice(0,20), plan:userPlan, peakValue, updatedAt:Date.now()};
+  return {cash, holdings, orders:orders.slice(0,100), plan:userPlan, peakValue,
+    planStartDate, lastTopupDate, updatedAt:Date.now()};
 }
 
 // Reset flow
@@ -500,7 +512,7 @@ function openTrade(sym, side){
 }
 function tradeMaxQty(){
   const px = priceMap[tradeSym] || 1;
-  if(tradeSide === "buy") return Math.max(0, Math.floor(cash / px));
+  if(tradeSide === "buy") return Math.max(0, Math.floor(cash / (px * 1.0025)));
   const h = holdings[tradeSym]; return h ? h.qty : 0;
 }
 function onQtyInput(){
@@ -515,36 +527,55 @@ function setMaxQty(){
 }
 function updateTradeModal(){
   const px = priceMap[tradeSym] || 1;
-  document.getElementById("m-total").textContent = fmt(tradeQty * px);
+  const value = tradeQty * px;
+  const ch = calcCharges(value);
+  const totalEl = document.getElementById("m-total");
+  if(tradeSide === "buy"){
+    totalEl.innerHTML = fmt(value + ch.total) + `<br><span style="font-size:9.5px;color:var(--muted);font-weight:500">${fmt(value)} + ₹${ch.total.toFixed(2)} charges</span>`;
+  } else {
+    totalEl.innerHTML = fmt(value - ch.total) + `<br><span style="font-size:9.5px;color:var(--muted);font-weight:500">${fmt(value)} − ₹${ch.total.toFixed(2)} charges</span>`;
+  }
   const mx = tradeMaxQty();
   document.getElementById("m-qty-hint").textContent = tradeSide==="buy"
     ? `You can afford up to ${mx} shares (cash ${fmtInt(cash)})`
     : `You own ${mx} shares`;
 }
 function closeTrade(){ document.getElementById("overlay-trade").classList.remove("show"); }
+// Realistic Indian delivery charges
+function calcCharges(value){
+  const brokerage = Math.min(value * 0.001, 20);
+  const stt = value * 0.001;
+  const gst = brokerage * 0.18;
+  const misc = value * 0.00012;
+  return {brokerage, stt, gst, misc, total:+(brokerage+stt+gst+misc).toFixed(2)};
+}
 function confirmTrade(){
   const px = priceMap[tradeSym] || 1;
-  const total = tradeQty * px;
+  const value = tradeQty * px;
+  const ch = calcCharges(value);
   const err = document.getElementById("m-err");
-  const t = new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"});
+  const now = new Date();
+  const t = now.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"});
+  const date = now.toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
   if(tradeSide === "buy"){
-    if(total > cash){ err.textContent = "Cash kam hai! Available: "+fmtInt(cash); err.style.display="block"; return; }
-    cash -= total;
+    const totalCost = value + ch.total;
+    if(totalCost > cash){ err.textContent = "Cash kam hai! Need "+fmtInt(totalCost)+" (incl ₹"+ch.total.toFixed(2)+" charges)"; err.style.display="block"; return; }
+    cash -= totalCost;
     const h = holdings[tradeSym];
-    if(h){ h.avg = (h.avg*h.qty + total)/(h.qty+tradeQty); h.qty += tradeQty; }
+    if(h){ h.avg = (h.avg*h.qty + value)/(h.qty+tradeQty); h.qty += tradeQty; }
     else holdings[tradeSym] = {qty:tradeQty, avg:px};
-    orders.unshift({side:"BUY", sym:tradeSym, qty:tradeQty, price:px, t});
-    showToast(`✅ ${tradeQty} × ${tradeSym} kharida @ ${fmt(px)}`);
+    orders.unshift({side:"BUY", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, t, date, ts:now.getTime()});
+    showToast(`✅ ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
   } else {
     const h = holdings[tradeSym];
     if(!h || tradeQty > h.qty){ err.textContent = "Itne shares nahi! Aapke paas: "+(h?h.qty:0); err.style.display="block"; return; }
-    cash += total;
+    cash += (value - ch.total);
     h.qty -= tradeQty;
     if(h.qty === 0) delete holdings[tradeSym];
-    orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, t});
-    showToast(`💰 ${tradeQty} × ${tradeSym} becha @ ${fmt(px)}`);
+    orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, t, date, ts:now.getTime()});
+    showToast(`💰 ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
   }
-  if(orders.length > 30) orders.pop();
+  if(orders.length > 100) orders.pop();
   closeTrade();
   render();
   track("trade_"+tradeSide, {stock:tradeSym, qty:tradeQty});
@@ -571,7 +602,16 @@ if(!DEMO_MODE){
       if(!uid) return;
       clearTimeout(saveTimer);
       saveTimer = setTimeout(async ()=>{
-        try{ await setDoc(doc(db,"users",uid), state, {merge:true}); }
+        try{
+          await setDoc(doc(db,"users",uid), state, {merge:true});
+          await setDoc(doc(db, "leaderboard", uid), {
+            displayName: auth.currentUser?.displayName || "Trader",
+            photoURL: auth.currentUser?.photoURL || "",
+            peakValue: state.peakValue || 0,
+            plan: state.plan || "free",
+            updatedAt: Date.now()
+          }, {merge:true});
+        }
         catch(e){ console.error("Save failed", e); }
       }, 400);
     };

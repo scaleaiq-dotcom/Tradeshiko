@@ -945,8 +945,12 @@ function showToast(msg){
 }
 
 // ---- Cloud state (unchanged contract from old index.html) ----
+let planStartDate = null;
+let lastTopupDate = null;
+
 function getState(){
-  return {cash, holdings, orders: orders.slice(0,100), plan: userPlan, peakValue, updatedAt: Date.now()};
+  return {cash, holdings, orders: orders.slice(0,100), plan: userPlan, peakValue,
+    planStartDate, lastTopupDate, updatedAt: Date.now()};
 }
 function applyState(st){
   if(!st) return;
@@ -954,6 +958,8 @@ function applyState(st){
   holdings = st.holdings || {};
   userPlan = st.plan || "free";
   peakValue = typeof st.peakValue === "number" ? st.peakValue : PLAN_START[userPlan] || 100000;
+  planStartDate = st.planStartDate || null;
+  lastTopupDate = st.lastTopupDate || null;
   orders.length = 0;
   (st.orders || []).forEach(o=>orders.push(o));
   updatePlanBadge();
@@ -963,6 +969,44 @@ function updatePlanBadge(){
   const badge = document.getElementById("plan-badge");
   badge.className = "plan-badge " + userPlan;
   badge.textContent = userPlan === "max" ? "PRO MAX" : userPlan === "lite" ? "PRO LITE" : "FREE";
+}
+
+// ===== Plan upgrade: instant capital bonus + reset monthly top-up cycle =====
+const MONTHLY_TOPUP = {free:0, lite:50000, max:100000};
+const PLAN_RANK_LOCAL = {free:0, lite:1, max:2};
+function applyPlanUpgrade(newPlan){
+  const oldPlan = userPlan;
+  if(PLAN_RANK_LOCAL[newPlan] > PLAN_RANK_LOCAL[oldPlan]){
+    const bonus = PLAN_START[newPlan] - PLAN_START[oldPlan];
+    cash += bonus;
+    userPlan = newPlan;
+    planStartDate = Date.now();
+    lastTopupDate = Date.now();
+    updatePlanBadge(); renderWatchlist(); renderSummary();
+    if(window.cloudSave) window.cloudSave(getState());
+    return bonus;
+  }
+  return 0;
+}
+
+// ===== Monthly top-up: checked once per login =====
+function checkMonthlyTopup(){
+  if(userPlan === "free" || !planStartDate) return 0;
+  const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  // Subscription (and its top-ups) run for 12 months from planStartDate
+  if(now > planStartDate + ONE_YEAR_MS) return 0; // expired — needs renewal, no more top-ups
+  const sinceLastTopup = now - (lastTopupDate || planStartDate);
+  const monthsDue = Math.floor(sinceLastTopup / ONE_MONTH_MS);
+  if(monthsDue < 1) return 0;
+  const monthsToCredit = Math.min(monthsDue, 12); // sanity cap
+  const amount = monthsToCredit * (MONTHLY_TOPUP[userPlan] || 0);
+  cash += amount;
+  lastTopupDate = (lastTopupDate || planStartDate) + (monthsToCredit * ONE_MONTH_MS);
+  renderSummary();
+  if(window.cloudSave) window.cloudSave(getState());
+  return amount;
 }
 
 // Close overlays on backdrop tap
@@ -1108,12 +1152,10 @@ if(!DEMO_MODE){
         if(!c.active){ msgEl.textContent="This code is no longer active"; msgEl.style.color="var(--red)"; return; }
         if((c.usedCount||0) >= c.maxUses){ msgEl.textContent="This code has reached its usage limit"; msgEl.style.color="var(--red)"; return; }
         if(PLAN_RANK[c.plan] <= PLAN_RANK[userPlan]){ msgEl.textContent="You already have this plan or higher"; msgEl.style.color="var(--gold)"; return; }
-        userPlan = c.plan;
-        updatePlanBadge(); renderWatchlist(); renderSummary();
-        if(window.cloudSave) window.cloudSave(getState());
+        const bonus = applyPlanUpgrade(c.plan);
         await setDoc(doc(db,"coupons",code), {usedCount:(c.usedCount||0)+1}, {merge:true});
-        msgEl.textContent = "🎉 "+c.plan.toUpperCase()+" unlocked!"; msgEl.style.color="var(--green)";
-        showToast("🎉 Coupon applied — "+c.plan.toUpperCase()+" unlocked!");
+        msgEl.textContent = "🎉 "+c.plan.toUpperCase()+" unlocked! +"+fmtInt(bonus)+" added"; msgEl.style.color="var(--green)";
+        showToast("🎉 Coupon applied — "+c.plan.toUpperCase()+" unlocked! +"+fmtInt(bonus)+" capital added");
         input.value = "";
         track("coupon_redeemed", {code, plan:c.plan});
       }catch(e){ msgEl.textContent="Error: "+e.message; msgEl.style.color="var(--red)"; }
@@ -1215,10 +1257,13 @@ if(!DEMO_MODE){
           // Check if admin granted free Pro/Lite/Max to this email
           const grantedPlan = await checkGrant(user.email, userPlan);
           if(grantedPlan){
-            userPlan = grantedPlan;
-            updatePlanBadge(); renderWatchlist(); renderSummary();
-            if(window.cloudSave) window.cloudSave(getState());
-            showToast("🎁 You've been granted " + grantedPlan.toUpperCase() + " access!");
+            const bonus = applyPlanUpgrade(grantedPlan);
+            showToast("🎁 You've been granted " + grantedPlan.toUpperCase() + " access! +" + fmtInt(bonus) + " capital");
+          }
+          // Monthly top-up: credit if a month (or more) has passed since plan start/last top-up
+          const topupAmount = checkMonthlyTopup();
+          if(topupAmount > 0){
+            showToast("💰 Monthly top-up credited: +" + fmtInt(topupAmount));
           }
         }catch(e){ console.error("Load failed", e); }
       } else {
