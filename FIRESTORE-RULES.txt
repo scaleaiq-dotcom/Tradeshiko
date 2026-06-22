@@ -1,0 +1,99 @@
+// ============================================================
+// FIRESTORE SECURITY RULES — paste this in Firebase Console
+// Go to: Firebase Console → Firestore Database → Rules tab → Publish
+// ============================================================
+//
+// This adds rules for the new "grants" and "coupons" collections
+// used by admin.html, on top of your existing "users" collection.
+//
+// IMPORTANT: Replace YOUR-PERSONAL-EMAIL@gmail.com below with your
+// real personal Gmail (same one you'll add in admin.html).
+//
+// ALSO IMPORTANT — ONE-TIME INDEX SETUP FOR COMMENTS:
+// The per-stock comments feature (on a stock's detail page) uses a query
+// that filters by stock AND sorts by time — Firestore requires a one-time
+// "composite index" for this. The FIRST time someone opens a stock's
+// comments, it may show an error in the browser console (F12) with a
+// direct link like "https://console.firebase.google.com/...create_composite=...".
+// Just click that link once, click "Create Index" on the Firebase page that
+// opens, wait ~1 minute, and it works forever after. This only needs doing once.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Existing: each user can only read/write their own portfolio
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Public leaderboard — only safe, non-sensitive fields live here
+    // (displayName, photoURL, peakValue, plan). No cash/holdings/orders ever.
+    // Anyone logged in can READ the whole leaderboard (to see rankings),
+    // but each user can only WRITE their own entry.
+    match /leaderboard/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Community posts (general feed + per-stock comments)
+    // Anyone logged in can read all posts and create their own post.
+    // Only the post's owner can edit/delete it.
+    // Anyone logged in can update ONLY the "likes" field (to like a post).
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.uid == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["likes"])
+      );
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // Referral codes: code -> uid mapping. Anyone logged in can read (to
+    // resolve a ?ref=CODE link) and create their OWN code (uid must match).
+    match /referralCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Referral records: created by the REFEREE (new user) citing who
+    // referred them. Only the REFERRER can later mark it "claimed" when
+    // they self-credit the bonus to their own wallet (update restricted
+    // to the "claimed" field only — the bonus itself is added via a
+    // separate write to the referrer's own /users doc, not here).
+    match /referrals/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.refereeUid == request.auth.uid;
+      allow update: if request.auth != null && resource.data.referrerUid == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["claimed"]);
+    }
+
+    // Admin emails allowed to manage grants & coupons
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          "scaleaiq@gmail.com",
+          "YOUR-PERSONAL-EMAIL@gmail.com"
+        ];
+    }
+
+    // Grants: anyone logged in can READ (so the app can check their own
+    // grant by email), but only admin can WRITE (create/delete grants)
+    match /grants/{email} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Coupons: anyone logged in can READ (to validate a code) and
+    // UPDATE only the usedCount field via redeem (handled by merge),
+    // but only admin can CREATE or fully manage coupons.
+    match /coupons/{code} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+      // Allow any logged-in user to increment usedCount only (redeem flow)
+      allow update: if request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["usedCount"]);
+    }
+  }
+}

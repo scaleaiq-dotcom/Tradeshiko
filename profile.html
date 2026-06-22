@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Profile — TradeSeekho</title>
+<meta name="theme-color" content="#090D16">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#090D16; --surface:#0F1623; --card:#141E2E; --card2:#1A2540;
+    --border:#1E2D45; --border2:#243352;
+    --accent:#3B82F6; --accent2:#6366F1;
+    --green:#10B981; --red:#EF4444; --gold:#F59E0B; --purple:#8B5CF6;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+  .screen{flex:1;padding-bottom:84px}
+  .g{color:var(--green)} .r{color:var(--red)}
+
+  .ticker-bar{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;
+    white-space:nowrap;padding:7px 0;position:sticky;top:0;z-index:6}
+  .ticker-track{display:inline-block;animation:tickerscroll 40s linear infinite}
+  @keyframes tickerscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .tk-item{display:inline-block;margin:0 16px;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .tk-item .tk-sym{color:var(--subtle);margin-right:6px;font-weight:600}
+
+  .hdr{padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+  .hdr-title{font-size:15px;font-weight:800}
+  .hdr-link{font-size:18px;color:var(--muted)}
+
+  /* Profile card */
+  .profile-card{margin:4px 14px 14px;background:linear-gradient(135deg,#111E38,#0B1628);
+    border:1px solid var(--border2);border-radius:18px;padding:20px;text-align:center}
+  .prof-av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;margin:0 auto 12px;
+    border:2px solid rgba(99,102,241,0.4);background-size:cover;background-position:center;color:#fff}
+  .prof-name{font-size:16px;font-weight:800;margin-bottom:3px}
+  .prof-email{font-size:10.5px;color:var(--muted);margin-bottom:8px}
+  .prof-badge{display:inline-block;font-size:9px;font-weight:800;padding:3px 11px;border-radius:20px;letter-spacing:0.05em}
+  .prof-badge.free{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+  .prof-badge.lite{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .prof-badge.max{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
+  .prof-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding-top:14px;margin-top:14px;border-top:1px solid var(--border)}
+  .prof-stat{display:flex;flex-direction:column;gap:2px;align-items:center}
+  .ps-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em}
+  .ps-val{font-size:14px;font-weight:800;font-family:'JetBrains Mono',monospace}
+
+  /* Certificate */
+  .cert{margin:0 14px 14px;background:linear-gradient(135deg,#1A1234,#111E38);
+    border:1px solid #4C1D95;border-radius:15px;padding:16px;text-align:center}
+  .cert-icon{font-size:30px;margin-bottom:6px}
+  .cert-title{font-size:12.5px;font-weight:800;color:#C4B5FD;margin-bottom:4px}
+  .cert-desc{font-size:10.5px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+  .cert-btn{background:linear-gradient(135deg,var(--purple),var(--accent2));color:#fff;border:none;
+    font-size:11px;font-weight:800;padding:9px 18px;border-radius:10px;cursor:pointer;font-family:'Inter',sans-serif}
+
+  .sec-hdr{padding:2px 16px 9px;display:flex;justify-content:space-between;align-items:center}
+  .sec-title{font-size:12.5px;font-weight:800}
+
+  /* Referral */
+  .ref-card{margin:0 14px 14px;background:linear-gradient(135deg,#0B1628,#111E38);
+    border:1px solid var(--border2);border-radius:15px;padding:16px}
+  .ref-title{font-size:12px;font-weight:800;margin-bottom:3px}
+  .ref-desc{font-size:10.5px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+  .ref-link-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
+  .ref-link{font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ref-copy{font-size:9.5px;font-weight:700;color:#fff;background:var(--accent);padding:5px 10px;border-radius:7px;
+    cursor:pointer;flex-shrink:0;border:none;font-family:'Inter',sans-serif}
+  .ref-share-btn{width:100%;background:linear-gradient(135deg,#15803D,#22C55E);color:#fff;border:none;
+    font-size:11.5px;font-weight:800;padding:10px;border-radius:10px;cursor:pointer;margin-bottom:10px;font-family:'Inter',sans-serif}
+  .ref-rewards{display:flex;flex-direction:column;gap:7px;padding-top:10px;border-top:1px solid var(--border)}
+  .ref-row{display:flex;justify-content:space-between;align-items:center}
+  .ref-action{font-size:10.5px;color:var(--subtle)}
+  .ref-reward{font-size:10.5px;font-weight:800;color:var(--green);font-family:'JetBrains Mono',monospace}
+  .ref-claim-box{margin-top:12px;padding:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);
+    border-radius:11px;text-align:center;display:none}
+  .ref-claim-box.show{display:block}
+  .ref-claim-text{font-size:11.5px;color:var(--green);font-weight:700;margin-bottom:8px}
+  .ref-claim-btn{background:linear-gradient(135deg,#065F46,var(--green));color:#fff;border:none;
+    font-size:11px;font-weight:800;padding:9px 18px;border-radius:9px;cursor:pointer;font-family:'Inter',sans-serif}
+
+  .settings-list{padding:0 14px;display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .setting-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;
+    display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+  .setting-left{display:flex;align-items:center;gap:10px}
+  .setting-icon{font-size:16px}
+  .setting-name{font-size:12px;font-weight:600}
+  .setting-item.danger .setting-name{color:var(--red)}
+  .setting-arrow{font-size:12px;color:var(--muted)}
+
+  .app-footer{padding:18px 16px 8px;text-align:center;border-top:1px solid var(--border);margin:8px 14px 0}
+  .footer-powered{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+  .footer-powered img{height:20px;background:#fff;border-radius:5px;padding:2px}
+  .footer-powered span{font-size:10px;color:var(--muted)}
+  .footer-links{font-size:10px;color:var(--muted);line-height:1.8}
+  .footer-links a{color:var(--accent)}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:72px;
+    background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-around;padding:0 4px 10px;z-index:10}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px;border-radius:11px;cursor:pointer;flex:1;max-width:80px}
+  .nav-i.act{background:rgba(59,130,246,0.12)}
+  .nav-icon{font-size:18px;line-height:1}
+  .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .nav-i.act .nav-lbl{color:var(--accent)}
+
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(140px);
+    background:var(--card2);border:1px solid var(--accent);color:var(--text);padding:12px 20px;
+    border-radius:13px;font-size:13.5px;font-weight:600;transition:transform .35s,opacity .35s;z-index:60;
+    max-width:88%;text-align:center;opacity:0;pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+  #auth-loading{position:fixed;inset:0;background:var(--bg);z-index:70;display:flex;align-items:center;justify-content:center}
+  @keyframes fadepulse{0%,100%{opacity:0.4}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="ticker-bar"><div class="ticker-track" id="ticker-track"></div></div>
+
+  <div class="hdr">
+    <span class="hdr-title">👤 Profile</span>
+    <a class="hdr-link" href="index.html">⌂</a>
+  </div>
+
+  <div class="screen">
+
+    <div class="profile-card">
+      <div class="prof-av" id="prof-av">T</div>
+      <div class="prof-name" id="prof-name">Trader</div>
+      <div class="prof-email" id="prof-email">—</div>
+      <div class="prof-badge free" id="prof-badge">FREE</div>
+      <div class="prof-stats">
+        <div class="prof-stat"><span class="ps-lbl">Peak</span><span class="ps-val" style="color:var(--gold)" id="ps-peak">₹0</span></div>
+        <div class="prof-stat"><span class="ps-lbl">Rank</span><span class="ps-val" style="color:var(--accent)" id="ps-rank">—</span></div>
+        <div class="prof-stat"><span class="ps-lbl">Trades</span><span class="ps-val" id="ps-trades">0</span></div>
+      </div>
+    </div>
+
+    <!-- Certificate (shown only once milestone reached) -->
+    <div class="cert" id="cert-zone" style="display:none">
+      <div class="cert-icon">🏅</div>
+      <div class="cert-title" id="cert-title">Trading Certificate Ready!</div>
+      <div class="cert-desc" id="cert-desc">You've crossed a milestone. Download your certificate and share it.</div>
+      <button class="cert-btn" onclick="downloadCertificate()">Download Certificate →</button>
+    </div>
+
+    <!-- Referral -->
+    <div class="ref-card">
+      <div class="ref-title">🎁 Refer & Earn Virtual Cash</div>
+      <div class="ref-desc">Share your link. When a friend joins using it, you both get bonus virtual cash instantly.</div>
+      <div class="ref-link-box">
+        <span class="ref-link" id="ref-link">Generating your link...</span>
+        <button class="ref-copy" onclick="copyRefLink()">Copy</button>
+      </div>
+      <button class="ref-share-btn" onclick="shareWhatsApp()">📲 Share on WhatsApp (+₹25,000)</button>
+      <div class="ref-rewards">
+        <div class="ref-row"><span class="ref-action">Friend joins with your link</span><span class="ref-reward">+₹1,00,000 for you</span></div>
+        <div class="ref-row"><span class="ref-action">Friend gets (on signup)</span><span class="ref-reward">+₹50,000 bonus</span></div>
+        <div class="ref-row"><span class="ref-action">Friends joined so far</span><span class="ref-reward" id="ref-count">0</span></div>
+      </div>
+      <div class="ref-claim-box" id="ref-claim-box">
+        <div class="ref-claim-text" id="ref-claim-text">🎉 You have unclaimed referral bonuses!</div>
+        <button class="ref-claim-btn" onclick="claimReferralBonus()">Claim Now</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="sec-hdr"><span class="sec-title">Settings</span></div>
+    <div class="settings-list">
+      <div class="setting-item" onclick="location.href='reports.html'">
+        <div class="setting-left"><span class="setting-icon">📋</span><span class="setting-name">Daily Report</span></div>
+        <span class="setting-arrow">›</span>
+      </div>
+      <div class="setting-item" onclick="location.href='contact.html'">
+        <div class="setting-left"><span class="setting-icon">📞</span><span class="setting-name">Contact Us</span></div>
+        <span class="setting-arrow">›</span>
+      </div>
+      <div class="setting-item" onclick="location.href='privacy.html'">
+        <div class="setting-left"><span class="setting-icon">🔒</span><span class="setting-name">Privacy Policy</span></div>
+        <span class="setting-arrow">›</span>
+      </div>
+      <div class="setting-item" onclick="location.href='terms.html'">
+        <div class="setting-left"><span class="setting-icon">📄</span><span class="setting-name">Terms & Conditions</span></div>
+        <span class="setting-arrow">›</span>
+      </div>
+      <div class="setting-item danger" onclick="doLogout()">
+        <div class="setting-left"><span class="setting-icon">🚪</span><span class="setting-name">Logout</span></div>
+        <span class="setting-arrow">›</span>
+      </div>
+    </div>
+
+    <div class="app-footer">
+      <div class="footer-powered">
+        <img src="scaleaiq-logo.png" alt="ScaleAIQ">
+        <span>Powered by ScaleAIQ</span>
+      </div>
+      <div class="footer-links">
+        TradeSeekho v2.0 · Virtual trading only · Not investment advice<br>© 2026 ScaleAIQ
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-i" onclick="location.href='index.html'"><span class="nav-icon">📊</span><span class="nav-lbl">Market</span></div>
+    <div class="nav-i" onclick="location.href='portfolio.html'"><span class="nav-icon">💼</span><span class="nav-lbl">Portfolio</span></div>
+    <div class="nav-i" onclick="location.href='leaderboard.html'"><span class="nav-icon">🏆</span><span class="nav-lbl">Ranks</span></div>
+    <div class="nav-i" onclick="location.href='community.html'"><span class="nav-icon">💬</span><span class="nav-lbl">Community</span></div>
+    <div class="nav-i act" onclick="location.href='profile.html'"><span class="nav-icon">👤</span><span class="nav-lbl">Profile</span></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="auth-loading">
+  <img src="logo.png" alt="" style="width:64px;height:64px;border-radius:16px;opacity:0.9;animation:fadepulse 1.2s infinite">
+</div>
+
+<script>
+const CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
+const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const PLAN_START = {free:100000, lite:500000, max:1000000};
+let myReferralCode = "";
+
+function showToast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove("show"),2800);
+}
+function copyRefLink(){
+  const link = document.getElementById("ref-link").textContent;
+  navigator.clipboard.writeText(link).then(()=>showToast("✅ Link copied!"));
+}
+function shareWhatsApp(){
+  const link = document.getElementById("ref-link").textContent;
+  const msg = `🚀 I'm learning stock trading risk-free on TradeSeekho! Join using my link and get ₹50,000 bonus virtual cash:\n${link}`;
+  window.open("https://wa.me/?text="+encodeURIComponent(msg), "_blank");
+  if(window.claimShareBonus) window.claimShareBonus();
+}
+function renderTicker(){
+  const track = document.getElementById("ticker-track");
+  if(!track) return;
+  const mock = [["RELIANCE","2950.40",true],["TCS","4118.20",false],["HDFCBANK","1684.10",true],
+    ["INFY","1541.80",true],["SBIN","844.30",false],["ITC","439.10",true]];
+  const items = mock.map(m=>`<span class="tk-item"><span class="tk-sym">${m[0]}</span><span class="${m[2]?'g':'r'}">${m[1]} ${m[2]?'▲':'▼'}</span></span>`).join("");
+  track.innerHTML = items + items;
+}
+renderTicker();
+
+function downloadCertificate(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:"landscape", unit:"mm", format:"a4"});
+  const name = document.getElementById("prof-name").textContent;
+  const peak = document.getElementById("ps-peak").textContent;
+  const date = new Date().toLocaleDateString("en-IN", {day:"numeric", month:"long", year:"numeric"});
+
+  doc.setFillColor(9,13,22); doc.rect(0,0,297,210,"F");
+  doc.setDrawColor(99,102,241); doc.setLineWidth(1.2); doc.rect(10,10,277,190);
+  doc.setDrawColor(59,130,246); doc.setLineWidth(0.4); doc.rect(14,14,269,182);
+
+  doc.setTextColor(165,180,252); doc.setFontSize(13); doc.setFont("helvetica","bold");
+  doc.text("TRADESEEKHO", 148.5, 38, {align:"center"});
+  doc.setTextColor(148,163,184); doc.setFontSize(9); doc.setFont("helvetica","normal");
+  doc.text("Learn. Trade. Grow.", 148.5, 45, {align:"center"});
+
+  doc.setTextColor(241,245,249); doc.setFontSize(26); doc.setFont("helvetica","bold");
+  doc.text("Certificate of Achievement", 148.5, 75, {align:"center"});
+
+  doc.setFontSize(11); doc.setTextColor(148,163,184); doc.setFont("helvetica","normal");
+  doc.text("This certifies that", 148.5, 95, {align:"center"});
+
+  doc.setFontSize(22); doc.setTextColor(96,165,250); doc.setFont("helvetica","bold");
+  doc.text(name, 148.5, 110, {align:"center"});
+
+  doc.setFontSize(11); doc.setTextColor(148,163,184); doc.setFont("helvetica","normal");
+  doc.text(`has reached a peak virtual portfolio value of`, 148.5, 125, {align:"center"});
+
+  doc.setFontSize(20); doc.setTextColor(16,185,129); doc.setFont("helvetica","bold");
+  doc.text(peak, 148.5, 138, {align:"center"});
+
+  doc.setFontSize(10); doc.setTextColor(100,116,139); doc.setFont("helvetica","normal");
+  doc.text(`trading virtually on TradeSeekho · ${date}`, 148.5, 150, {align:"center"});
+  doc.text("Virtual trading simulator by ScaleAIQ · Not real investment advice", 148.5, 178, {align:"center"});
+
+  doc.save("TradeSeekho_Certificate.pdf");
+  if(window.track) window.track("certificate_downloaded", {});
+}
+</script>
+
+<script type="module">
+if(!DEMO_MODE){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, limit, addDoc, updateDoc, increment } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let uid = null, userData = null;
+
+    window.doLogout = async function(){ await signOut(auth); location.href="index.html"; };
+
+    // Generate a random alphanumeric referral code
+    function genCode(){
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let c = "";
+      for(let i=0;i<6;i++) c += chars[Math.floor(Math.random()*chars.length)];
+      return c;
+    }
+
+    async function ensureReferralCode(){
+      if(userData.referralCode){
+        myReferralCode = userData.referralCode;
+        return;
+      }
+      // generate, ensure uniqueness with a few retries
+      for(let attempt=0; attempt<5; attempt++){
+        const code = genCode();
+        const codeSnap = await getDoc(doc(db,"referralCodes",code));
+        if(!codeSnap.exists()){
+          await setDoc(doc(db,"referralCodes",code), {uid});
+          await setDoc(doc(db,"users",uid), {referralCode:code}, {merge:true});
+          myReferralCode = code;
+          return;
+        }
+      }
+      myReferralCode = uid.substring(0,6).toUpperCase(); // fallback
+    }
+
+    function updateRefLinkUI(){
+      const link = location.origin + location.pathname.replace("profile.html","index.html") + "?ref=" + myReferralCode;
+      document.getElementById("ref-link").textContent = link;
+    }
+
+    window.claimShareBonus = async function(){
+      if(userData.whatsappShareBonusClaimed) return;
+      try{
+        await updateDoc(doc(db,"users",uid), {cash: increment(25000), whatsappShareBonusClaimed:true});
+        showToast("🎉 +₹25,000 added for sharing!");
+      }catch(e){ console.error(e); }
+    };
+
+    async function loadUnclaimedReferrals(){
+      try{
+        const q = query(collection(db,"referrals"), where("referrerUid","==",uid), where("claimed","==",false));
+        const snap = await getDocs(q);
+        const count = snap.size;
+        const box = document.getElementById("ref-claim-box");
+        if(count > 0){
+          box.classList.add("show");
+          document.getElementById("ref-claim-text").textContent = `🎉 ${count} friend${count>1?'s':''} joined! Claim ₹${(count*100000).toLocaleString('en-IN')} bonus`;
+          window._pendingRefDocs = [];
+          snap.forEach(d=>window._pendingRefDocs.push(d.id));
+        } else {
+          box.classList.remove("show");
+        }
+      }catch(e){ console.error("Referral check failed (may need a composite index — see FIRESTORE-RULES.txt)", e); }
+    }
+
+    window.claimReferralBonus = async function(){
+      const ids = window._pendingRefDocs || [];
+      if(!ids.length) return;
+      try{
+        const bonusTotal = ids.length * 100000;
+        await updateDoc(doc(db,"users",uid), {cash: increment(bonusTotal)});
+        for(const id of ids){
+          await updateDoc(doc(db,"referrals",id), {claimed:true});
+        }
+        showToast(`🎉 +${fmtInt(bonusTotal)} added to your cash!`);
+        document.getElementById("ref-claim-box").classList.remove("show");
+        loadStats();
+      }catch(e){ console.error(e); showToast("Couldn't claim — try again"); }
+    };
+
+    async function loadReferralCount(){
+      try{
+        const q = query(collection(db,"referrals"), where("referrerUid","==",uid));
+        const snap = await getDocs(q);
+        document.getElementById("ref-count").textContent = snap.size;
+      }catch(e){ console.error(e); }
+    }
+
+    async function loadRank(){
+      try{
+        const q = query(collection(db,"leaderboard"), orderBy("peakValue","desc"), limit(200));
+        const snap = await getDocs(q);
+        let rank = null, idx = 0;
+        snap.forEach(d=>{ idx++; if(d.id===uid) rank = idx; });
+        document.getElementById("ps-rank").textContent = rank ? "#"+rank : "—";
+      }catch(e){ console.error(e); }
+    }
+
+    function loadStats(){
+      const peak = userData.peakValue || PLAN_START[userData.plan||"free"];
+      document.getElementById("ps-peak").textContent = fmtInt(peak);
+      const trades = (userData.orders||[]).filter(o=>o.side==="BUY"||o.side==="SELL").length;
+      document.getElementById("ps-trades").textContent = trades;
+
+      // Certificate milestone: peak >= 10% above starting amount
+      const start = PLAN_START[userData.plan||"free"];
+      if(peak >= start*1.1){
+        document.getElementById("cert-zone").style.display = "block";
+        document.getElementById("cert-desc").textContent = `You've crossed ${fmtInt(peak)} peak value — a ${(((peak-start)/start)*100).toFixed(0)}% gain! Download your certificate.`;
+      }
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      const al = document.getElementById("auth-loading");
+      if(user){
+        uid = user.uid;
+        document.getElementById("prof-name").textContent = user.displayName || "Trader";
+        document.getElementById("prof-email").textContent = user.email || "";
+        const av = document.getElementById("prof-av");
+        if(user.photoURL){ av.style.backgroundImage = `url(${user.photoURL})`; av.textContent = ""; }
+        else { av.textContent = (user.displayName||"T").charAt(0).toUpperCase(); }
+
+        try{
+          const snap = await getDoc(doc(db,"users",uid));
+          userData = snap.exists() ? snap.data() : {plan:"free", peakValue:100000, orders:[]};
+          const plan = userData.plan || "free";
+          const badge = document.getElementById("prof-badge");
+          badge.className = "prof-badge " + plan;
+          badge.textContent = plan==="max"?"PRO MAX":plan==="lite"?"PRO LITE":"FREE";
+
+          loadStats();
+          await ensureReferralCode();
+          updateRefLinkUI();
+          loadReferralCount();
+          loadUnclaimedReferrals();
+          loadRank();
+        }catch(e){ console.error("Load failed", e); }
+        if(al) al.style.display = "none";
+      } else {
+        location.href = "index.html";
+      }
+    });
+  }catch(e){
+    console.error("Firebase init failed:", e);
+    const al=document.getElementById("auth-loading"); if(al) al.style.display="none";
+  }
+} else {
+  document.getElementById("auth-loading").style.display = "none";
+}
+</script>
+</body>
+</html>

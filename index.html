@@ -175,11 +175,11 @@
   .login-foot a{color:var(--accent)}
 
   /* ===== Toast ===== */
-  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(80px);
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(140px);
     background:var(--card2);border:1px solid var(--accent);color:var(--text);padding:12px 20px;
-    border-radius:13px;font-size:13.5px;font-weight:600;transition:transform .3s;z-index:60;
-    max-width:88%;text-align:center}
-  .toast.show{transform:translateX(-50%) translateY(0)}
+    border-radius:13px;font-size:13.5px;font-weight:600;transition:transform .35s,opacity .35s;z-index:60;
+    max-width:88%;text-align:center;opacity:0;pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
   /* ===== Stock Detail Sheet ===== */
   .overlay{position:fixed;inset:0;background:rgba(5,8,14,0.78);display:none;
@@ -202,6 +202,32 @@
   .stat-box .k{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
   .stat-box .v{font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:600;margin-top:3px}
   .d-actions{display:flex;gap:10px}
+
+  /* Stock detail comments */
+  .d-comments-hdr{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px}
+  .d-comments-title{font-size:12px;font-weight:800}
+  .post-input-row{display:flex;gap:8px;margin-bottom:10px}
+  .post-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:11px;
+    padding:10px 13px;color:var(--text);font-size:12px;font-family:'Inter',sans-serif}
+  .post-input:focus{outline:none;border-color:var(--accent)}
+  .sentiment-row{display:flex;gap:6px;margin-bottom:8px}
+  .sent-btn{font-size:10px;font-weight:700;padding:5px 11px;border-radius:8px;background:var(--card);
+    border:1px solid var(--border);color:var(--muted);cursor:pointer}
+  .sent-btn.act.bull{background:rgba(16,185,129,0.15);color:var(--green);border-color:var(--green)}
+  .sent-btn.act.bear{background:rgba(239,68,68,0.15);color:var(--red);border-color:var(--red)}
+  .post-send-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+    border-radius:10px;padding:9px 16px;font-size:11.5px;font-weight:800;cursor:pointer;width:100%}
+  .cmt{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 13px;margin-bottom:7px}
+  .cmt-hdr{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .cmt-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;color:#fff;flex-shrink:0;background-size:cover;background-position:center}
+  .cmt-user{font-size:11px;font-weight:800}
+  .cmt-time{font-size:9px;color:var(--muted)}
+  .cmt-txt{font-size:11.5px;color:var(--subtle);line-height:1.5;margin-bottom:8px}
+  .cmt-acts{display:flex;gap:14px;align-items:center}
+  .cmt-act{font-size:10px;color:var(--muted);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px}
+  .cmt-sent{font-size:9.5px;font-weight:700;margin-left:auto}
+  .cmt-sent.bull{color:var(--green)} .cmt-sent.bear{color:var(--red)}
   .btn{border:none;border-radius:12px;padding:13px;font-weight:800;font-size:13.5px;cursor:pointer;
     font-family:'Inter',sans-serif;flex:1;text-align:center}
   .btn-buy{background:linear-gradient(135deg,#064E3B,var(--green))}
@@ -369,6 +395,18 @@
       <div style="text-align:center;margin-top:8px"><a href="plans.html" style="font-size:10.5px;color:var(--accent);font-weight:700">Compare all plans →</a></div>
     </div>
 
+    <!-- Coupon redeem -->
+    <div style="margin:0 14px 16px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 14px">
+      <div style="font-size:11px;font-weight:700;color:var(--subtle);margin-bottom:8px">🎟️ Have a coupon code?</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="coupon-input" placeholder="Enter code" style="flex:1;background:var(--surface);border:1px solid var(--border);
+          border-radius:9px;padding:9px 12px;color:var(--text);font-size:12.5px;font-family:'JetBrains Mono',monospace;text-transform:uppercase">
+        <button onclick="redeemCoupon()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+          border:none;padding:9px 16px;border-radius:9px;font-size:11.5px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif">Apply</button>
+      </div>
+      <div id="coupon-msg" style="font-size:10.5px;margin-top:6px;min-height:14px"></div>
+    </div>
+
     <!-- Footer -->
     <div class="app-footer">
       <div class="footer-powered">
@@ -429,6 +467,20 @@
       <button class="btn btn-sell" id="d-sellbtn" onclick="openTradeFromDetail('sell')">▼ SELL</button>
       <button class="btn btn-buy" onclick="openTradeFromDetail('buy')">▲ BUY</button>
     </div>
+
+    <div class="d-comments-hdr">
+      <span class="d-comments-title">💬 Community (<span id="d-cmt-count">0</span>)</span>
+    </div>
+    <div class="post-input-row">
+      <input type="text" class="post-input" id="d-post-text" placeholder="Share your view on this stock...">
+    </div>
+    <div class="sentiment-row">
+      <button class="sent-btn bull" id="d-sent-bull" onclick="setSentiment('bullish')">▲ Bullish</button>
+      <button class="sent-btn bear" id="d-sent-bear" onclick="setSentiment('bearish')">▼ Bearish</button>
+      <button class="sent-btn" id="d-sent-neutral" onclick="setSentiment('neutral')">● Neutral</button>
+    </div>
+    <button class="post-send-btn" onclick="postStockComment()" style="margin-bottom:14px">Post</button>
+    <div id="d-comments-list"></div>
   </div>
 </div>
 
@@ -526,6 +578,7 @@ const FREE_LIMIT = 10; // first N stocks visible on Free plan
 
 let cash = 100000;
 let holdings = {};
+let peakValue = 100000;
 let modalStock = null, modalSide = "buy", modalQty = 1;
 let detailIdx = null;
 let userPlan = "free"; // free | lite | max — comes from Firestore once logged in
@@ -689,6 +742,8 @@ function goPlan(plan){
   location.href = "plans.html?plan=" + plan;
 }
 
+const PLAN_START = {free:100000, lite:500000, max:1000000};
+
 function renderSummary(){
   let holdval = 0, invested = 0;
   for(const sym in holdings){
@@ -698,12 +753,13 @@ function renderSummary(){
     invested += holdings[sym].qty * holdings[sym].avg;
   }
   const total = cash + holdval;
+  if(total > peakValue) peakValue = total;
   const todayPnl = holdval - invested;
   document.getElementById("port-val").textContent = fmtInt(total);
   document.getElementById("stat-cash").textContent = fmtInt(cash);
   document.getElementById("stat-today").textContent = (todayPnl>=0?"+":"") + fmtInt(todayPnl);
   const pnlEl = document.getElementById("port-pnl");
-  const startAmt = userPlan === "max" ? 1000000 : userPlan === "lite" ? 500000 : 100000;
+  const startAmt = PLAN_START[userPlan] || 100000;
   const overallPnl = total - startAmt;
   const overallPct = (overallPnl/startAmt*100);
   pnlEl.textContent = (overallPnl>=0?"▲ +":"▼ ") + fmtInt(Math.abs(overallPnl)) + ` (${overallPnl>=0?"+":""}${overallPct.toFixed(2)}%)`;
@@ -715,6 +771,10 @@ function openDetail(i){
   detailIdx = i;
   renderDetail();
   document.getElementById("d-overlay").classList.add("show");
+  currentSentiment = "neutral";
+  document.getElementById("d-post-text").value = "";
+  updateSentimentButtons();
+  if(window.loadStockComments) window.loadStockComments(stocks[i].sym);
 }
 function closeDetail(){ detailIdx = null; document.getElementById("d-overlay").classList.remove("show"); }
 function renderDetail(){
@@ -784,7 +844,8 @@ function openModal(i, side){
 }
 function maxAffordable(){
   if(modalSide === "buy"){
-    return Math.max(0, Math.floor(cash / modalStock.price));
+    // account for ~0.22% charges so MAX doesn't exceed cash
+    return Math.max(0, Math.floor(cash / (modalStock.price * 1.0025)));
   } else {
     const h = holdings[modalStock.sym];
     return h ? h.qty : 0;
@@ -804,7 +865,14 @@ function setMaxQty(){
 }
 function updateModal(){
   document.getElementById("m-price").textContent = fmt(modalStock.price) + " per share";
-  document.getElementById("m-total").textContent = fmt(modalQty * modalStock.price);
+  const value = modalQty * modalStock.price;
+  const ch = calcCharges(value);
+  const totalEl = document.getElementById("m-total");
+  if(modalSide === "buy"){
+    totalEl.innerHTML = fmt(value + ch.total) + `<br><span style="font-size:9.5px;color:var(--muted);font-weight:500">${fmt(value)} + ₹${ch.total.toFixed(2)} charges</span>`;
+  } else {
+    totalEl.innerHTML = fmt(value - ch.total) + `<br><span style="font-size:9.5px;color:var(--muted);font-weight:500">${fmt(value)} − ₹${ch.total.toFixed(2)} charges</span>`;
+  }
   const mx = maxAffordable();
   const hint = document.getElementById("m-qty-hint");
   if(modalSide === "buy"){
@@ -815,31 +883,44 @@ function updateModal(){
 }
 function closeModal(){ document.getElementById("overlay-trade").classList.remove("show"); }
 
+// Realistic Indian delivery charges (approx) — brokerage 0.1% + STT 0.1% + GST 18% on brokerage + misc 0.012%
+function calcCharges(value){
+  const brokerage = Math.min(value * 0.001, 20);  // 0.1%, capped ₹20 like real discount brokers
+  const stt = value * 0.001;                       // 0.1% securities transaction tax
+  const gst = brokerage * 0.18;                    // 18% GST on brokerage
+  const misc = value * 0.00012;                    // exchange + stamp + sebi approx
+  const total = brokerage + stt + gst + misc;
+  return {brokerage, stt, gst, misc, total:+total.toFixed(2)};
+}
+
 function confirmTrade(){
-  const total = modalQty * modalStock.price;
+  const value = modalQty * modalStock.price;
+  const ch = calcCharges(value);
   const err = document.getElementById("m-err");
   if(modalSide === "buy"){
-    if(total > cash){
-      err.textContent = "Cash kam hai! Available: " + fmtInt(cash);
+    const totalCost = value + ch.total;
+    if(totalCost > cash){
+      err.textContent = "Cash kam hai! Need " + fmtInt(totalCost) + " (incl. ₹"+ch.total.toFixed(2)+" charges)";
       err.style.display = "block"; return;
     }
-    cash -= total;
+    cash -= totalCost;
     const h = holdings[modalStock.sym];
-    if(h){ h.avg = (h.avg*h.qty + total)/(h.qty + modalQty); h.qty += modalQty; }
+    if(h){ h.avg = (h.avg*h.qty + value)/(h.qty + modalQty); h.qty += modalQty; }
     else holdings[modalStock.sym] = {qty: modalQty, avg: modalStock.price};
-    showToast(`✅ ${modalQty} × ${modalStock.sym} kharida @ ${fmt(modalStock.price)}`);
-    logOrder("BUY", modalStock.sym, modalQty, modalStock.price);
+    showToast(`✅ ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
+    logOrder("BUY", modalStock.sym, modalQty, modalStock.price, ch.total);
   } else {
     const h = holdings[modalStock.sym];
     if(!h || modalQty > h.qty){
       err.textContent = "Itne shares nahi hain! Aapke paas: " + (h ? h.qty : 0);
       err.style.display = "block"; return;
     }
-    cash += total;
+    const proceeds = value - ch.total;
+    cash += proceeds;
     h.qty -= modalQty;
     if(h.qty === 0) delete holdings[modalStock.sym];
-    showToast(`💰 ${modalQty} × ${modalStock.sym} becha @ ${fmt(modalStock.price)}`);
-    logOrder("SELL", modalStock.sym, modalQty, modalStock.price);
+    showToast(`💰 ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
+    logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total);
   }
   closeModal();
   renderWatchlist(); renderSummary();
@@ -847,10 +928,12 @@ function confirmTrade(){
   track(modalSide === "buy" ? "trade_buy" : "trade_sell", {stock: modalStock.sym, qty: modalQty});
   if(window.cloudSave) window.cloudSave(getState());
 }
-function logOrder(side, sym, qty, price){
-  const t = new Date().toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit", timeZone:"Asia/Kolkata"});
-  orders.unshift({side, sym, qty, price, t});
-  if(orders.length > 30) orders.pop();
+function logOrder(side, sym, qty, price, charges){
+  const now = new Date();
+  const t = now.toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit", timeZone:"Asia/Kolkata"});
+  const date = now.toLocaleDateString("en-IN", {timeZone:"Asia/Kolkata"});
+  orders.unshift({side, sym, qty, price, charges:charges||0, t, date, ts:now.getTime()});
+  if(orders.length > 100) orders.pop(); // keep more for reports; display limits to 5
 }
 
 function showToast(msg){
@@ -863,13 +946,14 @@ function showToast(msg){
 
 // ---- Cloud state (unchanged contract from old index.html) ----
 function getState(){
-  return {cash, holdings, orders: orders.slice(0,20), plan: userPlan, updatedAt: Date.now()};
+  return {cash, holdings, orders: orders.slice(0,100), plan: userPlan, peakValue, updatedAt: Date.now()};
 }
 function applyState(st){
   if(!st) return;
   cash = typeof st.cash === "number" ? st.cash : cash;
   holdings = st.holdings || {};
   userPlan = st.plan || "free";
+  peakValue = typeof st.peakValue === "number" ? st.peakValue : PLAN_START[userPlan] || 100000;
   orders.length = 0;
   (st.orders || []).forEach(o=>orders.push(o));
   updatePlanBadge();
@@ -899,6 +983,23 @@ for(let i=0;i<35;i++){
 renderTicker(); renderWatchlist(); renderSummary(); updateClock(); updatePlanBadge();
 setInterval(tick, 5000); // 5-second refresh, matches Angel One Phase 2 plan
 
+// ===== Stock detail comments (sentiment toggle + post trigger) =====
+let currentSentiment = "neutral";
+function setSentiment(s){ currentSentiment = s; updateSentimentButtons(); }
+function updateSentimentButtons(){
+  document.getElementById("d-sent-bull").classList.toggle("act", currentSentiment==="bullish");
+  document.getElementById("d-sent-bear").classList.toggle("act", currentSentiment==="bearish");
+  document.getElementById("d-sent-neutral").classList.toggle("act", currentSentiment==="neutral");
+}
+function postStockComment(){
+  const text = document.getElementById("d-post-text").value.trim();
+  if(!text){ showToast("Likho kuch pehle! 😊"); return; }
+  if(window.submitPost){
+    window.submitPost(text, stocks[detailIdx].sym, currentSentiment);
+    document.getElementById("d-post-text").value = "";
+  }
+}
+
 // Don't show login screen immediately — wait for Firebase to confirm auth status.
 // This prevents the login screen from flashing for users who are already logged in.
 // (Firebase module below will reveal it only if there's genuinely no user.)
@@ -911,8 +1012,112 @@ if(!DEMO_MODE){
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, doc, getDoc, setDoc } =
+    const { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, orderBy, limit, getDocs, increment, updateDoc } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+    const PLAN_RANK = {free:0, lite:1, max:2};
+
+    // ===== Community posts (per-stock comments) =====
+    window.submitPost = async function(text, stockTag, sentiment){
+      if(!uid) return;
+      try{
+        await addDoc(collection(db,"posts"), {
+          uid, text, stockTag, sentiment,
+          displayName: auth.currentUser?.displayName || "Trader",
+          photoURL: auth.currentUser?.photoURL || "",
+          likes: 0, replyCount: 0, createdAt: Date.now()
+        });
+        track("post_created", {stockTag, sentiment});
+        showToast("✅ Posted!");
+        window.loadStockComments(stockTag);
+      }catch(e){ console.error("Post failed", e); showToast("Post nahi hua, try again"); }
+    };
+
+    window.loadStockComments = async function(symbol){
+      const listEl = document.getElementById("d-comments-list");
+      const countEl = document.getElementById("d-cmt-count");
+      listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;padding:14px">Loading...</div>`;
+      try{
+        const q = query(collection(db,"posts"), where("stockTag","==",symbol), orderBy("createdAt","desc"), limit(30));
+        const snap = await getDocs(q);
+        const items = [];
+        snap.forEach(d=>items.push({id:d.id, ...d.data()}));
+        countEl.textContent = items.length;
+        if(!items.length){
+          listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11.5px;padding:16px">No comments yet on this stock. Be the first to share your view! 💬</div>`;
+          return;
+        }
+        listEl.innerHTML = items.map(p=>{
+          const initial = (p.displayName||"T").charAt(0).toUpperCase();
+          const avStyle = p.photoURL ? `background-image:url(${p.photoURL})` : `background:linear-gradient(135deg,#1D4ED8,#3B82F6)`;
+          const timeAgo = timeSince(p.createdAt);
+          const sentTag = p.sentiment==="bullish" ? '<span class="cmt-sent bull">▲ Bullish</span>'
+            : p.sentiment==="bearish" ? '<span class="cmt-sent bear">▼ Bearish</span>' : '';
+          return `<div class="cmt">
+            <div class="cmt-hdr">
+              <div class="cmt-av" style="${avStyle}">${p.photoURL?'':initial}</div>
+              <div><div class="cmt-user">${p.displayName}</div><div class="cmt-time">${timeAgo}</div></div>
+            </div>
+            <div class="cmt-txt">${escapeHtml(p.text)}</div>
+            <div class="cmt-acts">
+              <span class="cmt-act" onclick="likePost('${p.id}')">👍 ${p.likes||0}</span>
+              ${sentTag}
+            </div>
+          </div>`;
+        }).join("");
+      }catch(e){ console.error("Load comments failed", e); listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;padding:14px">Couldn't load comments</div>`; }
+    };
+
+    window.likePost = async function(postId){
+      try{ await updateDoc(doc(db,"posts",postId), {likes: increment(1)}); }
+      catch(e){ console.error("Like failed", e); }
+    };
+
+    function timeSince(ts){
+      const s = Math.floor((Date.now()-ts)/1000);
+      if(s<60) return "just now";
+      if(s<3600) return Math.floor(s/60)+" min ago";
+      if(s<86400) return Math.floor(s/3600)+" hr ago";
+      return Math.floor(s/86400)+" days ago";
+    }
+    function escapeHtml(str){
+      const d = document.createElement("div"); d.textContent = str; return d.innerHTML;
+    }
+
+    async function checkGrant(email, currentPlan){
+      if(!email) return null;
+      try{
+        const gsnap = await getDoc(doc(db, "grants", email.toLowerCase()));
+        if(gsnap.exists()){
+          const grantPlan = gsnap.data().plan;
+          if(PLAN_RANK[grantPlan] > PLAN_RANK[currentPlan||"free"]) return grantPlan;
+        }
+      }catch(e){ console.error("Grant check failed", e); }
+      return null;
+    }
+
+    window.redeemCoupon = async function(){
+      const input = document.getElementById("coupon-input");
+      const code = (input.value || "").trim().toUpperCase();
+      const msgEl = document.getElementById("coupon-msg");
+      if(!code){ msgEl.textContent="Enter a code"; msgEl.style.color="var(--red)"; return; }
+      try{
+        const csnap = await getDoc(doc(db, "coupons", code));
+        if(!csnap.exists()){ msgEl.textContent="Invalid code"; msgEl.style.color="var(--red)"; return; }
+        const c = csnap.data();
+        if(!c.active){ msgEl.textContent="This code is no longer active"; msgEl.style.color="var(--red)"; return; }
+        if((c.usedCount||0) >= c.maxUses){ msgEl.textContent="This code has reached its usage limit"; msgEl.style.color="var(--red)"; return; }
+        if(PLAN_RANK[c.plan] <= PLAN_RANK[userPlan]){ msgEl.textContent="You already have this plan or higher"; msgEl.style.color="var(--gold)"; return; }
+        userPlan = c.plan;
+        updatePlanBadge(); renderWatchlist(); renderSummary();
+        if(window.cloudSave) window.cloudSave(getState());
+        await setDoc(doc(db,"coupons",code), {usedCount:(c.usedCount||0)+1}, {merge:true});
+        msgEl.textContent = "🎉 "+c.plan.toUpperCase()+" unlocked!"; msgEl.style.color="var(--green)";
+        showToast("🎉 Coupon applied — "+c.plan.toUpperCase()+" unlocked!");
+        input.value = "";
+        track("coupon_redeemed", {code, plan:c.plan});
+      }catch(e){ msgEl.textContent="Error: "+e.message; msgEl.style.color="var(--red)"; }
+    };
 
     const app = initializeApp(CONFIG.firebase);
     const auth = getAuth(app);
@@ -950,6 +1155,14 @@ if(!DEMO_MODE){
             email: auth.currentUser?.email || "",
             photoURL: auth.currentUser?.photoURL || ""
           }, {merge:true});
+          // Public leaderboard entry — only non-sensitive fields (no cash/holdings/orders)
+          await setDoc(doc(db, "leaderboard", uid), {
+            displayName: auth.currentUser?.displayName || "Trader",
+            photoURL: auth.currentUser?.photoURL || "",
+            peakValue: state.peakValue || 0,
+            plan: state.plan || "free",
+            updatedAt: Date.now()
+          }, {merge:true});
         }catch(e){ console.error("Save failed", e); }
       }, 400);
     };
@@ -975,8 +1188,37 @@ if(!DEMO_MODE){
             applyState(snap.data());
             showToast("Welcome back, " + (user.displayName||"Trader").split(" ")[0] + "! 👋");
           } else {
+            // New user — check for referral code in URL before first save
+            const urlParams = new URLSearchParams(location.search);
+            const refCode = urlParams.get("ref");
+            let referralApplied = false;
+            if(refCode){
+              try{
+                const codeSnap = await getDoc(doc(db,"referralCodes",refCode.toUpperCase()));
+                if(codeSnap.exists()){
+                  const referrerUid = codeSnap.data().uid;
+                  if(referrerUid !== uid){ // can't refer yourself
+                    cash += 50000; // referee signup bonus
+                    await addDoc(collection(db,"referrals"), {
+                      referrerUid, refereeUid: uid, claimed:false, createdAt: Date.now()
+                    });
+                    referralApplied = true;
+                  }
+                }
+              }catch(e){ console.error("Referral processing failed", e); }
+            }
             window.cloudSave(getState());
-            showToast("Account ban gaya! ₹1,00,000 virtual cash ready 🚀");
+            showToast(referralApplied
+              ? "🎁 Welcome! " + fmtInt(cash) + " ready (incl. ₹50,000 referral bonus)"
+              : "Account ban gaya! " + fmtInt(cash) + " virtual cash ready 🚀");
+          }
+          // Check if admin granted free Pro/Lite/Max to this email
+          const grantedPlan = await checkGrant(user.email, userPlan);
+          if(grantedPlan){
+            userPlan = grantedPlan;
+            updatePlanBadge(); renderWatchlist(); renderSummary();
+            if(window.cloudSave) window.cloudSave(getState());
+            showToast("🎁 You've been granted " + grantedPlan.toUpperCase() + " access!");
           }
         }catch(e){ console.error("Load failed", e); }
       } else {

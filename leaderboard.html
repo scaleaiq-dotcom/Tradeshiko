@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Leaderboard — TradeSeekho</title>
+<meta name="theme-color" content="#090D16">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090D16; --surface:#0F1623; --card:#141E2E; --card2:#1A2540;
+    --border:#1E2D45; --border2:#243352;
+    --accent:#3B82F6; --accent2:#6366F1;
+    --green:#10B981; --red:#EF4444; --gold:#F59E0B;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+  .screen{flex:1;padding-bottom:84px}
+  .g{color:var(--green)} .r{color:var(--red)}
+
+  /* Ticker */
+  .ticker-bar{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;
+    white-space:nowrap;padding:7px 0;position:sticky;top:0;z-index:6}
+  .ticker-track{display:inline-block;animation:tickerscroll 40s linear infinite}
+  @keyframes tickerscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .tk-item{display:inline-block;margin:0 16px;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .tk-item .tk-sym{color:var(--subtle);margin-right:6px;font-weight:600}
+
+  .hdr{padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:center}
+  .hdr-title{font-size:15px;font-weight:800}
+  .tabs{display:flex;gap:5px}
+  .tab{font-size:9.5px;font-weight:800;padding:4px 11px;background:var(--card);color:var(--muted);
+    border-radius:8px;cursor:pointer;border:1px solid var(--border)}
+  .tab.act{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* Stats strip */
+  .stats-strip{margin:2px 14px 14px;background:var(--card);border:1px solid var(--border);border-radius:13px;
+    padding:11px 14px;display:flex;justify-content:space-between;align-items:center}
+  .stats-strip .left{font-size:11px;color:var(--subtle)}
+  .stats-strip .left strong{color:var(--accent)}
+  .your-rank{text-align:right}
+  .your-rank-val{font-size:14px;font-weight:800;color:var(--gold);font-family:'JetBrains Mono',monospace}
+  .your-rank-lbl{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+
+  /* Podium */
+  .podium{display:flex;justify-content:center;align-items:flex-end;gap:10px;padding:6px 16px 8px}
+  .pod{text-align:center;flex:1}
+  .pod-av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;margin:0 auto 5px;
+    background-size:cover;background-position:center;color:#fff}
+  .pod-name{font-size:10px;font-weight:700;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pod-profit{font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--green)}
+  .pod-bar{border-radius:7px 7px 0 0;display:flex;align-items:center;justify-content:center;font-weight:800;margin-top:6px}
+
+  .sec-hdr{padding:6px 16px 9px;display:flex;justify-content:space-between;align-items:center}
+  .sec-title{font-size:12.5px;font-weight:800}
+  .sec-sub{font-size:10px;color:var(--muted)}
+
+  /* List */
+  .ldr-list{padding:0 14px;display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .ldr{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;
+    display:flex;align-items:center;gap:10px}
+  .ldr.you{border-color:var(--accent);background:rgba(59,130,246,0.06)}
+  .ldr-rank{font-size:13px;font-weight:900;width:22px;text-align:center;flex-shrink:0}
+  .ldr-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;flex-shrink:0;color:#fff;background-size:cover;background-position:center}
+  .ldr-info{flex:1;min-width:0}
+  .ldr-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ldr-plan{font-size:9px;color:var(--muted);margin-top:1px}
+  .ldr-profit{text-align:right;flex-shrink:0}
+  .ldr-amt{font-size:12px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--green)}
+  .ldr-pct{font-size:9px;color:var(--green);font-family:'JetBrains Mono',monospace;margin-top:1px}
+
+  .empty{color:var(--muted);font-size:12.5px;background:var(--card);border:1px dashed var(--border);
+    border-radius:13px;padding:24px;text-align:center;margin:0 14px}
+  .skeleton{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);
+    background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:12px;height:54px;margin:0 14px 7px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .app-footer{padding:18px 16px 8px;text-align:center;border-top:1px solid var(--border);margin:8px 14px 0}
+  .footer-powered{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+  .footer-powered img{height:20px;background:#fff;border-radius:5px;padding:2px}
+  .footer-powered span{font-size:10px;color:var(--muted)}
+  .footer-links{font-size:10px;color:var(--muted);line-height:1.8}
+  .footer-links a{color:var(--accent)}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:72px;
+    background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-around;padding:0 4px 10px;z-index:10}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px;border-radius:11px;cursor:pointer;flex:1;max-width:80px}
+  .nav-i.act{background:rgba(59,130,246,0.12)}
+  .nav-icon{font-size:18px;line-height:1}
+  .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .nav-i.act .nav-lbl{color:var(--accent)}
+
+  #auth-loading{position:fixed;inset:0;background:var(--bg);z-index:70;display:flex;align-items:center;justify-content:center}
+  @keyframes fadepulse{0%,100%{opacity:0.4}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="ticker-bar"><div class="ticker-track" id="ticker-track"></div></div>
+
+  <div class="hdr">
+    <span class="hdr-title">🏆 Leaderboard</span>
+    <div class="tabs">
+      <div class="tab act" onclick="showInfo('All-time, ranked by peak portfolio value ever reached.')">All-Time</div>
+      <div class="tab" onclick="showInfo('Weekly leaderboard launches once live market prices go live (Phase 2). For now all-time peak is shown.')">Week</div>
+      <div class="tab" onclick="showInfo('Monthly leaderboard launches once live market prices go live (Phase 2). For now all-time peak is shown.')">Month</div>
+    </div>
+  </div>
+
+  <div class="screen">
+
+    <div class="stats-strip">
+      <div class="left"><strong id="trader-count">0</strong> traders competing</div>
+      <div class="your-rank">
+        <div class="your-rank-val" id="your-rank">—</div>
+        <div class="your-rank-lbl">Your Rank</div>
+      </div>
+    </div>
+
+    <div id="podium-zone"></div>
+
+    <div class="sec-hdr">
+      <span class="sec-title">Full Rankings</span>
+      <span class="sec-sub" id="rank-note">Ranked by peak value</span>
+    </div>
+
+    <div id="ldr-list">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+
+    <div class="app-footer">
+      <div class="footer-powered">
+        <img src="scaleaiq-logo.png" alt="ScaleAIQ">
+        <span>Powered by ScaleAIQ</span>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="contact.html">Contact</a><br>
+        Virtual trading only · Not investment advice · © 2026 ScaleAIQ
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-i" onclick="location.href='index.html'"><span class="nav-icon">📊</span><span class="nav-lbl">Market</span></div>
+    <div class="nav-i" onclick="location.href='portfolio.html'"><span class="nav-icon">💼</span><span class="nav-lbl">Portfolio</span></div>
+    <div class="nav-i act" onclick="location.href='leaderboard.html'"><span class="nav-icon">🏆</span><span class="nav-lbl">Ranks</span></div>
+    <div class="nav-i" onclick="location.href='community.html'"><span class="nav-icon">💬</span><span class="nav-lbl">Community</span></div>
+    <div class="nav-i" onclick="location.href='profile.html'"><span class="nav-icon">👤</span><span class="nav-lbl">Profile</span></div>
+  </div>
+
+</div>
+
+<div id="auth-loading">
+  <img src="logo.png" alt="" style="width:64px;height:64px;border-radius:16px;opacity:0.9;animation:fadepulse 1.2s infinite">
+</div>
+
+<script>
+const CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
+const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const PLAN_START = {free:100000, lite:500000, max:1000000};
+
+function showInfo(msg){
+  const t = document.getElementById("rank-note");
+  if(t){ t.textContent = msg; setTimeout(()=>{ t.textContent = "Ranked by peak value"; }, 4000); }
+}
+
+function avatarStyle(photoURL, name){
+  if(photoURL) return `background-image:url(${photoURL})`;
+  return "";
+}
+function initialOf(name){ return (name||"T").trim().charAt(0).toUpperCase(); }
+function avatarGrad(i){
+  const grads = ["linear-gradient(135deg,#92400E,#F59E0B)","linear-gradient(135deg,#374151,#6B7280)",
+    "linear-gradient(135deg,#431407,#C2410C)","linear-gradient(135deg,#1D4ED8,#3B82F6)",
+    "linear-gradient(135deg,#065F46,#10B981)","linear-gradient(135deg,#5B21B6,#8B5CF6)"];
+  return grads[i % grads.length];
+}
+
+function renderLeaderboard(entries, myUid){
+  document.getElementById("trader-count").textContent = entries.length;
+
+  // sort by peakValue desc (already queried sorted, but ensure)
+  entries.sort((a,b)=>(b.peakValue||0)-(a.peakValue||0));
+
+  const myIndex = entries.findIndex(e=>e.uid === myUid);
+  document.getElementById("your-rank").textContent = myIndex >= 0 ? "#"+(myIndex+1) : "—";
+
+  if(!entries.length){
+    document.getElementById("podium-zone").innerHTML = "";
+    document.getElementById("ldr-list").innerHTML = `<div class="empty">No traders yet. Be the first to climb the leaderboard! 🚀</div>`;
+    return;
+  }
+
+  // Podium (top 3)
+  const top3 = entries.slice(0,3);
+  const podiumHeights = [60,72,48]; // visual order: 2nd,1st,3rd
+  const podOrder = top3.length >= 3 ? [1,0,2] : top3.length === 2 ? [1,0] : [0];
+  let podiumHtml = '<div class="podium">';
+  podOrder.forEach(idx=>{
+    const e = top3[idx];
+    if(!e) return;
+    const rank = idx+1;
+    const size = rank===1 ? 50 : rank===2 ? 40 : 36;
+    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||100000);
+    const barH = rank===1?60:rank===2?40:30;
+    const crown = rank===1 ? " 👑" : "";
+    podiumHtml += `<div class="pod">
+      <div class="pod-av" style="width:${size}px;height:${size}px;font-size:${rank===1?18:13}px;background:${avatarGrad(idx)};${e.photoURL?`background-image:url(${e.photoURL});`:''}">${e.photoURL?'':initialOf(e.displayName)}</div>
+      <div class="pod-name" style="color:${rank===1?'var(--gold)':'var(--subtle)'}">${(e.displayName||'Trader').split(' ')[0]}${crown}</div>
+      <div class="pod-profit">${pnl>=0?'+':''}${fmtInt(pnl)}</div>
+      <div class="pod-bar" style="height:${barH}px;background:linear-gradient(180deg,${rank===1?'#92400E,#451A03':rank===2?'#374151,#1F2937':'#431407,#1F2937'});font-size:${rank===1?18:14}px;color:${rank===1?'var(--gold)':rank===2?'#9CA3AF':'#CD7C3A'}">${rank}</div>
+    </div>`;
+  });
+  podiumHtml += '</div>';
+  document.getElementById("podium-zone").innerHTML = entries.length ? podiumHtml : "";
+
+  // Full list
+  const listEl = document.getElementById("ldr-list");
+  listEl.innerHTML = entries.slice(0,50).map((e,i)=>{
+    const isYou = e.uid === myUid;
+    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||100000);
+    const startAmt = PLAN_START[e.plan]||100000;
+    const pct = (pnl/startAmt*100);
+    const rankColor = i===0?"var(--gold)":i===1?"var(--subtle)":i===2?"#CD7C3A":"var(--muted)";
+    const planLabel = e.plan==='max'?'Pro Max':e.plan==='lite'?'Pro Lite':'Free';
+    return `<div class="ldr ${isYou?'you':''}">
+      <span class="ldr-rank" style="color:${rankColor}">${i+1}</span>
+      <div class="ldr-av" style="background:${avatarGrad(i)};${e.photoURL?`background-image:url(${e.photoURL});`:''}">${e.photoURL?'':initialOf(e.displayName)}</div>
+      <div class="ldr-info">
+        <div class="ldr-name">${isYou?'You · ':''}${e.displayName||'Trader'}</div>
+        <div class="ldr-plan">${planLabel}</div>
+      </div>
+      <div class="ldr-profit">
+        <div class="ldr-amt">${pnl>=0?'+':''}${fmtInt(pnl)}</div>
+        <div class="ldr-pct">${pnl>=0?'+':''}${pct.toFixed(1)}%</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderTicker(prices){
+  const track = document.getElementById("ticker-track");
+  if(!track) return;
+  const items = (prices||[]).map(p=>{
+    const up = p.up;
+    return `<span class="tk-item"><span class="tk-sym">${p.sym}</span><span class="${up?'g':'r'}">${p.price} ${up?'▲':'▼'}</span></span>`;
+  }).join("");
+  track.innerHTML = items + items;
+}
+// lightweight mock ticker (Phase 2 will share real Firebase price feed across all pages)
+renderTicker([
+  {sym:"RELIANCE",price:"2950.40",up:true},{sym:"TCS",price:"4118.20",up:false},
+  {sym:"HDFCBANK",price:"1684.10",up:true},{sym:"INFY",price:"1541.80",up:true},
+  {sym:"SBIN",price:"844.30",up:false},{sym:"ITC",price:"439.10",up:true}
+]);
+</script>
+
+<script type="module">
+if(!DEMO_MODE){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, collection, query, orderBy, limit, getDocs } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user)=>{
+      const al = document.getElementById("auth-loading");
+      if(user){
+        try{
+          const q = query(collection(db,"leaderboard"), orderBy("peakValue","desc"), limit(100));
+          const snap = await getDocs(q);
+          const entries = [];
+          snap.forEach(d=>entries.push({uid:d.id, ...d.data()}));
+          renderLeaderboard(entries, user.uid);
+        }catch(e){
+          console.error("Leaderboard load failed", e);
+          document.getElementById("ldr-list").innerHTML = `<div class="empty">Couldn't load leaderboard. Pull to refresh.</div>`;
+        }
+        if(al) al.style.display = "none";
+      } else {
+        location.href = "index.html";
+      }
+    });
+  }catch(e){
+    console.error("Firebase init failed:", e);
+    const al=document.getElementById("auth-loading"); if(al) al.style.display="none";
+  }
+} else {
+  document.getElementById("auth-loading").style.display = "none";
+  renderLeaderboard([], null);
+}
+</script>
+</body>
+</html>

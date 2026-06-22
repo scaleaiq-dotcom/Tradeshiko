@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Plans — TradeSeekho</title>
+<meta name="theme-color" content="#090D16">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090D16; --surface:#0F1623; --card:#141E2E; --card2:#1A2540;
+    --border:#1E2D45; --border2:#243352;
+    --accent:#3B82F6; --accent2:#6366F1;
+    --green:#10B981; --red:#EF4444; --gold:#F59E0B;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+  .screen{flex:1;padding-bottom:30px}
+
+  .back-hdr{padding:14px 16px 8px;display:flex;align-items:center;gap:12px}
+  .back-btn{font-size:18px;color:var(--subtle);cursor:pointer}
+  .back-title{font-size:15px;font-weight:800}
+
+  .intro{padding:2px 16px 16px;text-align:center}
+  .intro p{font-size:11.5px;color:var(--muted)}
+
+  /* Launch notice */
+  .launch-notice{margin:0 14px 16px;background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);
+    border-radius:13px;padding:13px 15px}
+  .launch-notice-title{font-size:11.5px;font-weight:800;color:#93C5FD;margin-bottom:5px}
+  .launch-notice p{font-size:10.5px;color:var(--subtle);line-height:1.5}
+
+  /* Plans */
+  .plans{padding:0 14px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+  .plan{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;position:relative}
+  .plan.featured{border-color:var(--accent)}
+  .plan.max-plan{border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.03)}
+  .plan.highlighted{box-shadow:0 0 0 2px var(--accent), 0 8px 24px rgba(59,130,246,0.2)}
+  .plan-badge-tag{position:absolute;top:-9px;left:18px;font-size:8.5px;font-weight:800;
+    padding:3px 10px;border-radius:20px;letter-spacing:0.05em}
+  .plan-badge-tag.popular{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .plan-badge-tag.best{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
+  .plan-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;margin-top:4px}
+  .plan-name{font-size:16px;font-weight:800}
+  .plan-price{text-align:right}
+  .plan-amt{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace}
+  .plan-period{font-size:10px;color:var(--muted)}
+  .plan-feats{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .plan-feat{font-size:12px;color:var(--subtle);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+  .plan-feat::before{content:"✓";color:var(--green);font-weight:800;flex-shrink:0;margin-top:1px}
+  .plan-feat.dim{color:var(--muted)}
+  .plan-feat.dim::before{content:"–";color:var(--muted)}
+  .plan-btn{width:100%;padding:13px;border-radius:12px;font-size:13px;font-weight:800;text-align:center;
+    cursor:pointer;border:none;font-family:'Inter',sans-serif}
+  .plan-btn.free-btn{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+  .plan-btn.lite-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .plan-btn.max-btn{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
+  .plan-btn.current{background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
+
+  /* Coupon */
+  .coupon-box{margin:0 14px 16px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 15px}
+  .coupon-title{font-size:11.5px;font-weight:700;color:var(--subtle);margin-bottom:9px}
+  .coupon-row{display:flex;gap:8px}
+  .coupon-row input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;
+    padding:9px 12px;color:var(--text);font-size:12.5px;font-family:'JetBrains Mono',monospace;text-transform:uppercase}
+  .coupon-row input:focus{outline:none;border-color:var(--accent)}
+  .coupon-row button{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+    padding:9px 16px;border-radius:9px;font-size:11.5px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
+  .coupon-msg{font-size:10.5px;margin-top:7px;min-height:14px}
+
+  /* WhatsApp fallback */
+  .wa-box{margin:0 14px 16px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);
+    border-radius:13px;padding:14px 15px;text-align:center}
+  .wa-box p{font-size:11px;color:var(--subtle);line-height:1.5;margin-bottom:10px}
+  .wa-btn{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#15803D,#22C55E);
+    color:#fff;border:none;padding:10px 18px;border-radius:11px;font-size:11.5px;font-weight:800;cursor:pointer}
+
+  .app-footer{padding:18px 16px 8px;text-align:center;border-top:1px solid var(--border);margin:8px 14px 0}
+  .footer-powered{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+  .footer-powered img{height:20px;background:#fff;border-radius:5px;padding:2px}
+  .footer-powered span{font-size:10px;color:var(--muted)}
+  .footer-links{font-size:10px;color:var(--muted);line-height:1.8}
+  .footer-links a{color:var(--accent)}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(140px);
+    background:var(--card2);border:1px solid var(--accent);color:var(--text);padding:12px 20px;
+    border-radius:13px;font-size:13.5px;font-weight:600;transition:transform .35s,opacity .35s;z-index:60;
+    max-width:88%;text-align:center;opacity:0;pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="back-hdr">
+    <span class="back-btn" onclick="history.back()">←</span>
+    <span class="back-title">Choose Your Plan</span>
+  </div>
+
+  <div class="screen">
+
+    <div class="intro"><p>Start free · Upgrade anytime · No auto-renewal surprises</p></div>
+
+    <div class="launch-notice">
+      <div class="launch-notice-title">🚀 Early Access Phase</div>
+      <p>Online payments are launching shortly. For now, upgrade using an invite code (if someone shared one with you) or message us on WhatsApp for early access.</p>
+    </div>
+
+    <div class="plans">
+
+      <!-- Free -->
+      <div class="plan" id="plan-free">
+        <div class="plan-top">
+          <div class="plan-name">Free</div>
+          <div class="plan-price"><div class="plan-amt">₹0</div><div class="plan-period">forever</div></div>
+        </div>
+        <div class="plan-feats">
+          <div class="plan-feat">₹1 Lakh virtual capital</div>
+          <div class="plan-feat">10 NSE stocks</div>
+          <div class="plan-feat">Basic portfolio tracking</div>
+          <div class="plan-feat">Free reset anytime</div>
+          <div class="plan-feat dim">No monthly top-up</div>
+          <div class="plan-feat dim">No leaderboard rank</div>
+        </div>
+        <div class="plan-btn free-btn" id="free-btn">Current Plan</div>
+      </div>
+
+      <!-- Pro Lite -->
+      <div class="plan featured" id="plan-lite">
+        <div class="plan-badge-tag popular">POPULAR</div>
+        <div class="plan-top">
+          <div class="plan-name" style="color:#60A5FA">Pro Lite</div>
+          <div class="plan-price"><div class="plan-amt">₹199</div><div class="plan-period">/year</div></div>
+        </div>
+        <div class="plan-feats">
+          <div class="plan-feat">₹5 Lakh virtual capital</div>
+          <div class="plan-feat">30 NSE stocks</div>
+          <div class="plan-feat">+₹50,000 added every month</div>
+          <div class="plan-feat">Leaderboard rank</div>
+          <div class="plan-feat">Community chat & comments</div>
+          <div class="plan-feat">Referral rewards</div>
+        </div>
+        <div class="plan-btn lite-btn" id="lite-btn" onclick="startUpgrade('lite')">Get Pro Lite</div>
+      </div>
+
+      <!-- Pro Max -->
+      <div class="plan max-plan" id="plan-max">
+        <div class="plan-badge-tag best">BEST VALUE</div>
+        <div class="plan-top">
+          <div class="plan-name" style="color:var(--gold)">Pro Max</div>
+          <div class="plan-price"><div class="plan-amt" style="color:var(--gold)">₹499</div><div class="plan-period">/year</div></div>
+        </div>
+        <div class="plan-feats">
+          <div class="plan-feat">₹10 Lakh virtual capital</div>
+          <div class="plan-feat">All 50 NSE stocks</div>
+          <div class="plan-feat">+₹1,00,000 added every month</div>
+          <div class="plan-feat">Leaderboard rank + Ambassador badge</div>
+          <div class="plan-feat">Community chat & comments</div>
+          <div class="plan-feat">Referral rewards</div>
+          <div class="plan-feat">Downloadable certificate</div>
+          <div class="plan-feat">Priority access to new features</div>
+        </div>
+        <div class="plan-btn max-btn" id="max-btn" onclick="startUpgrade('max')">Get Pro Max</div>
+      </div>
+
+    </div>
+
+    <!-- Coupon -->
+    <div class="coupon-box">
+      <div class="coupon-title">🎟️ Have an invite/coupon code?</div>
+      <div class="coupon-row">
+        <input type="text" id="coupon-input" placeholder="Enter code">
+        <button onclick="redeemCoupon()">Apply</button>
+      </div>
+      <div class="coupon-msg" id="coupon-msg"></div>
+    </div>
+
+    <!-- WhatsApp fallback -->
+    <div class="wa-box">
+      <p>Don't have a code? Message us directly and we'll help you get early access.</p>
+      <button class="wa-btn" onclick="contactWhatsApp()">📲 Contact on WhatsApp</button>
+    </div>
+
+    <div class="app-footer">
+      <div class="footer-powered">
+        <img src="scaleaiq-logo.png" alt="ScaleAIQ">
+        <span>Powered by ScaleAIQ</span>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="contact.html">Contact</a><br>
+        Virtual trading only · Not investment advice · © 2026 ScaleAIQ
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
+const PLAN_RANK = {free:0, lite:1, max:2};
+let userPlan = "free";
+
+function showToast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove("show"),3000);
+}
+
+// Highlight plan from ?plan= URL param (set by index.html's goPlan())
+const urlParams = new URLSearchParams(location.search);
+const highlightPlan = urlParams.get("plan");
+if(highlightPlan){
+  const el = document.getElementById("plan-"+highlightPlan);
+  if(el){
+    el.classList.add("highlighted");
+    setTimeout(()=>el.scrollIntoView({behavior:"smooth", block:"center"}), 300);
+  }
+}
+
+// ====================================================================
+// PAYMENT ENTRY POINT — currently shows "coming soon" since Razorpay
+// isn't wired in yet (by design, built last). When ready, this function
+// is where the Razorpay checkout call gets added — everything else on
+// this page (plan display, coupon, highlighting) stays unchanged.
+// ====================================================================
+function startUpgrade(plan){
+  const planLabel = plan === "max" ? "Pro Max (₹499/year)" : "Pro Lite (₹199/year)";
+  showToast("💳 Online payment launching soon! Use a coupon code below or message us on WhatsApp.");
+}
+
+function contactWhatsApp(){
+  const msg = "Hi! I'd like to get early access to TradeSeekho Pro. Can you help me?";
+  window.open("https://wa.me/917990368493?text="+encodeURIComponent(msg), "_blank");
+}
+
+function updateButtonsForPlan(){
+  const freeBtn = document.getElementById("free-btn");
+  const liteBtn = document.getElementById("lite-btn");
+  const maxBtn = document.getElementById("max-btn");
+  if(userPlan === "free"){
+    freeBtn.textContent = "Current Plan"; freeBtn.className = "plan-btn current";
+  } else if(userPlan === "lite"){
+    liteBtn.textContent = "Current Plan"; liteBtn.className = "plan-btn current"; liteBtn.onclick = null;
+  } else if(userPlan === "max"){
+    maxBtn.textContent = "Current Plan"; maxBtn.className = "plan-btn current"; maxBtn.onclick = null;
+    liteBtn.style.display = "none";
+  }
+}
+</script>
+
+<script type="module">
+if(!DEMO_MODE){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let uid = null;
+
+    window.redeemCoupon = async function(){
+      const input = document.getElementById("coupon-input");
+      const code = (input.value || "").trim().toUpperCase();
+      const msgEl = document.getElementById("coupon-msg");
+      if(!uid){ msgEl.textContent = "Please login first (go to Market tab)"; msgEl.style.color = "var(--red)"; return; }
+      if(!code){ msgEl.textContent = "Enter a code"; msgEl.style.color = "var(--red)"; return; }
+      try{
+        const csnap = await getDoc(doc(db,"coupons",code));
+        if(!csnap.exists()){ msgEl.textContent="Invalid code"; msgEl.style.color="var(--red)"; return; }
+        const c = csnap.data();
+        if(!c.active){ msgEl.textContent="This code is no longer active"; msgEl.style.color="var(--red)"; return; }
+        if((c.usedCount||0) >= c.maxUses){ msgEl.textContent="This code has reached its usage limit"; msgEl.style.color="var(--red)"; return; }
+        if(PLAN_RANK[c.plan] <= PLAN_RANK[userPlan]){ msgEl.textContent="You already have this plan or higher"; msgEl.style.color="var(--gold)"; return; }
+        await setDoc(doc(db,"users",uid), {plan:c.plan}, {merge:true});
+        await setDoc(doc(db,"coupons",code), {usedCount:(c.usedCount||0)+1}, {merge:true});
+        userPlan = c.plan;
+        updateButtonsForPlan();
+        msgEl.textContent = "🎉 "+c.plan.toUpperCase()+" unlocked!"; msgEl.style.color="var(--green)";
+        showToast("🎉 "+c.plan.toUpperCase()+" unlocked! Go to Market tab to see it live.");
+        input.value = "";
+      }catch(e){ msgEl.textContent="Error: "+e.message; msgEl.style.color="var(--red)"; }
+    };
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(user){
+        uid = user.uid;
+        try{
+          const snap = await getDoc(doc(db,"users",uid));
+          if(snap.exists()){ userPlan = snap.data().plan || "free"; updateButtonsForPlan(); }
+        }catch(e){ console.error(e); }
+      }
+    });
+  }catch(e){ console.error("Firebase init failed:", e); }
+}
+</script>
+</body>
+</html>
