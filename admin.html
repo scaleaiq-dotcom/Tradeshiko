@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — TradeSeekho</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090D16; --card:#141E2E; --card2:#1A2540; --border:#1E2D45; --border2:#243352;
+    --accent:#3B82F6; --accent2:#6366F1; --green:#10B981; --red:#EF4444; --gold:#F59E0B;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;padding:20px}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .wrap{max-width:560px;margin:0 auto}
+  h1{font-size:20px;font-weight:800;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:22px}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px}
+  .card h2{font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+
+  label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:5px}
+  input,select{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:9px;
+    padding:10px 12px;color:var(--text);font-size:13px;font-family:'Inter',sans-serif;margin-bottom:12px}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  button{border:none;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:800;
+    cursor:pointer;font-family:'Inter',sans-serif}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;width:100%}
+  .btn-danger{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:var(--red);font-size:11px;padding:6px 11px}
+  .btn-primary:active,.btn-danger:active{transform:scale(0.97)}
+
+  .list-item{display:flex;justify-content:space-between;align-items:center;background:var(--card2);
+    border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:7px}
+  .li-main{font-size:12.5px;font-weight:700}
+  .li-sub{font-size:10px;color:var(--muted);margin-top:1px}
+  .badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px}
+  .badge.lite{background:rgba(59,130,246,0.15);color:#93C5FD}
+  .badge.max{background:rgba(245,158,11,0.15);color:var(--gold)}
+
+  .msg{font-size:12px;padding:9px 12px;border-radius:9px;margin-bottom:12px;display:none}
+  .msg.success{background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.25);display:block}
+  .msg.error{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.25);display:block}
+
+  .empty{color:var(--muted);font-size:12px;text-align:center;padding:16px}
+
+  /* Login gate */
+  #gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
+  .gate-box{text-align:center;max-width:320px}
+  .gate-box h2{font-size:18px;margin-bottom:8px}
+  .gate-box p{font-size:12.5px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;
+    border:none;border-radius:12px;background:#fff;color:#1a1a1a;font-weight:700;font-size:14px;cursor:pointer}
+  #denied{display:none;color:var(--red);font-size:12.5px;margin-top:14px}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-box">
+    <h2>🔐 Admin Access</h2>
+    <p>This page is restricted. Login with your admin Google account to continue.</p>
+    <button class="google-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+      Login with Google
+    </button>
+    <div id="denied">❌ Access denied. This Google account is not authorized for admin access.</div>
+  </div>
+</div>
+
+<div class="wrap" id="admin-content" style="display:none">
+  <h1>🛠️ TradeSeekho Admin</h1>
+  <div class="sub">Logged in as <span id="admin-email" class="mono"></span> · <a href="#" onclick="doLogout()" style="color:var(--accent)">Logout</a></div>
+
+  <!-- Grant free access -->
+  <div class="card">
+    <h2>🎁 Grant Free Plan by Email</h2>
+    <div id="grant-msg" class="msg"></div>
+    <label>User's Email</label>
+    <input type="email" id="grant-email" placeholder="someone@gmail.com">
+    <div class="row2">
+      <div>
+        <label>Plan</label>
+        <select id="grant-plan">
+          <option value="lite">Pro Lite (30 stocks)</option>
+          <option value="max">Pro Max (50 stocks)</option>
+        </select>
+      </div>
+      <div>
+        <label>Note (optional)</label>
+        <input type="text" id="grant-note" placeholder="e.g. beta tester">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="grantAccess()">Grant Access</button>
+  </div>
+
+  <!-- Existing grants -->
+  <div class="card">
+    <h2>📋 Active Grants</h2>
+    <div id="grants-list"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- Coupon codes -->
+  <div class="card">
+    <h2>🏷️ Create Coupon Code</h2>
+    <div id="coupon-msg" class="msg"></div>
+    <label>Code (will be uppercased)</label>
+    <input type="text" id="coupon-code" placeholder="e.g. LAUNCH50">
+    <div class="row2">
+      <div>
+        <label>Plan</label>
+        <select id="coupon-plan">
+          <option value="lite">Pro Lite</option>
+          <option value="max">Pro Max</option>
+        </select>
+      </div>
+      <div>
+        <label>Max Uses</label>
+        <input type="number" id="coupon-maxuses" value="50" min="1">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="createCoupon()">Create Coupon</button>
+  </div>
+
+  <!-- Existing coupons -->
+  <div class="card">
+    <h2>🎟️ Active Coupons</h2>
+    <div id="coupons-list"><div class="empty">Loading...</div></div>
+  </div>
+
+</div>
+
+<script type="module">
+// ============================================================
+// ADMIN ACCESS CONTROL — only these emails can use this page.
+// Add your personal Gmail below (replace the placeholder line).
+// ============================================================
+const ADMIN_EMAILS = [
+  "scaleaiq@gmail.com",
+  "jitendramathur.85@gmail.com"
+];
+
+const CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+
+const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } =
+  await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+const { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } =
+  await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+const app = initializeApp(CONFIG.firebase);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+window.doLogin = async function(){
+  try{ await signInWithPopup(auth, provider); }
+  catch(e){
+    if(e.code === "auth/popup-blocked"){ signInWithRedirect(auth, provider); }
+  }
+};
+window.doLogout = async function(){ await signOut(auth); location.reload(); };
+
+function showMsg(elId, text, type){
+  const el = document.getElementById(elId);
+  el.textContent = text;
+  el.className = "msg " + type;
+  setTimeout(()=>{ el.style.display="none"; }, 4000);
+}
+
+window.grantAccess = async function(){
+  const email = document.getElementById("grant-email").value.trim().toLowerCase();
+  const plan = document.getElementById("grant-plan").value;
+  const note = document.getElementById("grant-note").value.trim();
+  if(!email || !email.includes("@")){ showMsg("grant-msg","Enter a valid email","error"); return; }
+  try{
+    await setDoc(doc(db,"grants",email), {plan, note, grantedAt: Date.now(), grantedBy: auth.currentUser.email});
+    showMsg("grant-msg", `✅ Granted ${plan.toUpperCase()} to ${email}`, "success");
+    document.getElementById("grant-email").value = "";
+    document.getElementById("grant-note").value = "";
+    loadGrants();
+  }catch(e){ showMsg("grant-msg","Error: "+e.message,"error"); }
+};
+
+window.revokeGrant = async function(email){
+  if(!confirm(`Revoke free access for ${email}? (Note: if they already logged in and got upgraded, their existing plan stays until you also downgrade it manually in their user record.)`)) return;
+  try{
+    await deleteDoc(doc(db,"grants",email));
+    loadGrants();
+  }catch(e){ alert("Error: "+e.message); }
+};
+
+async function loadGrants(){
+  const listEl = document.getElementById("grants-list");
+  try{
+    const snap = await getDocs(collection(db,"grants"));
+    if(snap.empty){ listEl.innerHTML = `<div class="empty">No grants yet</div>`; return; }
+    let html = "";
+    snap.forEach(d=>{
+      const v = d.data();
+      html += `<div class="list-item">
+        <div><div class="li-main">${d.id}</div><div class="li-sub">${v.note||"—"} · by ${v.grantedBy||"admin"}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${v.plan}">${v.plan==='max'?'PRO MAX':'PRO LITE'}</span>
+          <button class="btn-danger" onclick="revokeGrant('${d.id}')">Revoke</button>
+        </div>
+      </div>`;
+    });
+    listEl.innerHTML = html;
+  }catch(e){ listEl.innerHTML = `<div class="empty">Error loading grants</div>`; }
+}
+
+window.createCoupon = async function(){
+  const code = document.getElementById("coupon-code").value.trim().toUpperCase();
+  const plan = document.getElementById("coupon-plan").value;
+  const maxUses = parseInt(document.getElementById("coupon-maxuses").value) || 1;
+  if(!code){ showMsg("coupon-msg","Enter a code","error"); return; }
+  try{
+    await setDoc(doc(db,"coupons",code), {plan, maxUses, usedCount:0, active:true, createdAt: Date.now(), createdBy: auth.currentUser.email});
+    showMsg("coupon-msg", `✅ Coupon ${code} created`, "success");
+    document.getElementById("coupon-code").value = "";
+    loadCoupons();
+  }catch(e){ showMsg("coupon-msg","Error: "+e.message,"error"); }
+};
+
+window.toggleCoupon = async function(code, active){
+  try{
+    await setDoc(doc(db,"coupons",code), {active: !active}, {merge:true});
+    loadCoupons();
+  }catch(e){ alert("Error: "+e.message); }
+};
+
+async function loadCoupons(){
+  const listEl = document.getElementById("coupons-list");
+  try{
+    const snap = await getDocs(collection(db,"coupons"));
+    if(snap.empty){ listEl.innerHTML = `<div class="empty">No coupons yet</div>`; return; }
+    let html = "";
+    snap.forEach(d=>{
+      const v = d.data();
+      html += `<div class="list-item">
+        <div><div class="li-main mono">${d.id}</div><div class="li-sub">${v.usedCount||0} / ${v.maxUses} used · ${v.active?'active':'disabled'}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${v.plan}">${v.plan==='max'?'PRO MAX':'PRO LITE'}</span>
+          <button class="btn-danger" onclick="toggleCoupon('${d.id}', ${v.active})">${v.active?'Disable':'Enable'}</button>
+        </div>
+      </div>`;
+    });
+    listEl.innerHTML = html;
+  }catch(e){ listEl.innerHTML = `<div class="empty">Error loading coupons</div>`; }
+}
+
+onAuthStateChanged(auth, (user)=>{
+  if(user){
+    const email = (user.email||"").toLowerCase();
+    const allowed = ADMIN_EMAILS.map(e=>e.toLowerCase()).includes(email);
+    if(allowed){
+      document.getElementById("gate").style.display = "none";
+      document.getElementById("admin-content").style.display = "block";
+      document.getElementById("admin-email").textContent = user.email;
+      loadGrants();
+      loadCoupons();
+    } else {
+      document.getElementById("denied").style.display = "block";
+      signOut(auth);
+    }
+  } else {
+    document.getElementById("gate").style.display = "flex";
+    document.getElementById("admin-content").style.display = "none";
+  }
+});
+</script>
+</body>
+</html>
