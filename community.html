@@ -64,7 +64,10 @@
   .cmt-acts{display:flex;gap:14px;align-items:center}
   .cmt-act{font-size:10.5px;color:var(--muted);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px}
   .cmt-act.liked{color:var(--accent);font-weight:800}
-  .cmt-sent{font-size:10px;font-weight:700;margin-left:auto}
+  .cmt-delete{margin-left:auto;font-size:10.5px;color:var(--red);font-weight:700;cursor:pointer;opacity:0.75}
+  .cmt-delete:active{opacity:1}
+  .reply-delete{font-size:9.5px;color:var(--red);cursor:pointer;margin-left:8px;opacity:0.7}
+  .cmt-sent{font-size:10px;font-weight:700}
   .cmt-sent.bull{color:var(--green)} .cmt-sent.bear{color:var(--red)}
 
   /* Replies */
@@ -246,6 +249,8 @@ function renderFeed(items){
     const tag = p.stockTag ? `<span class="cmt-tag">${p.stockTag}</span>` : "";
     const sentTag = p.sentiment==="bullish" ? '<span class="cmt-sent bull">▲ Bullish</span>'
       : p.sentiment==="bearish" ? '<span class="cmt-sent bear">▼ Bearish</span>' : '';
+    const isOwner = window.myUid && p.uid === window.myUid;
+    const deleteBtn = isOwner ? `<span class="cmt-delete" onclick="deletePost('${p.id}')">🗑️ Delete</span>` : '';
     return `<div class="cmt">
       <div class="cmt-hdr">
         <div class="cmt-av" style="${avStyle}">${p.photoURL?'':initial}</div>
@@ -255,7 +260,7 @@ function renderFeed(items){
       <div class="cmt-acts">
         <span class="cmt-act ${likedPostsSet && likedPostsSet.has(p.id) ? 'liked' : ''}" id="like-btn-${p.id}" onclick="toggleLike('${p.id}')">👍 <span id="like-count-${p.id}">${p.likes||0}</span></span>
         <span class="cmt-act" onclick="toggleReplyBox('${p.id}')">💬 Reply${p.replyCount?' ('+p.replyCount+')':''}</span>
-        ${sentTag}
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">${sentTag}${deleteBtn}</div>
       </div>
       <div class="reply-box" id="reply-box-${p.id}">
         <div class="reply-input-row">
@@ -361,7 +366,7 @@ if(!DEMO_MODE){
         const q = query(collection(db,"replies"), where("postId","==",postId), orderBy("createdAt","asc"), limit(50));
         const snap = await getDocs(q);
         const replies = [];
-        snap.forEach(d=>replies.push(d.data()));
+        snap.forEach(d=>replies.push({id:d.id, ...d.data()}));
         if(!replies.length){
           listEl.innerHTML = `<div class="reply-loading">No replies yet. Be the first to reply!</div>`;
           return;
@@ -369,10 +374,12 @@ if(!DEMO_MODE){
         listEl.innerHTML = replies.map(r=>{
           const initial = (r.displayName||"T").charAt(0).toUpperCase();
           const avStyle = r.photoURL ? `background-image:url(${r.photoURL})` : `background:linear-gradient(135deg,#065F46,#10B981)`;
+          const isOwner = window.myUid && r.uid === window.myUid;
+          const delBtn = isOwner ? `<span class="reply-delete" onclick="deleteReply('${r.id}','${postId}')">🗑️</span>` : '';
           return `<div class="reply-item">
             <div class="reply-av" style="${avStyle}">${r.photoURL?'':initial}</div>
             <div class="reply-body">
-              <span class="reply-user">${r.displayName}</span><span class="reply-time">${timeSince(r.createdAt)}</span>
+              <span class="reply-user">${r.displayName}</span><span class="reply-time">${timeSince(r.createdAt)}</span>${delBtn}
               <div class="reply-txt">${escapeHtml(r.text)}</div>
             </div>
           </div>`;
@@ -402,6 +409,23 @@ if(!DEMO_MODE){
       }catch(e){ console.error("Reply failed", e); alert("Reply nahi hua, try again"); }
     };
 
+    window.deletePost = async function(postId){
+      if(!confirm("Delete this post? This can't be undone.")) return;
+      try{
+        await deleteDoc(doc(db,"posts",postId));
+        loadFeed();
+      }catch(e){ console.error("Delete post failed", e); alert("Couldn't delete — try again"); }
+    };
+
+    window.deleteReply = async function(replyId, postId){
+      if(!confirm("Delete this reply?")) return;
+      try{
+        await deleteDoc(doc(db,"replies",replyId));
+        await updateDoc(doc(db,"posts",postId), {replyCount: increment(-1)});
+        loadReplies(postId);
+      }catch(e){ console.error("Delete reply failed", e); alert("Couldn't delete — try again"); }
+    };
+
     function reopenReplyBoxes(){
       openReplyBoxes.forEach(postId=>{
         const box = document.getElementById("reply-box-"+postId);
@@ -424,6 +448,7 @@ if(!DEMO_MODE){
       const al = document.getElementById("auth-loading");
       if(user){
         uid = user.uid;
+        window.myUid = uid;
         await loadMyLikes();
         await loadFeed();
         if(al) al.style.display = "none";
