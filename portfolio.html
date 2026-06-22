@@ -312,12 +312,38 @@ function mkStock(sym, full, sector, price){
 const stockMeta = [
   ["RELIANCE","Reliance Industries","Energy",2950],["TCS","Tata Consultancy Services","IT",4120],
   ["HDFCBANK","HDFC Bank","Banking",1685],["INFY","Infosys","IT",1540],
-  ["TATAMOTORS","Tata Motors","Auto",1020],["SBIN","State Bank of India","Banking",845],
-  ["ITC","ITC Limited","FMCG",438],["BHARTIARTL","Bharti Airtel","Telecom",1450],
-  ["WIPRO","Wipro","IT",495],["HAL","Hindustan Aeronautics","Defence",4480]
+  ["ICICIBANK","ICICI Bank","Banking",1245],["SBIN","State Bank of India","Banking",845],
+  ["TATAMOTORS","Tata Motors","Auto",1020],["ITC","ITC Limited","FMCG",438],
+  ["BHARTIARTL","Bharti Airtel","Telecom",1450],["WIPRO","Wipro","IT",495],
+  ["KOTAKBANK","Kotak Mahindra Bank","Banking",1780],["BAJFINANCE","Bajaj Finance","Finance",7200],
+  ["AXISBANK","Axis Bank","Banking",1150],["HCLTECH","HCL Technologies","IT",1820],
+  ["TECHM","Tech Mahindra","IT",1650],["ONGC","Oil & Natural Gas Corp","Energy",265],
+  ["NTPC","NTPC Limited","Energy",365],["POWERGRID","Power Grid Corp","Energy",325],
+  ["MARUTI","Maruti Suzuki","Auto",12500],["M&M","Mahindra & Mahindra","Auto",2950],
+  ["LT","Larsen & Toubro","Auto",3650],["TATASTEEL","Tata Steel","Auto",165],
+  ["HINDUNILVR","Hindustan Unilever","FMCG",2450],["NESTLEIND","Nestle India","FMCG",2350],
+  ["BRITANNIA","Britannia Industries","FMCG",5400],["ASIANPAINT","Asian Paints","FMCG",2950],
+  ["SUNPHARMA","Sun Pharmaceutical","Pharma",1750],["DRREDDY","Dr Reddy's Labs","Pharma",1280],
+  ["CIPLA","Cipla Limited","Pharma",1480],["ADANIPORTS","Adani Ports & SEZ","Infra",1380],
+  ["BAJAJFINSV","Bajaj Finserv","Finance",1850],["INDUSINDBK","IndusInd Bank","Banking",1020],
+  ["HDFCLIFE","HDFC Life Insurance","Insurance",680],["SBILIFE","SBI Life Insurance","Insurance",1550],
+  ["TITAN","Titan Company","Consumer",3450],["ULTRACEMCO","UltraTech Cement","Cement",11200],
+  ["GRASIM","Grasim Industries","Diversified",2650],["JSWSTEEL","JSW Steel","Metal",980],
+  ["HINDALCO","Hindalco Industries","Metal",680],["COALINDIA","Coal India","Mining",480],
+  ["BPCL","Bharat Petroleum","Energy",320],["IOC","Indian Oil Corp","Energy",165],
+  ["ADANIENT","Adani Enterprises","Diversified",2950],["DIVISLAB","Divi's Laboratories","Pharma",5800],
+  ["APOLLOHOSP","Apollo Hospitals","Healthcare",6900],["EICHERMOT","Eicher Motors","Auto",4850],
+  ["HEROMOTOCO","Hero MotoCorp","Auto",4650],["TATACONSUM","Tata Consumer Products","FMCG",1120],
+  ["LTIM","LTIMindtree","IT",6200],["PIDILITIND","Pidilite Industries","Chemicals",2950]
 ];
 const priceMap = {};
 stockMeta.forEach(m=>{ priceMap[m[0]] = mkStock(m[0],m[1],m[2],m[3]).price; });
+let liveDataPf = {}; // live prices from Angel One, overrides mock priceMap when available
+function getPrice(sym){
+  const live = liveDataPf[sym];
+  if(live && typeof live.ltp === "number" && live.ltp > 0) return live.ltp;
+  return priceMap[sym];
+}
 
 const PLAN_START = {free:100000, lite:500000, max:1000000};
 
@@ -346,7 +372,7 @@ function render(){
   let holdval=0, invested=0;
   const syms = Object.keys(holdings);
   syms.forEach(sym=>{
-    const px = priceMap[sym] || holdings[sym].avg;
+    const px = getPrice(sym) || holdings[sym].avg;
     holdval += holdings[sym].qty * px;
     invested += holdings[sym].qty * holdings[sym].avg;
   });
@@ -373,7 +399,7 @@ function render(){
   } else {
     hEl.innerHTML = syms.map((sym,idx)=>{
       const h = holdings[sym];
-      const px = priceMap[sym] || h.avg;
+      const px = getPrice(sym) || h.avg;
       const cur = h.qty*px;
       const pl = cur - h.qty*h.avg;
       const plpct = (pl/(h.qty*h.avg)*100);
@@ -485,8 +511,9 @@ function renderTicker(){
   if(!track) return;
   const items = stockMeta.map(m=>{
     const sym = m[0];
-    const px = priceMap[sym];
-    const up = Math.random() > 0.45;
+    const px = getPrice(sym);
+    const live = liveDataPf[sym];
+    const up = live && typeof live.close === "number" ? px >= live.close : Math.random() > 0.45;
     const arrow = up ? "▲" : "▼";
     const cls = up ? "g" : "r";
     return `<span class="tk-item"><span class="tk-sym">${sym}</span><span class="${cls}">${px.toFixed(2)} ${arrow}</span></span>`;
@@ -498,7 +525,7 @@ function renderTicker(){
 let tradeSym = null, tradeSide = "sell", tradeQty = 1;
 function openTrade(sym, side){
   tradeSym = sym; tradeSide = side; tradeQty = 1;
-  const px = priceMap[sym] || (holdings[sym] ? holdings[sym].avg : 0);
+  const px = getPrice(sym) || (holdings[sym] ? holdings[sym].avg : 0);
   document.getElementById("m-title").textContent = sym + (side==="sell" ? " — Sell" : " — Buy More");
   document.getElementById("m-price").textContent = fmt(px) + " per share";
   document.getElementById("m-qty-input").value = 1;
@@ -511,7 +538,7 @@ function openTrade(sym, side){
   document.getElementById("overlay-trade").classList.add("show");
 }
 function tradeMaxQty(){
-  const px = priceMap[tradeSym] || 1;
+  const px = getPrice(tradeSym) || 1;
   if(tradeSide === "buy") return Math.max(0, Math.floor(cash / (px * 1.0025)));
   const h = holdings[tradeSym]; return h ? h.qty : 0;
 }
@@ -526,7 +553,7 @@ function setMaxQty(){
   updateTradeModal();
 }
 function updateTradeModal(){
-  const px = priceMap[tradeSym] || 1;
+  const px = getPrice(tradeSym) || 1;
   const value = tradeQty * px;
   const ch = calcCharges(value);
   const totalEl = document.getElementById("m-total");
@@ -550,7 +577,7 @@ function calcCharges(value){
   return {brokerage, stt, gst, misc, total:+(brokerage+stt+gst+misc).toFixed(2)};
 }
 function confirmTrade(){
-  const px = priceMap[tradeSym] || 1;
+  const px = getPrice(tradeSym) || 1;
   const value = tradeQty * px;
   const ch = calcCharges(value);
   const err = document.getElementById("m-err");
@@ -592,7 +619,15 @@ if(!DEMO_MODE){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const { getFirestore, doc, getDoc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+    function startLivePriceListenerPf(){
+      onSnapshot(doc(db, "livePrices", "current"), (snap)=>{
+        if(!snap.exists()) return;
+        liveDataPf = snap.data().prices || {};
+        render();
+      }, (err)=>{ console.error("Live price listener error (using simulated prices):", err); });
+    }
     const app = initializeApp(CONFIG.firebase);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -619,6 +654,7 @@ if(!DEMO_MODE){
     onAuthStateChanged(auth, async (user)=>{
       if(user){
         uid = user.uid;
+        startLivePriceListenerPf();
         try{
           const snap = await getDoc(doc(db,"users",uid));
           if(snap.exists()) applyState(snap.data());

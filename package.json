@@ -1,0 +1,9 @@
+{
+  "name": "tradeseekho-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TradeSeekho serverless functions - Angel One price feed sync to Firestore",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

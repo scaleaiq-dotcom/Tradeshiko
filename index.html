@@ -567,14 +567,56 @@ const stocks = [
   mkStock("TCS","Tata Consultancy Services","IT",4120,2400000),
   mkStock("HDFCBANK","HDFC Bank","Banking",1685,18000000),
   mkStock("INFY","Infosys","IT",1540,7300000),
-  mkStock("TATAMOTORS","Tata Motors","Auto",1020,21000000),
+  mkStock("ICICIBANK","ICICI Bank","Banking",1245,16000000),
   mkStock("SBIN","State Bank of India","Banking",845,17500000),
+  mkStock("TATAMOTORS","Tata Motors","Auto",1020,21000000),
   mkStock("ITC","ITC Limited","FMCG",438,12800000),
   mkStock("BHARTIARTL","Bharti Airtel","Telecom",1450,6200000),
   mkStock("WIPRO","Wipro","IT",495,9400000),
-  mkStock("HAL","Hindustan Aeronautics","Defence",4480,3100000),
+  mkStock("KOTAKBANK","Kotak Mahindra Bank","Banking",1780,5200000),
+  mkStock("BAJFINANCE","Bajaj Finance","Finance",7200,1800000),
+  mkStock("AXISBANK","Axis Bank","Banking",1150,9800000),
+  mkStock("HCLTECH","HCL Technologies","IT",1820,3400000),
+  mkStock("TECHM","Tech Mahindra","IT",1650,3100000),
+  mkStock("ONGC","Oil & Natural Gas Corp","Energy",265,14000000),
+  mkStock("NTPC","NTPC Limited","Energy",365,11500000),
+  mkStock("POWERGRID","Power Grid Corp","Energy",325,9200000),
+  mkStock("MARUTI","Maruti Suzuki","Auto",12500,650000),
+  mkStock("M&M","Mahindra & Mahindra","Auto",2950,3800000),
+  mkStock("LT","Larsen & Toubro","Auto",3650,2200000),
+  mkStock("TATASTEEL","Tata Steel","Auto",165,28000000),
+  mkStock("HINDUNILVR","Hindustan Unilever","FMCG",2450,2100000),
+  mkStock("NESTLEIND","Nestle India","FMCG",2350,580000),
+  mkStock("BRITANNIA","Britannia Industries","FMCG",5400,420000),
+  mkStock("ASIANPAINT","Asian Paints","FMCG",2950,1600000),
+  mkStock("SUNPHARMA","Sun Pharmaceutical","Pharma",1750,3200000),
+  mkStock("DRREDDY","Dr Reddy's Labs","Pharma",1280,1900000),
+  mkStock("CIPLA","Cipla Limited","Pharma",1480,2400000),
+  mkStock("ADANIPORTS","Adani Ports & SEZ","Infra",1380,4100000),
+  mkStock("BAJAJFINSV","Bajaj Finserv","Finance",1850,2600000),
+  mkStock("INDUSINDBK","IndusInd Bank","Banking",1020,5400000),
+  mkStock("HDFCLIFE","HDFC Life Insurance","Insurance",680,4800000),
+  mkStock("SBILIFE","SBI Life Insurance","Insurance",1550,2300000),
+  mkStock("TITAN","Titan Company","Consumer",3450,1400000),
+  mkStock("ULTRACEMCO","UltraTech Cement","Cement",11200,420000),
+  mkStock("GRASIM","Grasim Industries","Diversified",2650,1100000),
+  mkStock("JSWSTEEL","JSW Steel","Metal",980,4600000),
+  mkStock("HINDALCO","Hindalco Industries","Metal",680,6800000),
+  mkStock("COALINDIA","Coal India","Mining",480,9600000),
+  mkStock("BPCL","Bharat Petroleum","Energy",320,6200000),
+  mkStock("IOC","Indian Oil Corp","Energy",165,15000000),
+  mkStock("ADANIENT","Adani Enterprises","Diversified",2950,3300000),
+  mkStock("DIVISLAB","Divi's Laboratories","Pharma",5800,650000),
+  mkStock("APOLLOHOSP","Apollo Hospitals","Healthcare",6900,520000),
+  mkStock("EICHERMOT","Eicher Motors","Auto",4850,780000),
+  mkStock("HEROMOTOCO","Hero MotoCorp","Auto",4650,1100000),
+  mkStock("TATACONSUM","Tata Consumer Products","FMCG",1120,3600000),
+  mkStock("LTIM","LTIMindtree","IT",6200,580000),
+  mkStock("PIDILITIND","Pidilite Industries","Chemicals",2950,720000),
 ];
-const FREE_LIMIT = 10; // first N stocks visible on Free plan
+const FREE_LIMIT = 10;  // first 10 stocks visible on Free plan
+const LITE_LIMIT = 30;  // first 30 stocks visible on Pro Lite plan
+// Pro Max sees all 50
 
 let cash = 100000;
 let holdings = {};
@@ -594,30 +636,61 @@ function sectorColor(sector){
     Energy:"linear-gradient(135deg,#1E3A5F,#2563EB)", IT:"linear-gradient(135deg,#1A3A2A,#059669)",
     Banking:"linear-gradient(135deg,#3B1A1A,#DC2626)", Auto:"linear-gradient(135deg,#3A2A1A,#D97706)",
     FMCG:"linear-gradient(135deg,#1A2A3A,#0EA5E9)", Telecom:"linear-gradient(135deg,#2A1A3A,#8B5CF6)",
-    Defence:"linear-gradient(135deg,#1A1A3A,#4F46E5)"
+    Finance:"linear-gradient(135deg,#1A2A1A,#16A34A)", Infra:"linear-gradient(135deg,#2A2A1A,#CA8A04)",
+    Insurance:"linear-gradient(135deg,#1A2A3A,#0284C7)", Consumer:"linear-gradient(135deg,#3A1A2A,#DB2777)",
+    Cement:"linear-gradient(135deg,#2A2A2A,#71717A)", Diversified:"linear-gradient(135deg,#1A1A2A,#6366F1)",
+    Metal:"linear-gradient(135deg,#2A1A1A,#B91C1C)", Mining:"linear-gradient(135deg,#1A1A1A,#52525B)",
+    Healthcare:"linear-gradient(135deg,#1A3A3A,#0D9488)", Pharma:"linear-gradient(135deg,#2A1A3A,#9333EA)",
+    Chemicals:"linear-gradient(135deg,#1A2A1A,#65A30D)"
   };
   return map[sector] || "linear-gradient(135deg,#1E3A5F,#2563EB)";
 }
 
 // ---- Mock price tick (Phase 2 replaces this with Angel One + Firebase reads) ----
+let liveData = {};      // populated by Firestore listener: {SYMBOL: {ltp, open, high, low, close, volume}}
+let liveDataActive = false; // true once we've received at least one real update
+let marketOpenStatus = null; // true/false/null(unknown) — from server
+
 function tick(){
   stocks.forEach(s=>{
     s.prev = s.price;
-    s.trend += (Math.random()-0.5)*0.12;
-    s.trend = Math.max(-0.8, Math.min(0.8, s.trend));
-    const pull = (s.open - s.price)/s.open * 0.15;
-    const noise = (Math.random()-0.5);
-    const movePct = (s.trend*0.35 + pull*100*0.01 + noise) * 0.0018;
-    s.price = Math.max(1, +(s.price * (1+movePct)).toFixed(2));
-    if(s.price > s.dayHigh) s.dayHigh = s.price;
-    if(s.price < s.dayLow) s.dayLow = s.price;
-    s.vol += Math.round(s.volBase * (0.0005 + Math.random()*0.002));
+    const live = liveData[s.sym];
+    if(live && typeof live.ltp === "number" && live.ltp > 0){
+      // Real Angel One data available — use it directly
+      s.price = live.ltp;
+      s.open = live.open || s.open;
+      s.dayHigh = live.high || s.dayHigh;
+      s.dayLow = live.low || s.dayLow;
+      s.prevClose = live.close || s.prevClose;
+      s.vol = live.volume || s.vol;
+    } else {
+      // Fallback: simulated movement (no live data yet for this symbol)
+      s.trend += (Math.random()-0.5)*0.12;
+      s.trend = Math.max(-0.8, Math.min(0.8, s.trend));
+      const pull = (s.open - s.price)/s.open * 0.15;
+      const noise = (Math.random()-0.5);
+      const movePct = (s.trend*0.35 + pull*100*0.01 + noise) * 0.0018;
+      s.price = Math.max(1, +(s.price * (1+movePct)).toFixed(2));
+      if(s.price > s.dayHigh) s.dayHigh = s.price;
+      if(s.price < s.dayLow) s.dayLow = s.price;
+      s.vol += Math.round(s.volBase * (0.0005 + Math.random()*0.002));
+    }
     s.history.push(s.price);
     if(s.history.length > MAX_HIST) s.history.shift();
   });
   renderTicker(); renderWatchlist(); renderSummary(); updateClock();
   if(detailIdx !== null) renderDetail();
 }
+
+// Poll our own throttled endpoint every 5 sec. The endpoint itself decides
+// whether to actually call Angel One (only if 5+ sec since last real fetch),
+// so this is safe to run from every open browser tab without overloading
+// Angel One's API even at scale.
+function pollLivePrices(){
+  fetch('/api/update-prices').catch(()=>{ /* silent — mock fallback keeps the UI working */ });
+}
+setInterval(pollLivePrices, 5000);
+pollLivePrices(); // kick off immediately on page load too
 
 function renderTicker(){
   const track = document.getElementById("ticker-track");
@@ -669,7 +742,7 @@ function sparkline(canvas, hist, up){
 
 function renderWatchlist(){
   const wl = document.getElementById("watchlist");
-  const visibleCount = userPlan === "free" ? FREE_LIMIT : (userPlan === "lite" ? 30 : stocks.length);
+  const visibleCount = userPlan === "free" ? FREE_LIMIT : (userPlan === "lite" ? LITE_LIMIT : stocks.length);
   const searchEl = document.getElementById("search-input");
   const q = searchEl ? searchEl.value.trim().toUpperCase() : "";
 
@@ -1056,8 +1129,34 @@ if(!DEMO_MODE){
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, orderBy, limit, getDocs, increment, updateDoc } =
+    const { getFirestore, doc, getDoc, setDoc, collection, addDoc, query, where, orderBy, limit, getDocs, increment, updateDoc, onSnapshot } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+
+    // ===== Live price listener — pushes Angel One data instantly to all open tabs =====
+    function startLivePriceListener(){
+      onSnapshot(doc(db, "livePrices", "current"), (snap)=>{
+        if(!snap.exists()) return;
+        const data = snap.data();
+        liveData = data.prices || {};
+        marketOpenStatus = typeof data.marketOpen === "boolean" ? data.marketOpen : null;
+        liveDataActive = Object.keys(liveData).length > 0;
+        updateMarketStatusUI();
+      }, (err)=>{
+        console.error("Live price listener error (will keep using simulated prices):", err);
+      });
+    }
+    function updateMarketStatusUI(){
+      const dotEl = document.querySelector(".live-dot");
+      if(!dotEl) return;
+      if(marketOpenStatus === false){
+        dotEl.innerHTML = '<span class="dot" style="background:var(--muted);animation:none"></span>CLOSED';
+        dotEl.style.color = "var(--muted)";
+      } else if(liveDataActive){
+        dotEl.innerHTML = '<span class="dot"></span>LIVE';
+        dotEl.style.color = "var(--green)";
+      }
+      // if neither, leave the default "LIVE" placeholder as-is (simulated, pre-first-fetch)
+    }
 
     const PLAN_RANK = {free:0, lite:1, max:2};
 
@@ -1215,6 +1314,7 @@ if(!DEMO_MODE){
         uid = user.uid;
         document.getElementById("login-screen").style.display = "none";
         if(al) al.style.display = "none";
+        startLivePriceListener();
         const av = document.getElementById("avatar");
         const initial = (user.displayName || "T").charAt(0).toUpperCase();
         if(user.photoURL){
