@@ -59,42 +59,50 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Symbol token list is empty.' });
     }
 
-    // Build exchange-grouped token request: NSE gets all 50 stocks + Nifty,
-    // BSE gets Sensex (Angel One's quote API accepts multiple exchanges per call)
-    const exchangeTokens = {
-      NSE: [...stockTokens, INDEX_TOKENS.NIFTY.token],
-      BSE: [INDEX_TOKENS.SENSEX.token]
-    };
-
-    const quoteData = await fetchQuotes(exchangeTokens);
-    const fetched = quoteData.fetched || [];
-
     // Build a clean prices object keyed by our symbol names
     const tokenToSymbol = {};
     Object.keys(tokenMap).forEach(sym => { tokenToSymbol[tokenMap[sym]] = sym; });
 
     const prices = {};
     const indices = {};
-    fetched.forEach(item => {
-      if (item.symbolToken === INDEX_TOKENS.NIFTY.token) {
-        indices.NIFTY = { ltp: item.ltp, close: item.close, open: item.open, high: item.high, low: item.low };
-        return;
-      }
-      if (item.symbolToken === INDEX_TOKENS.SENSEX.token) {
-        indices.SENSEX = { ltp: item.ltp, close: item.close, open: item.open, high: item.high, low: item.low };
-        return;
-      }
-      const sym = tokenToSymbol[item.symbolToken];
-      if (!sym) return;
-      prices[sym] = {
-        ltp: item.ltp,
-        open: item.open,
-        high: item.high,
-        low: item.low,
-        close: item.close, // previous close
-        volume: item.tradeVolume || 0
-      };
-    });
+    const debug = {};
+
+    // Fetch 50 stocks (NSE only) — separate call from indices so one
+    // failing doesn't silently take down the other.
+    try {
+      const stockData = await fetchQuotes({ NSE: stockTokens });
+      (stockData.fetched || []).forEach(item => {
+        const sym = tokenToSymbol[item.symbolToken];
+        if (!sym) return;
+        prices[sym] = {
+          ltp: item.ltp, open: item.open, high: item.high, low: item.low,
+          close: item.close, volume: item.tradeVolume || 0
+        };
+      });
+      debug.stocksFetched = (stockData.fetched || []).length;
+      debug.stocksUnfetched = stockData.unfetched || [];
+    } catch (e) {
+      debug.stocksError = e.message;
+    }
+
+    // Fetch indices separately — Nifty on NSE, Sensex on BSE
+    try {
+      const idxData = await fetchQuotes({
+        NSE: [INDEX_TOKENS.NIFTY.token],
+        BSE: [INDEX_TOKENS.SENSEX.token]
+      });
+      debug.indexFetched = idxData.fetched || [];
+      debug.indexUnfetched = idxData.unfetched || [];
+      (idxData.fetched || []).forEach(item => {
+        if (item.symbolToken === INDEX_TOKENS.NIFTY.token) {
+          indices.NIFTY = { ltp: item.ltp, close: item.close, open: item.open, high: item.high, low: item.low };
+        } else if (item.symbolToken === INDEX_TOKENS.SENSEX.token) {
+          indices.SENSEX = { ltp: item.ltp, close: item.close, open: item.open, high: item.high, low: item.low };
+        }
+      });
+    } catch (e) {
+      debug.indexError = e.message;
+    }
 
     await liveRef.set({
       prices,
@@ -103,7 +111,7 @@ module.exports = async function handler(req, res) {
       fetchedAt: now
     });
 
-    res.status(200).json({ success: true, count: Object.keys(prices).length, indices, marketOpen: true });
+    res.status(200).json({ success: true, count: Object.keys(prices).length, indices, marketOpen: true, debug });
   } catch (err) {
     console.error('update-prices error:', err);
     res.status(500).json({ success: false, error: err.message });
