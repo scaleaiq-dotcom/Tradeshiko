@@ -228,6 +228,25 @@
   .cmt-act{font-size:10px;color:var(--muted);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px}
   .cmt-sent{font-size:9.5px;font-weight:700;margin-left:auto}
   .cmt-sent.bull{color:var(--green)} .cmt-sent.bear{color:var(--red)}
+
+  /* Replies */
+  .reply-box{display:none;margin-top:11px;padding-top:11px;border-top:1px solid var(--border)}
+  .reply-box.open{display:block}
+  .reply-input-row{display:flex;gap:7px;margin-bottom:10px}
+  .reply-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;
+    padding:8px 11px;color:var(--text);font-size:11.5px;font-family:'Inter',sans-serif}
+  .reply-input:focus{outline:none;border-color:var(--accent)}
+  .reply-send{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 13px;
+    font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0}
+  .reply-list{display:flex;flex-direction:column;gap:9px}
+  .reply-item{display:flex;gap:8px}
+  .reply-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-weight:800;color:#fff;flex-shrink:0;background-size:cover;background-position:center}
+  .reply-body{flex:1}
+  .reply-user{font-size:10.5px;font-weight:800}
+  .reply-time{font-size:9px;color:var(--muted);margin-left:6px}
+  .reply-txt{font-size:11px;color:var(--subtle);line-height:1.5;margin-top:2px}
+  .reply-loading{font-size:10.5px;color:var(--muted);text-align:center;padding:6px}
   .btn{border:none;border-radius:12px;padding:13px;font-weight:800;font-size:13.5px;cursor:pointer;
     font-family:'Inter',sans-serif;flex:1;text-align:center}
   .btn-buy{background:linear-gradient(135deg,#064E3B,var(--green))}
@@ -343,13 +362,19 @@
       <button class="sec-link" onclick="refreshPrices()">⟳ Refresh</button>
     </div>
 
-    <!-- Search + Sort -->
-    <div class="toolbar">
+    <!-- Search + Sort + View toggle -->
+    <div class="toolbar" style="flex-direction:column;gap:8px">
       <div class="search-box">
         <span style="font-size:13px;color:var(--muted)">🔍</span>
         <input type="text" id="search-input" placeholder="Search stocks..." oninput="renderWatchlist()">
       </div>
-      <button class="sort-btn" id="sort-btn" onclick="cycleSort()">▲ Gainers</button>
+      <div style="display:flex;gap:8px">
+        <select class="sort-btn" id="view-select" onchange="renderWatchlist()" style="cursor:pointer;flex:1">
+          <option value="active">⭐ My Stocks</option>
+          <option value="all">All 50 Stocks</option>
+        </select>
+        <button class="sort-btn" id="sort-btn" onclick="cycleSort()" style="flex:1">▲ Gainers</button>
+      </div>
     </div>
 
     <div class="stocks" id="watchlist">
@@ -569,7 +594,7 @@ const stocks = [
   mkStock("INFY","Infosys","IT",1540,7300000),
   mkStock("ICICIBANK","ICICI Bank","Banking",1245,16000000),
   mkStock("SBIN","State Bank of India","Banking",845,17500000),
-  mkStock("TATAMOTORS","Tata Motors","Auto",1020,21000000),
+  mkStock("TMPV","Tata Motors Passenger Vehicles","Auto",1020,21000000),
   mkStock("ITC","ITC Limited","FMCG",438,12800000),
   mkStock("BHARTIARTL","Bharti Airtel","Telecom",1450,6200000),
   mkStock("WIPRO","Wipro","IT",495,9400000),
@@ -611,7 +636,7 @@ const stocks = [
   mkStock("EICHERMOT","Eicher Motors","Auto",4850,780000),
   mkStock("HEROMOTOCO","Hero MotoCorp","Auto",4650,1100000),
   mkStock("TATACONSUM","Tata Consumer Products","FMCG",1120,3600000),
-  mkStock("LTIM","LTIMindtree","IT",6200,580000),
+  mkStock("LTM","LTM Limited","IT",6200,580000),
   mkStock("PIDILITIND","Pidilite Industries","Chemicals",2950,720000),
 ];
 const FREE_LIMIT = 10;  // first 10 stocks visible on Free plan
@@ -745,9 +770,18 @@ function renderWatchlist(){
   const visibleCount = userPlan === "free" ? FREE_LIMIT : (userPlan === "lite" ? LITE_LIMIT : stocks.length);
   const searchEl = document.getElementById("search-input");
   const q = searchEl ? searchEl.value.trim().toUpperCase() : "";
+  const viewSel = document.getElementById("view-select");
+  const viewMode = viewSel ? viewSel.value : "active"; // "active" = My Stocks (default), "all" = All 50
 
   // Build list with original index preserved (gating depends on original index)
   let list = stocks.map((s,i)=>({s, i, locked: i >= visibleCount}));
+
+  // Default view: only show stocks the user can actually trade (no locked clutter).
+  // "All 50 Stocks" view shows everything, including locked ones with upsell.
+  // Searching always searches across all 50, regardless of view mode, so users can find any stock.
+  if(viewMode === "active" && !q){
+    list = list.filter(o => !o.locked);
+  }
 
   // Search filter
   if(q){
@@ -1141,9 +1175,36 @@ if(!DEMO_MODE){
         marketOpenStatus = typeof data.marketOpen === "boolean" ? data.marketOpen : null;
         liveDataActive = Object.keys(liveData).length > 0;
         updateMarketStatusUI();
+        renderIndices(data.indices);
       }, (err)=>{
         console.error("Live price listener error (will keep using simulated prices):", err);
       });
+    }
+    function renderIndices(indices){
+      if(!indices) return;
+      const fmtIdx = n => Math.round(n).toLocaleString("en-IN");
+      if(indices.NIFTY && typeof indices.NIFTY.ltp === "number"){
+        const n = indices.NIFTY;
+        const chg = n.ltp - (n.close || n.ltp);
+        const pct = n.close ? (chg/n.close*100) : 0;
+        const cls = chg >= 0 ? "g" : "r";
+        const sign = chg >= 0 ? "+" : "";
+        document.getElementById("nifty-val").textContent = fmtIdx(n.ltp);
+        const chgEl = document.getElementById("nifty-chg");
+        chgEl.textContent = `${chg>=0?"▲":"▼"} ${sign}${chg.toFixed(0)} (${sign}${pct.toFixed(2)}%)`;
+        chgEl.className = "idx-chg " + cls;
+      }
+      if(indices.SENSEX && typeof indices.SENSEX.ltp === "number"){
+        const s = indices.SENSEX;
+        const chg = s.ltp - (s.close || s.ltp);
+        const pct = s.close ? (chg/s.close*100) : 0;
+        const cls = chg >= 0 ? "g" : "r";
+        const sign = chg >= 0 ? "+" : "";
+        document.getElementById("sensex-val").textContent = fmtIdx(s.ltp);
+        const chgEl = document.getElementById("sensex-chg");
+        chgEl.textContent = `${chg>=0?"▲":"▼"} ${sign}${chg.toFixed(0)} (${sign}${pct.toFixed(2)}%)`;
+        chgEl.className = "idx-chg " + cls;
+      }
     }
     function updateMarketStatusUI(){
       const dotEl = document.querySelector(".live-dot");
@@ -1204,7 +1265,15 @@ if(!DEMO_MODE){
             <div class="cmt-txt">${escapeHtml(p.text)}</div>
             <div class="cmt-acts">
               <span class="cmt-act" onclick="likePost('${p.id}')">👍 ${p.likes||0}</span>
+              <span class="cmt-act" onclick="toggleReplyBox('${p.id}')">💬 Reply${p.replyCount?' ('+p.replyCount+')':''}</span>
               ${sentTag}
+            </div>
+            <div class="reply-box" id="reply-box-${p.id}">
+              <div class="reply-input-row">
+                <input type="text" class="reply-input" id="reply-input-${p.id}" placeholder="Write a reply...">
+                <button class="reply-send" onclick="submitReply('${p.id}')">Send</button>
+              </div>
+              <div class="reply-list" id="reply-list-${p.id}"></div>
             </div>
           </div>`;
         }).join("");
@@ -1214,6 +1283,65 @@ if(!DEMO_MODE){
     window.likePost = async function(postId){
       try{ await updateDoc(doc(db,"posts",postId), {likes: increment(1)}); }
       catch(e){ console.error("Like failed", e); }
+    };
+
+    // ===== Replies (shared pattern with community.html) =====
+    const openReplyBoxesIdx = new Set();
+    window.toggleReplyBox = function(postId){
+      const box = document.getElementById("reply-box-"+postId);
+      if(!box) return;
+      if(openReplyBoxesIdx.has(postId)){
+        openReplyBoxesIdx.delete(postId);
+        box.classList.remove("open");
+      } else {
+        openReplyBoxesIdx.add(postId);
+        box.classList.add("open");
+        loadRepliesIdx(postId);
+      }
+    };
+    async function loadRepliesIdx(postId){
+      const listEl = document.getElementById("reply-list-"+postId);
+      if(!listEl) return;
+      listEl.innerHTML = `<div class="reply-loading">Loading replies...</div>`;
+      try{
+        const q = query(collection(db,"replies"), where("postId","==",postId), orderBy("createdAt","asc"), limit(50));
+        const snap = await getDocs(q);
+        const replies = [];
+        snap.forEach(d=>replies.push(d.data()));
+        if(!replies.length){
+          listEl.innerHTML = `<div class="reply-loading">No replies yet. Be the first to reply!</div>`;
+          return;
+        }
+        listEl.innerHTML = replies.map(r=>{
+          const initial = (r.displayName||"T").charAt(0).toUpperCase();
+          const avStyle = r.photoURL ? `background-image:url(${r.photoURL})` : `background:linear-gradient(135deg,#065F46,#10B981)`;
+          return `<div class="reply-item">
+            <div class="reply-av" style="${avStyle}">${r.photoURL?'':initial}</div>
+            <div class="reply-body">
+              <span class="reply-user">${r.displayName}</span><span class="reply-time">${timeSince(r.createdAt)}</span>
+              <div class="reply-txt">${escapeHtml(r.text)}</div>
+            </div>
+          </div>`;
+        }).join("");
+      }catch(e){ console.error("Load replies failed (may need a composite index)", e); listEl.innerHTML = `<div class="reply-loading">Couldn't load replies</div>`; }
+    }
+    window.submitReply = async function(postId){
+      if(!uid){ showToast("Please login first"); return; }
+      const input = document.getElementById("reply-input-"+postId);
+      const text = (input.value || "").trim();
+      if(!text) return;
+      try{
+        await addDoc(collection(db,"replies"), {
+          postId, uid, text,
+          displayName: auth.currentUser?.displayName || "Trader",
+          photoURL: auth.currentUser?.photoURL || "",
+          createdAt: Date.now()
+        });
+        await updateDoc(doc(db,"posts",postId), {replyCount: increment(1)});
+        input.value = "";
+        loadRepliesIdx(postId);
+        track("reply_created", {postId});
+      }catch(e){ console.error("Reply failed", e); showToast("Reply nahi hua, try again"); }
     };
 
     function timeSince(ts){

@@ -66,6 +66,25 @@
   .cmt-sent{font-size:10px;font-weight:700;margin-left:auto}
   .cmt-sent.bull{color:var(--green)} .cmt-sent.bear{color:var(--red)}
 
+  /* Replies */
+  .reply-box{display:none;margin-top:11px;padding-top:11px;border-top:1px solid var(--border)}
+  .reply-box.open{display:block}
+  .reply-input-row{display:flex;gap:7px;margin-bottom:10px}
+  .reply-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;
+    padding:8px 11px;color:var(--text);font-size:11.5px;font-family:'Inter',sans-serif}
+  .reply-input:focus{outline:none;border-color:var(--accent)}
+  .reply-send{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 13px;
+    font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0}
+  .reply-list{display:flex;flex-direction:column;gap:9px}
+  .reply-item{display:flex;gap:8px}
+  .reply-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-weight:800;color:#fff;flex-shrink:0;background-size:cover;background-position:center}
+  .reply-body{flex:1}
+  .reply-user{font-size:10.5px;font-weight:800}
+  .reply-time{font-size:9px;color:var(--muted);margin-left:6px}
+  .reply-txt{font-size:11px;color:var(--subtle);line-height:1.5;margin-top:2px}
+  .reply-loading{font-size:10.5px;color:var(--muted);text-align:center;padding:6px}
+
   .empty{color:var(--muted);font-size:12.5px;background:var(--card);border:1px dashed var(--border);
     border-radius:13px;padding:28px 20px;text-align:center;margin:0 14px;line-height:1.6}
   .skeleton{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);
@@ -233,7 +252,15 @@ function renderFeed(items){
       <div class="cmt-txt">${escapeHtml(p.text)}</div>
       <div class="cmt-acts">
         <span class="cmt-act" onclick="likePost('${p.id}')">👍 ${p.likes||0}</span>
+        <span class="cmt-act" onclick="toggleReplyBox('${p.id}')">💬 Reply${p.replyCount?' ('+p.replyCount+')':''}</span>
         ${sentTag}
+      </div>
+      <div class="reply-box" id="reply-box-${p.id}">
+        <div class="reply-input-row">
+          <input type="text" class="reply-input" id="reply-input-${p.id}" placeholder="Write a reply...">
+          <button class="reply-send" onclick="submitReply('${p.id}')">Send</button>
+        </div>
+        <div class="reply-list" id="reply-list-${p.id}"></div>
       </div>
     </div>`;
   }).join("");
@@ -255,7 +282,7 @@ if(!DEMO_MODE){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, doc, updateDoc, increment } =
+    const { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, doc, updateDoc, increment, where } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const app = initializeApp(CONFIG.firebase);
     const auth = getAuth(app);
@@ -281,6 +308,78 @@ if(!DEMO_MODE){
       catch(e){ console.error("Like failed", e); }
     };
 
+    // ===== Replies =====
+    const openReplyBoxes = new Set(); // postIds currently expanded — preserved across re-renders
+
+    window.toggleReplyBox = function(postId){
+      const box = document.getElementById("reply-box-"+postId);
+      if(!box) return;
+      if(openReplyBoxes.has(postId)){
+        openReplyBoxes.delete(postId);
+        box.classList.remove("open");
+      } else {
+        openReplyBoxes.add(postId);
+        box.classList.add("open");
+        loadReplies(postId);
+      }
+    };
+
+    async function loadReplies(postId){
+      const listEl = document.getElementById("reply-list-"+postId);
+      if(!listEl) return;
+      listEl.innerHTML = `<div class="reply-loading">Loading replies...</div>`;
+      try{
+        const q = query(collection(db,"replies"), where("postId","==",postId), orderBy("createdAt","asc"), limit(50));
+        const snap = await getDocs(q);
+        const replies = [];
+        snap.forEach(d=>replies.push(d.data()));
+        if(!replies.length){
+          listEl.innerHTML = `<div class="reply-loading">No replies yet. Be the first to reply!</div>`;
+          return;
+        }
+        listEl.innerHTML = replies.map(r=>{
+          const initial = (r.displayName||"T").charAt(0).toUpperCase();
+          const avStyle = r.photoURL ? `background-image:url(${r.photoURL})` : `background:linear-gradient(135deg,#065F46,#10B981)`;
+          return `<div class="reply-item">
+            <div class="reply-av" style="${avStyle}">${r.photoURL?'':initial}</div>
+            <div class="reply-body">
+              <span class="reply-user">${r.displayName}</span><span class="reply-time">${timeSince(r.createdAt)}</span>
+              <div class="reply-txt">${escapeHtml(r.text)}</div>
+            </div>
+          </div>`;
+        }).join("");
+      }catch(e){
+        console.error("Load replies failed (may need a composite index — check browser console for a setup link)", e);
+        listEl.innerHTML = `<div class="reply-loading">Couldn't load replies</div>`;
+      }
+    }
+
+    window.submitReply = async function(postId){
+      if(!uid){ alert("Please login first"); return; }
+      const input = document.getElementById("reply-input-"+postId);
+      const text = (input.value || "").trim();
+      if(!text) return;
+      try{
+        await addDoc(collection(db,"replies"), {
+          postId, uid, text,
+          displayName: auth.currentUser?.displayName || "Trader",
+          photoURL: auth.currentUser?.photoURL || "",
+          createdAt: Date.now()
+        });
+        await updateDoc(doc(db,"posts",postId), {replyCount: increment(1)});
+        input.value = "";
+        loadReplies(postId);
+        track("reply_created", {postId});
+      }catch(e){ console.error("Reply failed", e); alert("Reply nahi hua, try again"); }
+    };
+
+    function reopenReplyBoxes(){
+      openReplyBoxes.forEach(postId=>{
+        const box = document.getElementById("reply-box-"+postId);
+        if(box){ box.classList.add("open"); loadReplies(postId); }
+      });
+    }
+
     async function loadFeed(){
       try{
         const q = query(collection(db,"posts"), orderBy("createdAt","desc"), limit(50));
@@ -288,6 +387,7 @@ if(!DEMO_MODE){
         const items = [];
         snap.forEach(d=>items.push({id:d.id, ...d.data()}));
         renderFeed(items);
+        reopenReplyBoxes();
       }catch(e){ console.error("Load feed failed", e); renderFeed([]); }
     }
 
