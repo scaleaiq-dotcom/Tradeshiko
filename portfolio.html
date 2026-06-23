@@ -215,8 +215,9 @@
     <!-- Reset -->
     <div class="reset-card">
       <div class="reset-title">🔄 Reset Portfolio</div>
-      <div class="reset-desc">Lost all money or want a fresh start? Reset anytime — free. Your leaderboard peak stays, Pro status stays. Only your holdings and cash reset to the starting amount.</div>
+      <div class="reset-desc">Want a fresh start? You get <strong>1 free reset per calendar month</strong>. Your leaderboard peak always stays — only holdings and cash reset to your plan's starting amount.</div>
       <button class="reset-btn" id="reset-btn" onclick="askReset()">Start Fresh → Get <span id="reset-amt">₹1 Lakh</span></button>
+      <div id="reset-status" style="font-size:10px;color:var(--muted);text-align:center;margin-top:7px"></div>
     </div>
 
     <!-- Footer -->
@@ -248,7 +249,7 @@
 <div class="overlay" id="reset-overlay">
   <div class="confirm-box">
     <h3>Reset Portfolio?</h3>
-    <p>This will sell all holdings and reset your cash to <strong id="reset-confirm-amt">₹1 Lakh</strong>.<br><br>Your peak value of <strong id="reset-peak" style="color:var(--gold)">₹1 Lakh</strong> stays on the leaderboard. This can't be undone.</p>
+    <p>This will sell all holdings and reset your cash to <strong id="reset-confirm-amt">₹1 Lakh</strong> — as per your current plan.<br><br>⚠️ You can only reset <strong>once per calendar month</strong>. Your peak value of <strong id="reset-peak" style="color:var(--gold)">₹1 Lakh</strong> stays on the leaderboard regardless. This can't be undone.</p>
     <div class="confirm-actions">
       <button class="cbtn cbtn-cancel" onclick="closeReset()">Cancel</button>
       <button class="cbtn cbtn-confirm" onclick="doReset()">Yes, Reset</button>
@@ -345,15 +346,51 @@ function getPrice(sym){
   return priceMap[sym];
 }
 
-const PLAN_START = {free:100000, lite:500000, max:1000000};
+// ============================================================
+// PLAN STRUCTURE — Trial / Basic / Growth / Pro (matches index.html)
+// ============================================================
+const TRIAL_DAYS = 3;
+const VALID_PLANS = ["trial","basic","growth","pro"];
+const PLAN_RANK_LOCAL = {trial:0, basic:1, growth:2, pro:3};
+const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
+const MONTHLY_TOPUP = {trial:0, basic:50000, growth:100000, pro:200000};
+const DAILY_TRADE_LIMIT = {trial:Infinity, basic:10, growth:25, pro:Infinity};
+const HISTORY_DAYS = {trial:3, basic:5, growth:15, pro:30};
+const PLAN_LABEL = {trial:"TRIAL", basic:"BASIC", growth:"GROWTH", pro:"PRO"};
 
-let cash = 100000;
+let cash = PLAN_START.trial;
 let holdings = {};
 let orders = [];
-let userPlan = "free";
-let peakValue = 100000;
+let userPlan = "trial";
+let peakValue = PLAN_START.trial;
 let planStartDate = null;
 let lastTopupDate = null;
+let dailyTradeDate = null;
+let dailyTradeCount = 0;
+let lastResetMonth = null;
+function todayStr(){
+  const ist = new Date(Date.now() + (5.5*60*60*1000));
+  return ist.toISOString().slice(0,10);
+}
+function thisMonthStr(){
+  const ist = new Date(Date.now() + (5.5*60*60*1000));
+  return ist.toISOString().slice(0,7);
+}
+function isTrialExpired(){
+  if(userPlan !== "trial" || !planStartDate) return false;
+  return Date.now() > planStartDate + (TRIAL_DAYS * 24*60*60*1000);
+}
+function getTradesRemainingToday(){
+  const limit = DAILY_TRADE_LIMIT[userPlan] ?? DAILY_TRADE_LIMIT.basic;
+  if(limit === Infinity) return Infinity;
+  if(dailyTradeDate !== todayStr()) return limit;
+  return Math.max(0, limit - dailyTradeCount);
+}
+function recordTradeForLimit(){
+  const today = todayStr();
+  if(dailyTradeDate !== today){ dailyTradeDate = today; dailyTradeCount = 0; }
+  dailyTradeCount++;
+}
 
 const fmt = n => "₹" + n.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
@@ -460,6 +497,16 @@ function render(){
   document.getElementById("reset-amt").textContent = fmtLakh(start);
   document.getElementById("reset-confirm-amt").textContent = fmtLakh(start);
   document.getElementById("reset-peak").textContent = fmtInt(peakValue);
+  const resetUsed = lastResetMonth === thisMonthStr();
+  const resetBtn = document.getElementById("reset-btn");
+  const resetStatus = document.getElementById("reset-status");
+  if(resetUsed){
+    resetBtn.style.opacity = "0.5";
+    resetStatus.textContent = "✓ Reset already used this month — next one available next month";
+  } else {
+    resetBtn.style.opacity = "1";
+    resetStatus.textContent = "";
+  }
 }
 
 function toggleHold(idx){
@@ -472,31 +519,56 @@ function applyState(st){
   cash = typeof st.cash==="number" ? st.cash : cash;
   holdings = st.holdings || {};
   orders = st.orders || [];
-  userPlan = st.plan || "free";
-  peakValue = typeof st.peakValue==="number" ? st.peakValue : PLAN_START[userPlan];
-  planStartDate = st.planStartDate || null;
-  lastTopupDate = st.lastTopupDate || null;
+  const isLegacyOrUnknown = !VALID_PLANS.includes(st.plan);
+  if(isLegacyOrUnknown){
+    userPlan = "trial";
+    cash = PLAN_START.trial;
+    planStartDate = Date.now();
+    lastTopupDate = Date.now();
+    peakValue = PLAN_START.trial;
+  } else {
+    userPlan = st.plan;
+    peakValue = typeof st.peakValue==="number" ? st.peakValue : PLAN_START[userPlan];
+    planStartDate = st.planStartDate || null;
+    lastTopupDate = st.lastTopupDate || null;
+  }
+  dailyTradeDate = st.dailyTradeDate || null;
+  dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
+  lastResetMonth = st.lastResetMonth || null;
   render();
+  if(isLegacyOrUnknown && window.cloudSave) window.cloudSave(getState());
 }
 function getState(){
-  return {cash, holdings, orders:orders.slice(0,100), plan:userPlan, peakValue,
-    planStartDate, lastTopupDate, updatedAt:Date.now()};
+  return {cash, holdings, orders:orders.slice(0,200), plan:userPlan, peakValue,
+    planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth, updatedAt:Date.now()};
 }
 
 // Reset flow
-function askReset(){ document.getElementById("reset-overlay").classList.add("show"); }
+function askReset(){
+  if(lastResetMonth === thisMonthStr()){
+    showToast("🚫 You've already used your free reset this month. Next one available next month.");
+    return;
+  }
+  document.getElementById("reset-overlay").classList.add("show");
+}
 function closeReset(){ document.getElementById("reset-overlay").classList.remove("show"); }
 function doReset(){
+  if(lastResetMonth === thisMonthStr()){
+    closeReset();
+    showToast("🚫 You've already used your free reset this month.");
+    return;
+  }
   const start = PLAN_START[userPlan];
   cash = start;
   holdings = {};
+  lastResetMonth = thisMonthStr();
   orders.unshift({side:"RESET", sym:"Portfolio", qty:"", price:0, t:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"})});
   // peakValue stays unchanged
   closeReset();
   render();
   track("portfolio_reset", {plan:userPlan});
   if(window.cloudSave) window.cloudSave(getState());
-  showToast("✅ Fresh start! "+fmtLakh(start)+" ready. Peak value saved 🏆");
+  showToast("✅ Fresh start! "+fmtLakh(start)+" ready. Peak value saved 🏆 (Next reset available next month)");
 }
 
 function showToast(msg){
@@ -577,6 +649,19 @@ function calcCharges(value){
   return {brokerage, stt, gst, misc, total:+(brokerage+stt+gst+misc).toFixed(2)};
 }
 function confirmTrade(){
+  if(isTrialExpired()){
+    showToast("⏰ Your trial has ended. Subscribe to keep trading!");
+    setTimeout(()=>location.href="plans.html", 1200);
+    closeTrade();
+    return;
+  }
+  const remaining = getTradesRemainingToday();
+  if(remaining <= 0){
+    const err = document.getElementById("m-err");
+    err.textContent = `Daily trade limit reached (${DAILY_TRADE_LIMIT[userPlan]} trades/day on your plan). Upgrade for more.`;
+    err.style.display = "block";
+    return;
+  }
   const px = getPrice(tradeSym) || 1;
   const value = tradeQty * px;
   const ch = calcCharges(value);
@@ -591,6 +676,7 @@ function confirmTrade(){
     const h = holdings[tradeSym];
     if(h){ h.avg = (h.avg*h.qty + value)/(h.qty+tradeQty); h.qty += tradeQty; }
     else holdings[tradeSym] = {qty:tradeQty, avg:px};
+    recordTradeForLimit();
     orders.unshift({side:"BUY", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, t, date, ts:now.getTime()});
     showToast(`✅ ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
   } else {
@@ -599,6 +685,7 @@ function confirmTrade(){
     cash += (value - ch.total);
     h.qty -= tradeQty;
     if(h.qty === 0) delete holdings[tradeSym];
+    recordTradeForLimit();
     orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, t, date, ts:now.getTime()});
     showToast(`💰 ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
   }
@@ -643,7 +730,7 @@ if(!DEMO_MODE){
             displayName: auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",
             peakValue: state.peakValue || 0,
-            plan: state.plan || "free",
+            plan: state.plan || "trial",
             updatedAt: Date.now()
           }, {merge:true});
         }
