@@ -39,8 +39,9 @@
   .li-main{font-size:12.5px;font-weight:700}
   .li-sub{font-size:10px;color:var(--muted);margin-top:1px}
   .badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px}
-  .badge.lite{background:rgba(59,130,246,0.15);color:#93C5FD}
-  .badge.max{background:rgba(245,158,11,0.15);color:var(--gold)}
+  .badge.basic{background:rgba(100,116,139,0.2);color:#CBD5E1}
+  .badge.growth{background:rgba(59,130,246,0.15);color:#93C5FD}
+  .badge.pro{background:rgba(245,158,11,0.15);color:var(--gold)}
 
   .msg{font-size:12px;padding:9px 12px;border-radius:9px;margin-bottom:12px;display:none}
   .msg.success{background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.25);display:block}
@@ -86,8 +87,9 @@
       <div>
         <label>Plan</label>
         <select id="grant-plan">
-          <option value="lite">Pro Lite (30 stocks)</option>
-          <option value="max">Pro Max (50 stocks)</option>
+          <option value="basic">Basic (₹149/mo · 15 stocks)</option>
+          <option value="growth">Growth (₹299/mo · 30 stocks)</option>
+          <option value="pro">Pro (₹599/mo · 50 stocks)</option>
         </select>
       </div>
       <div>
@@ -114,8 +116,9 @@
       <div>
         <label>Plan</label>
         <select id="coupon-plan">
-          <option value="lite">Pro Lite</option>
-          <option value="max">Pro Max</option>
+          <option value="basic">Basic</option>
+          <option value="growth">Growth</option>
+          <option value="pro">Pro</option>
         </select>
       </div>
       <div>
@@ -143,6 +146,10 @@ const ADMIN_EMAILS = [
   "scaleaiq@gmail.com",
   "jitendramathur.85@gmail.com"
 ];
+
+function planLabel(plan){
+  return ({basic:"BASIC", growth:"GROWTH", pro:"PRO"})[plan] || (plan||"").toUpperCase();
+}
 
 const CONFIG = {
   firebase: {
@@ -214,7 +221,7 @@ async function loadGrants(){
       html += `<div class="list-item">
         <div><div class="li-main">${d.id}</div><div class="li-sub">${v.note||"—"} · by ${v.grantedBy||"admin"}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="badge ${v.plan}">${v.plan==='max'?'PRO MAX':'PRO LITE'}</span>
+          <span class="badge ${v.plan}">${planLabel(v.plan)}</span>
           <button class="btn-danger" onclick="revokeGrant('${d.id}')">Revoke</button>
         </div>
       </div>`;
@@ -254,7 +261,7 @@ async function loadCoupons(){
       html += `<div class="list-item">
         <div><div class="li-main mono">${d.id}</div><div class="li-sub">${v.usedCount||0} / ${v.maxUses} used · ${v.active?'active':'disabled'}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
-          <span class="badge ${v.plan}">${v.plan==='max'?'PRO MAX':'PRO LITE'}</span>
+          <span class="badge ${v.plan}">${planLabel(v.plan)}</span>
           <button class="btn-danger" onclick="toggleCoupon('${d.id}', ${v.active})">${v.active?'Disable':'Enable'}</button>
         </div>
       </div>`;
