@@ -1140,14 +1140,26 @@ function getState(){
     planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth,
     rulesAgreedAt: window._rulesAgreedAt || null, updatedAt: Date.now()};
 }
+const VALID_PLANS = ["trial","basic","growth","pro"];
 function applyState(st){
   if(!st) return;
   cash = typeof st.cash === "number" ? st.cash : cash;
   holdings = st.holdings || {};
-  userPlan = st.plan || "trial";
-  peakValue = typeof st.peakValue === "number" ? st.peakValue : PLAN_START[userPlan] || PLAN_START.trial;
-  planStartDate = st.planStartDate || null;
-  lastTopupDate = st.lastTopupDate || null;
+  const isLegacyOrUnknown = !VALID_PLANS.includes(st.plan);
+  if(isLegacyOrUnknown){
+    // Old/unrecognized plan value (e.g. pre-rebuild "free"/"lite"/"max") —
+    // migrate cleanly to a fresh Trial rather than silently breaking lookups
+    userPlan = "trial";
+    cash = PLAN_START.trial;
+    planStartDate = Date.now();
+    lastTopupDate = Date.now();
+    peakValue = PLAN_START.trial;
+  } else {
+    userPlan = st.plan;
+    peakValue = typeof st.peakValue === "number" ? st.peakValue : PLAN_START[userPlan];
+    planStartDate = st.planStartDate || null;
+    lastTopupDate = st.lastTopupDate || null;
+  }
   dailyTradeDate = st.dailyTradeDate || null;
   dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
   lastResetMonth = st.lastResetMonth || null;
@@ -1156,6 +1168,7 @@ function applyState(st){
   (st.orders || []).forEach(o=>orders.push(o));
   updatePlanBadge();
   renderWatchlist(); renderSummary();
+  if(isLegacyOrUnknown && window.cloudSave) window.cloudSave(getState()); // persist the migration
 }
 function updatePlanBadge(){
   const badge = document.getElementById("plan-badge");
