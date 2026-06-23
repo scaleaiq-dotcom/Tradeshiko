@@ -537,6 +537,10 @@ function applyState(st){
   lastResetMonth = st.lastResetMonth || null;
   render();
   if(isLegacyOrUnknown && window.cloudSave) window.cloudSave(getState());
+  // Mandatory Rules & Regulations gate — must agree once before using the app
+  if(!st.rulesAgreedAt){
+    location.href = "rules.html";
+  }
 }
 function getState(){
   return {cash, holdings, orders:orders.slice(0,200), plan:userPlan, peakValue,

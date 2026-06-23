@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Rules & Regulations — TradeSeekho</title>
+<meta name="theme-color" content="#090D16">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090D16; --card:#141E2E; --card2:#1A2540; --border:#1E2D45;
+    --accent:#3B82F6; --accent2:#6366F1; --green:#10B981; --red:#EF4444; --gold:#F59E0B;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+  a{color:var(--accent);text-decoration:none}
+  .app{max-width:600px;margin:0 auto;padding-bottom:100px}
+  .back-hdr{padding:14px 16px 8px;display:flex;align-items:center;gap:12px;position:sticky;top:0;background:var(--bg);z-index:5}
+  .back-btn{font-size:18px;color:var(--subtle);cursor:pointer}
+  .back-title{font-size:15px;font-weight:800}
+  .updated{padding:0 16px 16px;font-size:10.5px;color:var(--muted)}
+
+  .gate-banner{margin:0 16px 18px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);
+    border-radius:13px;padding:14px 16px}
+  .gate-banner-title{font-size:12.5px;font-weight:800;color:var(--gold);margin-bottom:5px}
+  .gate-banner p{font-size:11px;color:var(--subtle);line-height:1.6}
+
+  .content{padding:0 18px}
+  .section{margin-bottom:22px}
+  .section h2{font-size:13px;font-weight:800;color:var(--accent);margin-bottom:9px;text-transform:uppercase;letter-spacing:0.04em}
+  .section p{font-size:12px;color:var(--subtle);line-height:1.7;margin-bottom:8px}
+  .section ul{margin:8px 0 8px 18px}
+  .section li{font-size:12px;color:var(--subtle);line-height:1.7;margin-bottom:5px}
+
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:10.5px}
+  th,td{padding:8px 7px;border:1px solid var(--border);text-align:left;color:var(--subtle)}
+  th{color:var(--text);font-weight:700;background:var(--card)}
+
+  .pill-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .pill{font-size:9.5px;font-weight:700;padding:4px 10px;border-radius:20px;background:var(--card);border:1px solid var(--border);color:var(--subtle)}
+  .pill.basic{color:#CBD5E1}
+  .pill.growth{color:#93C5FD;border-color:rgba(59,130,246,0.3)}
+  .pill.pro{color:var(--gold);border-color:rgba(245,158,11,0.3)}
+
+  .footer{padding:24px 18px 8px;text-align:center;border-top:1px solid var(--border);margin-top:10px}
+  .footer p{font-size:10px;color:var(--muted);line-height:1.7}
+
+  /* Sticky agree bar — shown only when this page is gating signup */
+  .agree-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);
+    border-top:1px solid var(--border);padding:14px 18px;display:none;z-index:50}
+  .agree-bar.show{display:block}
+  .agree-bar p{font-size:10.5px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5}
+  .agree-btn{width:100%;max-width:560px;margin:0 auto;display:block;padding:14px;border-radius:13px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:800;
+    border:none;cursor:pointer}
+  .back-link-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);
+    border-top:1px solid var(--border);padding:14px 18px;text-align:center}
+  .back-link-bar a{font-size:12.5px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="back-hdr">
+    <span class="back-btn" onclick="goBack()">←</span>
+    <span class="back-title">Rules & Regulations</span>
+  </div>
+  <div class="updated">Last updated: June 2026</div>
+
+  <div class="gate-banner" id="gate-banner" style="display:none">
+    <div class="gate-banner-title">⚠️ Please read before continuing</div>
+    <p>You need to read and accept these rules once before you can start trading on TradeSeekho. This covers your plan, limits, and what happens to your account in different situations.</p>
+  </div>
+
+  <div class="content">
+
+    <div class="section">
+      <h2>1. The Trial</h2>
+      <p>Every new account gets a <strong>3-day free trial</strong> with full access: all 50 NSE stocks, ₹20 Lakh virtual capital, and unlimited trades. No payment required to start.</p>
+      <p>After 3 days, trading is paused until you choose a paid plan. You can still view your portfolio and leaderboard rank during this time — only placing new trades is blocked.</p>
+    </div>
+
+    <div class="section">
+      <h2>2. Plans & What Each One Includes</h2>
+      <table>
+        <tr><th>Plan</th><th>Price</th><th>Capital</th><th>Stocks</th><th>Trades/day</th><th>History</th></tr>
+        <tr><td>Basic</td><td>₹149/mo</td><td>₹5L</td><td>15</td><td>10</td><td>5 days</td></tr>
+        <tr><td>Growth</td><td>₹299/mo</td><td>₹10L</td><td>30</td><td>25</td><td>15 days</td></tr>
+        <tr><td>Pro</td><td>₹599/mo</td><td>₹20L</td><td>50</td><td>Unlimited</td><td>30 days</td></tr>
+      </table>
+      <p>All paid plans renew monthly. We'll notify you before any renewal — nothing is charged without clear notice.</p>
+    </div>
+
+    <div class="section">
+      <h2>3. Monthly Top-Up (Automatic)</h2>
+      <p>Every paid plan automatically adds virtual capital to your portfolio once a month, from your subscription start date:</p>
+      <div class="pill-row">
+        <span class="pill basic">Basic: +₹50,000/month</span>
+        <span class="pill growth">Growth: +₹1,00,000/month</span>
+        <span class="pill pro">Pro: +₹2,00,000/month</span>
+      </div>
+      <p>This continues for as long as your subscription stays active.</p>
+    </div>
+
+    <div class="section">
+      <h2>4. Daily Trade Limits</h2>
+      <p>To keep the simulation realistic and fair across all users, each plan has a daily trade limit (combined buy + sell, resets at midnight IST):</p>
+      <ul>
+        <li><strong>Basic:</strong> 10 trades per day</li>
+        <li><strong>Growth:</strong> 25 trades per day</li>
+        <li><strong>Pro:</strong> Unlimited trades</li>
+      </ul>
+      <p>If you hit your limit, you'll see a clear message — you can wait until tomorrow or upgrade for a higher/unlimited limit.</p>
+    </div>
+
+    <div class="section">
+      <h2>5. Portfolio Reset</h2>
+      <p>You can reset your portfolio back to your plan's starting capital <strong>once per calendar month, free of charge</strong>. Resetting clears your current holdings and cash, but does NOT affect:</p>
+      <ul>
+        <li>Your subscription plan or its monthly top-up</li>
+        <li>Your all-time peak portfolio value (stays on the leaderboard forever)</li>
+        <li>Your referral history, community posts, or order history</li>
+      </ul>
+      <p>You'll see a warning before resetting, and the next reset becomes available the following calendar month.</p>
+    </div>
+
+    <div class="section">
+      <h2>6. Order History Retention</h2>
+      <p>How long your trade history is kept and shown in reports depends on your plan: Basic 5 days, Growth 15 days, Pro 30 days. Upgrading extends this immediately.</p>
+    </div>
+
+    <div class="section">
+      <h2>7. Top-Up Purchases</h2>
+      <p>On top of your monthly plan, you can buy additional virtual capital anytime:</p>
+      <table>
+        <tr><th>Price</th><th>Capital Added</th></tr>
+        <tr><td>₹29</td><td>₹1 Lakh</td></tr>
+        <tr><td>₹49</td><td>₹2.5 Lakh</td></tr>
+        <tr><td>₹99</td><td>₹5 Lakh</td></tr>
+        <tr><td>₹199</td><td>₹10 Lakh</td></tr>
+        <tr><td>₹349</td><td>₹20 Lakh</td></tr>
+      </table>
+      <p>Top-ups are added instantly to your existing portfolio and are available on any active paid plan.</p>
+    </div>
+
+    <div class="section">
+      <h2>8. Certificate (Pro Plan Only)</h2>
+      <p>The downloadable trading certificate is a <strong>Pro plan exclusive</strong>. It unlocks once your peak portfolio value crosses 10% above your starting capital while on the Pro plan. Basic and Growth plans do not include this feature.</p>
+    </div>
+
+    <div class="section">
+      <h2>9. Referral Program</h2>
+      <p>Share your referral link from your Profile. When someone joins using it, they get a virtual cash bonus instantly, and you get a bonus claimable from your own Profile page once they sign up. Referral bonuses are virtual currency only — they have no real cash value and cannot be withdrawn or exchanged.</p>
+    </div>
+
+    <div class="section">
+      <h2>10. Nature of the Platform</h2>
+      <ul>
+        <li>All trading on TradeSeekho is <strong>virtual</strong>. No real stocks are bought or sold.</li>
+        <li>Live stock prices are sourced from real NSE market data for realistic simulation, but TradeSeekho is not a SEBI-registered broker or investment advisor.</li>
+        <li>Brokerage, STT, and other charges shown during trades are simulated to reflect real Indian brokerage cost structures — no real money is involved in these charges.</li>
+        <li>Nothing on this platform — including leaderboard rankings or community posts — constitutes investment advice.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>11. Refunds & Cancellation</h2>
+      <p>You can request a full refund on a paid plan within 7 days of purchase by contacting us with your payment reference. After 7 days, subscriptions can be cancelled to stop future renewals, but the current period is non-refundable.</p>
+    </div>
+
+    <div class="section">
+      <h2>12. Account & Conduct</h2>
+      <p>We may suspend accounts that abuse referrals (e.g. fake signups), post abusive content in Community, or otherwise misuse the platform. You can request account deletion anytime via WhatsApp or email.</p>
+    </div>
+
+    <div class="section">
+      <h2>13. Changes to These Rules</h2>
+      <p>We may update these rules as the platform evolves. Material changes will be reflected with an updated date at the top of this page, and significant changes may require re-acceptance.</p>
+    </div>
+
+    <div class="section">
+      <h2>14. Contact</h2>
+      <p>Questions about these rules? Reach us at <a href="mailto:scaleaiq@gmail.com">scaleaiq@gmail.com</a>, <a href="mailto:jitendramathur.85@gmail.com">jitendramathur.85@gmail.com</a>, or <a href="https://wa.me/917990368493" target="_blank">WhatsApp +91 79903 68493</a>.</p>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <p>TradeSeekho by ScaleAIQ · Ahmedabad, Gujarat, India<br>
+    Virtual trading simulator for educational purposes only. Not investment advice.</p>
+  </div>
+</div>
+
+<div class="agree-bar" id="agree-bar">
+  <p>By tapping below, you confirm you've read and agree to these Rules & Regulations.</p>
+  <button class="agree-btn" onclick="agreeAndContinue()">I Understand & Agree — Continue to TradeSeekho</button>
+</div>
+
+<div class="back-link-bar" id="back-link-bar">
+  <a href="javascript:goBack()">← Back</a>
+</div>
+
+<script>
+const CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
+
+function goBack(){
+  if(document.referrer && document.referrer.includes(location.host)) history.back();
+  else location.href = "index.html";
+}
+
+let isGated = false;
+function showGateUI(){
+  isGated = true;
+  document.getElementById("gate-banner").style.display = "block";
+  document.getElementById("agree-bar").classList.add("show");
+  document.getElementById("back-link-bar").style.display = "none";
+}
+function showNormalUI(){
+  isGated = false;
+  document.getElementById("agree-bar").classList.remove("show");
+  document.getElementById("back-link-bar").style.display = "block";
+}
+</script>
+
+<script type="module">
+if(!DEMO_MODE){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let uid = null;
+
+    window.agreeAndContinue = async function(){
+      if(!uid){ location.href = "index.html"; return; }
+      try{
+        await setDoc(doc(db,"users",uid), {rulesAgreedAt: Date.now()}, {merge:true});
+      }catch(e){ console.error("Could not save agreement", e); }
+      location.href = "index.html";
+    };
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(user){
+        uid = user.uid;
+        try{
+          const snap = await getDoc(doc(db,"users",uid));
+          const agreed = snap.exists() && snap.data().rulesAgreedAt;
+          if(agreed){
+            showNormalUI();
+          } else {
+            showGateUI();
+          }
+        }catch(e){
+          console.error(e);
+          showNormalUI();
+        }
+      } else {
+        // Not logged in — show as a normal informational page (e.g. accessed from a public link)
+        showNormalUI();
+      }
+    });
+  }catch(e){
+    console.error("Firebase init failed:", e);
+    showNormalUI();
+  }
+} else {
+  showNormalUI();
+}
+</script>
+</body>
+</html>

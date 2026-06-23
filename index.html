@@ -1693,6 +1693,11 @@ if(!DEMO_MODE){
           if(topupAmount > 0){
             showToast("💰 Monthly top-up credited: +" + fmtInt(topupAmount));
           }
+          // Mandatory Rules & Regulations gate — must agree once before using the app
+          if(!window._rulesAgreedAt && !location.pathname.includes("rules.html")){
+            location.href = "rules.html";
+            return;
+          }
         }catch(e){ console.error("Load failed", e); }
       } else {
         document.getElementById("login-screen").style.display = "flex";

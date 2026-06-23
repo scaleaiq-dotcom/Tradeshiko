@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Contact Us — TradeSeekho</title>
+<meta name="theme-color" content="#090D16">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090D16; --card:#141E2E; --card2:#1A2540; --border:#1E2D45;
+    --accent:#3B82F6; --accent2:#6366F1; --green:#10B981; --red:#EF4444; --gold:#F59E0B;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+  a{color:inherit;text-decoration:none}
+  .app{max-width:480px;margin:0 auto;min-height:100vh}
+  .back-hdr{padding:14px 16px 8px;display:flex;align-items:center;gap:12px}
+  .back-btn{font-size:18px;color:var(--subtle);cursor:pointer}
+  .back-title{font-size:15px;font-weight:800}
+  .intro{padding:2px 16px 16px;font-size:11.5px;color:var(--muted);line-height:1.6}
+
+  .contact-list{padding:0 14px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+  .contact-item{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 15px;
+    display:flex;align-items:center;gap:13px}
+  .contact-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font-size:17px;flex-shrink:0}
+  .contact-info{flex:1}
+  .contact-type{font-size:10px;color:var(--muted);font-weight:600;margin-bottom:2px}
+  .contact-val{font-size:13px;font-weight:700}
+  .contact-arrow{font-size:13px;color:var(--muted)}
+
+  .sec-title{padding:4px 16px 11px;font-size:12.5px;font-weight:800}
+  .faq-list{padding:0 14px;margin-bottom:20px}
+  .faq-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:7px;cursor:pointer}
+  .faq-q{font-size:12px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .faq-q .plus{color:var(--accent);font-size:14px;flex-shrink:0;transition:transform .2s}
+  .faq-item.open .plus{transform:rotate(45deg)}
+  .faq-a{font-size:11px;color:var(--subtle);line-height:1.6;margin-top:9px;display:none}
+  .faq-item.open .faq-a{display:block}
+
+  .app-footer{padding:18px 16px 24px;text-align:center;border-top:1px solid var(--border);margin:8px 14px 0}
+  .footer-powered{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+  .footer-powered img{height:20px;background:#fff;border-radius:5px;padding:2px}
+  .footer-powered span{font-size:10px;color:var(--muted)}
+  .footer-links{font-size:10px;color:var(--muted);line-height:1.8}
+  .footer-links a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="back-hdr">
+    <span class="back-btn" onclick="history.back()">←</span>
+    <span class="back-title">Contact Us</span>
+  </div>
+  <div class="intro">We're here to help! Reach us anytime via WhatsApp or email. We usually reply within a few hours.</div>
+
+  <div class="contact-list">
+    <a class="contact-item" href="https://wa.me/917990368493?text=Hi%2C%20I%20have%20a%20question%20about%20TradeSeekho" target="_blank">
+      <div class="contact-icon" style="background:rgba(37,211,102,0.12)">💬</div>
+      <div class="contact-info"><div class="contact-type">WhatsApp Support</div><div class="contact-val">+91 79903 68493</div></div>
+      <span class="contact-arrow">›</span>
+    </a>
+    <a class="contact-item" href="mailto:scaleaiq@gmail.com">
+      <div class="contact-icon" style="background:rgba(59,130,246,0.12)">📧</div>
+      <div class="contact-info"><div class="contact-type">Business Email</div><div class="contact-val">scaleaiq@gmail.com</div></div>
+      <span class="contact-arrow">›</span>
+    </a>
+    <a class="contact-item" href="mailto:jitendramathur.85@gmail.com">
+      <div class="contact-icon" style="background:rgba(59,130,246,0.12)">📧</div>
+      <div class="contact-info"><div class="contact-type">Founder's Email</div><div class="contact-val">jitendramathur.85@gmail.com</div></div>
+      <span class="contact-arrow">›</span>
+    </a>
+    <a class="contact-item" href="https://scaleaiq.in" target="_blank">
+      <div class="contact-icon" style="background:rgba(139,92,246,0.12)">🌐</div>
+      <div class="contact-info"><div class="contact-type">Website</div><div class="contact-val">scaleaiq.in</div></div>
+      <span class="contact-arrow">›</span>
+    </a>
+    <a class="contact-item" href="https://wa.me/917990368493?text=Bug%20Report%3A%20" target="_blank">
+      <div class="contact-icon" style="background:rgba(245,158,11,0.12)">🐛</div>
+      <div class="contact-info"><div class="contact-type">Report a Bug</div><div class="contact-val">Tell us what went wrong</div></div>
+      <span class="contact-arrow">›</span>
+    </a>
+  </div>
+
+  <div class="sec-title">Frequently Asked Questions</div>
+  <div class="faq-list" id="faq-list"></div>
+
+  <div class="app-footer">
+    <div class="footer-powered">
+      <img src="scaleaiq-logo.png" alt="ScaleAIQ">
+      <span>Powered by ScaleAIQ</span>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">Home</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a><br>
+      Virtual trading only · Not investment advice · © 2026 ScaleAIQ
+    </div>
+  </div>
+
+</div>
+
+<script>
+const FAQS = [
+  {q:"Is this real money?", a:"No! TradeSeekho uses 100% virtual money. No real money is ever traded, deposited, or withdrawn through the trading itself. The only real payment is the optional yearly subscription (₹199 or ₹499) to unlock more virtual stocks and features."},
+  {q:"What if I lose all my virtual money?", a:"No problem — reset your portfolio anytime, for free. You'll get your starting virtual capital back instantly. Your all-time peak value stays on the leaderboard even after a reset, so you can try to beat your own best."},
+  {q:"Can I get a refund on my subscription?", a:"Yes — refunds are available within 7 days of purchase. Contact us on WhatsApp with your payment reference and we'll sort it out."},
+  {q:"Are the stock prices real?", a:"We're integrating live NSE market data. Until that's fully live, prices simulate realistic market movement for learning purposes. Charges (brokerage, STT, GST) shown during trades reflect real Indian brokerage costs, so you get a realistic feel for how trading costs work."},
+  {q:"Is TradeSeekho SEBI registered?", a:"No. TradeSeekho is an educational simulator, not an investment advisory or brokerage. Nothing in the app — including community posts — should be treated as investment advice."},
+  {q:"How do referral rewards work?", a:"Share your unique referral link from your Profile. When a friend signs up using it, they get a virtual cash bonus instantly, and you get a bonus too (claimable from your Profile page once they join)."},
+  {q:"My coupon code isn't working, what do I do?", a:"Double check the code is typed exactly (codes are not case-sensitive but must match exactly otherwise). If it still doesn't work, message us on WhatsApp with the code and we'll check it for you."}
+];
+const list = document.getElementById("faq-list");
+list.innerHTML = FAQS.map((f,i)=>`
+  <div class="faq-item" id="faq-${i}" onclick="toggleFaq(${i})">
+    <div class="faq-q"><span>${f.q}</span><span class="plus">+</span></div>
+    <div class="faq-a">${f.a}</div>
+  </div>`).join("");
+function toggleFaq(i){ document.getElementById("faq-"+i).classList.toggle("open"); }
+</script>
+</body>
+</html>
