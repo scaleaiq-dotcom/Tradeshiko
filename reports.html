@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Daily Report — TradeSeekho</title>
+<meta name="theme-color" content="#090D16">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090D16; --surface:#0F1623; --card:#141E2E; --card2:#1A2540;
+    --border:#1E2D45; --border2:#243352;
+    --accent:#3B82F6; --accent2:#6366F1;
+    --green:#10B981; --red:#EF4444; --gold:#F59E0B;
+    --text:#F1F5F9; --muted:#64748B; --subtle:#94A3B8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+  .mono{font-family:'JetBrains Mono',monospace}
+  a{color:inherit;text-decoration:none}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+  .screen{flex:1;padding-bottom:84px}
+  .g{color:var(--green)} .r{color:var(--red)}
+
+  .hdr{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:center;
+    position:sticky;top:0;z-index:5;background:rgba(9,13,22,0.92);backdrop-filter:blur(12px)}
+  .hdr-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .hdr-link{font-size:11px;color:var(--accent);font-weight:700}
+
+  /* Summary strip */
+  .summary-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 14px 14px;margin-top:6px}
+  .sum-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 10px;text-align:center}
+  .sum-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:4px}
+  .sum-val{font-size:13.5px;font-weight:800;font-family:'JetBrains Mono',monospace}
+
+  .sec-hdr{padding:2px 16px 9px;display:flex;justify-content:space-between;align-items:center}
+  .sec-title{font-size:12.5px;font-weight:800}
+  .sec-sub{font-size:10px;color:var(--muted)}
+
+  /* Day group */
+  .day-group{margin:0 14px 12px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .day-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;
+    cursor:pointer;border-bottom:1px solid var(--border)}
+  .day-date{font-size:12.5px;font-weight:800}
+  .day-meta{font-size:9.5px;color:var(--muted);margin-top:1px}
+  .day-flow{text-align:right}
+  .day-flow-val{font-size:12.5px;font-weight:800;font-family:'JetBrains Mono',monospace}
+  .day-flow-lbl{font-size:8.5px;color:var(--muted);margin-top:1px}
+  .day-caret{font-size:10px;color:var(--muted);margin-left:8px;transition:transform .2s}
+  .day-group.open .day-caret{transform:rotate(180deg)}
+  .day-body{display:none;padding:6px 14px 12px}
+  .day-group.open .day-body{display:block}
+
+  .trade-line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;
+    border-bottom:1px solid rgba(255,255,255,0.04)}
+  .trade-line:last-child{border-bottom:none}
+  .tl-left{display:flex;align-items:center;gap:8px}
+  .tl-side{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px}
+  .tl-side.BUY{background:rgba(16,185,129,0.12);color:var(--green)}
+  .tl-side.SELL{background:rgba(239,68,68,0.12);color:var(--red)}
+  .tl-side.RESET{background:rgba(245,158,11,0.12);color:var(--gold)}
+  .tl-sym{font-size:11.5px;font-weight:700}
+  .tl-qty{font-size:10px;color:var(--muted)}
+  .tl-right{text-align:right}
+  .tl-amt{font-size:11.5px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .tl-charge{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+
+  .day-totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+  .dt-item{text-align:center}
+  .dt-k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .dt-v{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:2px}
+
+  .empty{color:var(--muted);font-size:12.5px;background:var(--card);border:1px dashed var(--border);
+    border-radius:13px;padding:24px;text-align:center;margin:0 14px}
+
+  .note-box{margin:8px 14px 16px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);
+    border-radius:12px;padding:11px 13px;font-size:10px;color:var(--subtle);line-height:1.5}
+
+  .app-footer{padding:18px 16px 8px;text-align:center;border-top:1px solid var(--border);margin:8px 14px 0}
+  .footer-powered{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px}
+  .footer-powered img{height:20px;background:#fff;border-radius:5px;padding:2px}
+  .footer-powered span{font-size:10px;color:var(--muted)}
+  .footer-links{font-size:10px;color:var(--muted);line-height:1.8}
+  .footer-links a{color:var(--accent)}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:72px;
+    background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-around;padding:0 4px 10px;z-index:10}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px;border-radius:11px;cursor:pointer;flex:1;max-width:80px}
+  .nav-i.act{background:rgba(59,130,246,0.12)}
+  .nav-icon{font-size:18px;line-height:1}
+  .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .nav-i.act .nav-lbl{color:var(--accent)}
+
+  #auth-loading{position:fixed;inset:0;background:var(--bg);z-index:70;display:flex;align-items:center;justify-content:center}
+  @keyframes fadepulse{0%,100%{opacity:0.4}50%{opacity:1}}
+  .skeleton{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);
+    background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:13px;height:60px;margin:0 14px 10px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <span class="hdr-title">📋 Daily Report</span>
+    <a class="hdr-link" href="portfolio.html">Portfolio →</a>
+  </div>
+
+  <div class="screen">
+
+    <!-- Summary -->
+    <div class="summary-row">
+      <div class="sum-card"><div class="sum-lbl">Total Trades</div><div class="sum-val" id="sum-trades">0</div></div>
+      <div class="sum-card"><div class="sum-lbl">Total Charges</div><div class="sum-val r" id="sum-charges">₹0</div></div>
+      <div class="sum-card"><div class="sum-lbl">Active Days</div><div class="sum-val" id="sum-days">0</div></div>
+    </div>
+
+    <div class="note-box">
+      💡 This shows your day-wise turnover (money bought/sold) and charges. For live unrealized profit/loss on current holdings, check the <a href="portfolio.html" style="color:var(--accent);font-weight:700">Portfolio</a> tab.
+    </div>
+
+    <div class="sec-hdr">
+      <span class="sec-title">Day-wise History</span>
+      <span class="sec-sub" id="day-count">—</span>
+    </div>
+
+    <div id="day-list">
+      <div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+      <div class="footer-powered">
+        <img src="scaleaiq-logo.png" alt="ScaleAIQ">
+        <span>Powered by ScaleAIQ</span>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="contact.html">Contact</a><br>
+        Virtual trading only · Not investment advice · © 2026 ScaleAIQ
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-i" onclick="location.href='index.html'"><span class="nav-icon">📊</span><span class="nav-lbl">Market</span></div>
+    <div class="nav-i act" onclick="location.href='portfolio.html'"><span class="nav-icon">💼</span><span class="nav-lbl">Portfolio</span></div>
+    <div class="nav-i" onclick="location.href='leaderboard.html'"><span class="nav-icon">🏆</span><span class="nav-lbl">Ranks</span></div>
+    <div class="nav-i" onclick="location.href='community.html'"><span class="nav-icon">💬</span><span class="nav-lbl">Community</span></div>
+    <div class="nav-i" onclick="location.href='profile.html'"><span class="nav-icon">👤</span><span class="nav-lbl">Profile</span></div>
+  </div>
+
+</div>
+
+<div id="auth-loading">
+  <img src="logo.png" alt="" style="width:64px;height:64px;border-radius:16px;opacity:0.9;animation:fadepulse 1.2s infinite">
+</div>
+
+<script>
+const CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyCcgdJZCt0vVui6Ag0qyAkajU7LgH-RXAU",
+    authDomain: "tradesheeko.firebaseapp.com",
+    projectId: "tradesheeko",
+    storageBucket: "tradesheeko.firebasestorage.app",
+    messagingSenderId: "344213709836",
+    appId: "1:344213709836:web:7ff53d2210f332a295ba29"
+  }
+};
+const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
+
+const fmt = n => "₹" + n.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+
+const HISTORY_DAYS = {trial:3, basic:5, growth:15, pro:30};
+const PLAN_LABEL_R = {trial:"Trial", basic:"Basic", growth:"Growth", pro:"Pro"};
+
+function renderReport(orders, plan){
+  plan = plan || "trial";
+  const retentionDays = HISTORY_DAYS[plan] || HISTORY_DAYS.trial;
+  const cutoff = Date.now() - (retentionDays * 24*60*60*1000);
+
+  // Note about retention window
+  const noteEl = document.querySelector(".note-box");
+  if(noteEl){
+    noteEl.innerHTML = `📅 Your <strong>${PLAN_LABEL_R[plan]}</strong> plan keeps <strong>${retentionDays} days</strong> of order history.` +
+      (plan !== "pro" ? ` <a href="plans.html" style="color:var(--accent);font-weight:700">Upgrade for longer history →</a>` : ``) +
+      `<br>💡 This shows turnover and charges per day. For live unrealized profit/loss on current holdings, check the <a href="portfolio.html" style="color:var(--accent);font-weight:700">Portfolio</a> tab.`;
+  }
+
+  const allTrades = (orders||[]).filter(o => o.side==="BUY" || o.side==="SELL" || o.side==="RESET");
+  const trades = allTrades.filter(o => !o.ts || o.ts >= cutoff); // keep undated/legacy entries visible, filter dated ones by window
+  document.getElementById("sum-trades").textContent = trades.filter(o=>o.side!=="RESET").length;
+  const totalCharges = trades.reduce((sum,o)=>sum+(o.charges||0),0);
+  document.getElementById("sum-charges").textContent = fmtInt(totalCharges);
+
+  // group by date
+  const groups = {};
+  trades.forEach(o=>{
+    const d = o.date || "Unknown date";
+    if(!groups[d]) groups[d] = [];
+    groups[d].push(o);
+  });
+  const dates = Object.keys(groups).sort((a,b)=>{
+    const ta = groups[a][0].ts||0, tb = groups[b][0].ts||0;
+    return tb - ta; // most recent first
+  });
+  document.getElementById("sum-days").textContent = dates.length;
+  document.getElementById("day-count").textContent = dates.length + (dates.length===1?" day":" days");
+
+  const listEl = document.getElementById("day-list");
+  if(!dates.length){
+    listEl.innerHTML = `<div class="empty">No trading activity yet. Your first trade will show up here! 📈</div>`;
+    return;
+  }
+
+  listEl.innerHTML = dates.map((date, idx)=>{
+    const dayOrders = groups[date];
+    let bought = 0, sold = 0, charges = 0;
+    dayOrders.forEach(o=>{
+      if(o.side==="BUY") bought += (o.qty*o.price);
+      if(o.side==="SELL") sold += (o.qty*o.price);
+      charges += (o.charges||0);
+    });
+    const netFlow = sold - bought - charges;
+    const flowCls = netFlow >= 0 ? "g" : "r";
+    const flowSign = netFlow >= 0 ? "+" : "";
+    const tradeCount = dayOrders.filter(o=>o.side!=="RESET").length;
+
+    const lines = dayOrders.map(o=>{
+      if(o.side === "RESET"){
+        return `<div class="trade-line">
+          <div class="tl-left"><span class="tl-side RESET">RESET</span><span class="tl-sym">Portfolio reset</span></div>
+          <div class="tl-right"><span class="tl-charge">${o.t}</span></div>
+        </div>`;
+      }
+      return `<div class="trade-line">
+        <div class="tl-left">
+          <span class="tl-side ${o.side}">${o.side}</span>
+          <span class="tl-sym">${o.sym}</span><span class="tl-qty">×${o.qty}</span>
+        </div>
+        <div class="tl-right">
+          <div class="tl-amt">${fmt(o.qty*o.price)}</div>
+          <div class="tl-charge">@${o.price.toFixed(2)} · ${o.t}</div>
+        </div>
+      </div>`;
+    }).join("");
+
+    return `<div class="day-group ${idx===0?'open':''}" id="day-${idx}">
+      <div class="day-hdr" onclick="toggleDay(${idx})">
+        <div>
+          <div class="day-date">${date}</div>
+          <div class="day-meta">${tradeCount} trade${tradeCount===1?'':'s'}</div>
+        </div>
+        <div style="display:flex;align-items:center">
+          <div class="day-flow">
+            <div class="day-flow-val ${flowCls}">${flowSign}${fmtInt(Math.abs(netFlow))}</div>
+            <div class="day-flow-lbl">net cash flow</div>
+          </div>
+          <span class="day-caret">▼</span>
+        </div>
+      </div>
+      <div class="day-body">
+        ${lines}
+        <div class="day-totals">
+          <div class="dt-item"><div class="dt-k">Bought</div><div class="dt-v">${fmtInt(bought)}</div></div>
+          <div class="dt-item"><div class="dt-k">Sold</div><div class="dt-v">${fmtInt(sold)}</div></div>
+          <div class="dt-item"><div class="dt-k">Charges</div><div class="dt-v r">${fmtInt(charges)}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+function toggleDay(idx){
+  const el = document.getElementById("day-"+idx);
+  if(el) el.classList.toggle("open");
+}
+</script>
+
+<script type="module">
+if(!DEMO_MODE){
+  try{
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user)=>{
+      const al = document.getElementById("auth-loading");
+      if(user){
+        try{
+          const snap = await getDoc(doc(db,"users",user.uid));
+          const data = snap.exists() ? snap.data() : {};
+          const VALID_PLANS_R = ["trial","basic","growth","pro"];
+          const plan = VALID_PLANS_R.includes(data.plan) ? data.plan : "trial";
+          renderReport(data.orders||[], plan);
+        }catch(e){ console.error("Load failed", e); renderReport([], "trial"); }
+        if(al) al.style.display = "none";
+      } else {
+        location.href = "index.html";
+      }
+    });
+  }catch(e){
+    console.error("Firebase init failed:", e);
+    const al=document.getElementById("auth-loading"); if(al) al.style.display="none";
+    renderReport([], "trial");
+  }
+} else {
+  document.getElementById("auth-loading").style.display = "none";
+  renderReport([], "trial");
+}
+</script>
+</body>
+</html>

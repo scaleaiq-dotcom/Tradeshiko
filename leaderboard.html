@@ -175,7 +175,7 @@ const CONFIG = {
 };
 const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
 const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
-const PLAN_START = {free:100000, lite:500000, max:1000000};
+const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
 
 function showInfo(msg){
   const t = document.getElementById("rank-note");
@@ -219,7 +219,7 @@ function renderLeaderboard(entries, myUid){
     if(!e) return;
     const rank = idx+1;
     const size = rank===1 ? 50 : rank===2 ? 40 : 36;
-    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||100000);
+    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||PLAN_START.trial);
     const barH = rank===1?60:rank===2?40:30;
     const crown = rank===1 ? " 👑" : "";
     podiumHtml += `<div class="pod">
@@ -236,11 +236,11 @@ function renderLeaderboard(entries, myUid){
   const listEl = document.getElementById("ldr-list");
   listEl.innerHTML = entries.slice(0,50).map((e,i)=>{
     const isYou = e.uid === myUid;
-    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||100000);
-    const startAmt = PLAN_START[e.plan]||100000;
+    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||PLAN_START.trial);
+    const startAmt = PLAN_START[e.plan]||PLAN_START.trial;
     const pct = (pnl/startAmt*100);
     const rankColor = i===0?"var(--gold)":i===1?"var(--subtle)":i===2?"#CD7C3A":"var(--muted)";
-    const planLabel = e.plan==='max'?'Pro Max':e.plan==='lite'?'Pro Lite':'Free';
+    const planLabel = ({trial:'Trial',basic:'Basic',growth:'Growth',pro:'Pro'})[e.plan] || 'Trial';
     return `<div class="ldr ${isYou?'you':''}">
       <span class="ldr-rank" style="color:${rankColor}">${i+1}</span>
       <div class="ldr-av" style="background:${avatarGrad(i)};${e.photoURL?`background-image:url(${e.photoURL});`:''}">${e.photoURL?'':initialOf(e.displayName)}</div>

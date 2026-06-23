@@ -43,9 +43,10 @@
   .prof-name{font-size:16px;font-weight:800;margin-bottom:3px}
   .prof-email{font-size:10.5px;color:var(--muted);margin-bottom:8px}
   .prof-badge{display:inline-block;font-size:9px;font-weight:800;padding:3px 11px;border-radius:20px;letter-spacing:0.05em}
-  .prof-badge.free{background:var(--card);color:var(--muted);border:1px solid var(--border)}
-  .prof-badge.lite{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-  .prof-badge.max{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
+  .prof-badge.trial{background:rgba(245,158,11,0.12);color:var(--gold);border:1px solid rgba(245,158,11,0.3)}
+  .prof-badge.basic{background:var(--card);color:var(--subtle);border:1px solid var(--border)}
+  .prof-badge.growth{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .prof-badge.pro{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
   .prof-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding-top:14px;margin-top:14px;border-top:1px solid var(--border)}
   .prof-stat{display:flex;flex-direction:column;gap:2px;align-items:center}
   .ps-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em}
@@ -137,7 +138,7 @@
       <div class="prof-av" id="prof-av">T</div>
       <div class="prof-name" id="prof-name">Trader</div>
       <div class="prof-email" id="prof-email">—</div>
-      <div class="prof-badge free" id="prof-badge">FREE</div>
+      <div class="prof-badge trial" id="prof-badge">TRIAL</div>
       <div class="prof-stats">
         <div class="prof-stat"><span class="ps-lbl">Peak</span><span class="ps-val" style="color:var(--gold)" id="ps-peak">₹0</span></div>
         <div class="prof-stat"><span class="ps-lbl">Rank</span><span class="ps-val" style="color:var(--accent)" id="ps-rank">—</span></div>
@@ -239,7 +240,7 @@ const CONFIG = {
 };
 const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
 const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
-const PLAN_START = {free:100000, lite:500000, max:1000000};
+const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
 let myReferralCode = "";
 
 function showToast(msg){
@@ -411,13 +412,13 @@ if(!DEMO_MODE){
     }
 
     function loadStats(){
-      const peak = userData.peakValue || PLAN_START[userData.plan||"free"];
+      const peak = userData.peakValue || PLAN_START[userData.plan||"trial"];
       document.getElementById("ps-peak").textContent = fmtInt(peak);
       const trades = (userData.orders||[]).filter(o=>o.side==="BUY"||o.side==="SELL").length;
       document.getElementById("ps-trades").textContent = trades;
 
       // Certificate: Pro plan only + peak >= 10% above starting amount
-      const start = PLAN_START[userData.plan||"free"];
+      const start = PLAN_START[userData.plan||"trial"];
       const isProPlan = userData.plan === "pro"; // new tier name — certificate is a Pro-only perk
       if(isProPlan && peak >= start*1.1){
         document.getElementById("cert-zone").style.display = "block";
@@ -439,11 +440,13 @@ if(!DEMO_MODE){
 
         try{
           const snap = await getDoc(doc(db,"users",uid));
-          userData = snap.exists() ? snap.data() : {plan:"free", peakValue:100000, orders:[]};
-          const plan = userData.plan || "free";
+          const VALID_PLANS = ["trial","basic","growth","pro"];
+          userData = snap.exists() ? snap.data() : {plan:"trial", peakValue:PLAN_START.trial, orders:[]};
+          if(!VALID_PLANS.includes(userData.plan)) userData.plan = "trial"; // legacy/unknown plan safety net
+          const plan = userData.plan || "trial";
           const badge = document.getElementById("prof-badge");
           badge.className = "prof-badge " + plan;
-          badge.textContent = plan==="max"?"PRO MAX":plan==="lite"?"PRO LITE":"FREE";
+          badge.textContent = ({trial:"TRIAL",basic:"BASIC",growth:"GROWTH",pro:"PRO"})[plan] || "TRIAL";
 
           loadStats();
           await ensureReferralCode();
