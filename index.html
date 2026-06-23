@@ -120,22 +120,25 @@
     display:flex;align-items:center;gap:11px;opacity:0.45;cursor:pointer}
   .stk-lock .stk-ico{background:#1E2D45;font-size:14px}
 
-  /* ===== Upgrade Cards (dual option with features) ===== */
-  .upg-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 13px;
+  /* ===== Upgrade Cards (3-tier) ===== */
+  .upg-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:11px 9px;
     position:relative;transition:border-color .15s}
-  .upg-card.max-card{border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.04)}
+  .upg-card.growth-card{border-color:rgba(59,130,246,0.35)}
+  .upg-card.pro-card{border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.04)}
   .upg-card-badge{position:absolute;top:-7px;left:50%;transform:translateX(-50%);
-    font-size:7px;font-weight:800;padding:2px 8px;border-radius:20px;
-    background:linear-gradient(135deg,#D97706,var(--gold));color:#fff;letter-spacing:0.04em;white-space:nowrap}
-  .upg-card-name{font-size:13px;font-weight:800;color:#A5B4FC;margin-bottom:3px;text-align:center}
-  .upg-card-price{font-size:19px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:10px;text-align:center}
-  .upg-card-price span{font-size:9px;color:var(--muted);font-weight:600}
-  .upg-feats{list-style:none;margin-bottom:11px;display:flex;flex-direction:column;gap:5px}
-  .upg-feats li{font-size:10px;color:var(--subtle);padding-left:16px;position:relative;line-height:1.3}
-  .upg-feats li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:800;font-size:10px}
-  .upg-card-btn{font-size:11px;font-weight:800;padding:9px;border-radius:9px;color:#fff;text-align:center;cursor:pointer}
-  .upg-card-btn.lite{background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  .upg-card-btn.max{background:linear-gradient(135deg,#D97706,var(--gold))}
+    font-size:6.5px;font-weight:800;padding:2px 7px;border-radius:20px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;letter-spacing:0.03em;white-space:nowrap}
+  .upg-card-badge.gold{background:linear-gradient(135deg,#D97706,var(--gold))}
+  .upg-card-name{font-size:11.5px;font-weight:800;color:#A5B4FC;margin-bottom:2px;text-align:center}
+  .upg-card-price{font-size:15px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:8px;text-align:center}
+  .upg-card-price span{font-size:8px;color:var(--muted);font-weight:600}
+  .upg-feats{list-style:none;margin-bottom:9px;display:flex;flex-direction:column;gap:4px}
+  .upg-feats li{font-size:8.5px;color:var(--subtle);padding-left:13px;position:relative;line-height:1.25}
+  .upg-feats li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:800;font-size:8.5px}
+  .upg-card-btn{font-size:10px;font-weight:800;padding:7px;border-radius:8px;color:#fff;text-align:center;cursor:pointer}
+  .upg-card-btn.basic{background:var(--surface);border:1px solid var(--border);color:var(--subtle)}
+  .upg-card-btn.growth{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .upg-card-btn.pro{background:linear-gradient(135deg,#D97706,var(--gold))}
   .upg-card-btn:active{transform:scale(0.97)}
 
   /* ===== Footer ===== */
@@ -355,6 +358,9 @@
       </div>
     </div>
 
+    <!-- Trial / trade-limit status -->
+    <div id="status-banner" style="display:none;margin:0 14px 12px;border-radius:12px;padding:10px 13px;font-size:11px;font-weight:700"></div>
+
     <!-- Social proof ticker -->
     <div class="ticker">
       <div class="dot"></div>
@@ -386,43 +392,50 @@
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
     </div>
 
-    <!-- Upgrade Banner — Free sees BOTH plans with features, Lite sees only Max -->
+    <!-- Upgrade Banner — shows tiers above the user's current plan -->
     <div id="upgrade-zone" style="margin:0 14px 16px">
       <div class="sec-title" style="margin-bottom:9px;font-size:12.5px">⬆️ Unlock more — choose your plan</div>
-      <div id="upgrade-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-        <!-- Pro Lite card -->
-        <div class="upg-card lite-card">
-          <div class="upg-card-name">Pro Lite</div>
-          <div class="upg-card-price">₹199<span>/yr</span></div>
+      <div id="upgrade-cards" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        <!-- Basic card -->
+        <div class="upg-card basic-card">
+          <div class="upg-card-name">Basic</div>
+          <div class="upg-card-price">₹149<span>/mo</span></div>
+          <ul class="upg-feats">
+            <li>15 stocks</li>
+            <li>₹5L capital</li>
+            <li>+₹50K/mo</li>
+            <li>10 trades/day</li>
+          </ul>
+          <div class="upg-card-btn basic" onclick="goPlan('basic')">Choose</div>
+        </div>
+        <!-- Growth card -->
+        <div class="upg-card growth-card">
+          <div class="upg-card-badge">POPULAR</div>
+          <div class="upg-card-name" style="color:#60A5FA">Growth</div>
+          <div class="upg-card-price">₹299<span>/mo</span></div>
           <ul class="upg-feats">
             <li>30 stocks</li>
-            <li>₹5 Lakh capital</li>
-            <li>+₹50K monthly</li>
-            <li>Leaderboard</li>
-            <li>Community chat</li>
-            <li>Referral rewards</li>
+            <li>₹10L capital</li>
+            <li>+₹1L/mo</li>
+            <li>25 trades/day</li>
           </ul>
-          <div class="upg-card-btn lite" onclick="goPlan('lite')">Choose Lite</div>
+          <div class="upg-card-btn growth" onclick="goPlan('growth')">Choose</div>
         </div>
-        <!-- Pro Max card -->
-        <div class="upg-card max-card">
-          <div class="upg-card-badge">BEST VALUE</div>
-          <div class="upg-card-name" style="color:var(--gold)">Pro Max</div>
-          <div class="upg-card-price">₹499<span>/yr</span></div>
+        <!-- Pro card -->
+        <div class="upg-card pro-card">
+          <div class="upg-card-badge gold">BEST</div>
+          <div class="upg-card-name" style="color:var(--gold)">Pro</div>
+          <div class="upg-card-price">₹599<span>/mo</span></div>
           <ul class="upg-feats">
             <li>All 50 stocks</li>
-            <li>₹10 Lakh capital</li>
-            <li>+₹1 Lakh monthly</li>
-            <li>Leaderboard + badge</li>
-            <li>Community chat</li>
-            <li>Referral rewards</li>
-            <li>Certificate PDF</li>
-            <li>Priority features</li>
+            <li>₹20L capital</li>
+            <li>+₹2L/mo</li>
+            <li>Unlimited trades</li>
           </ul>
-          <div class="upg-card-btn max" onclick="goPlan('max')">Choose Max</div>
+          <div class="upg-card-btn pro" onclick="goPlan('pro')">Choose</div>
         </div>
       </div>
-      <div style="text-align:center;margin-top:8px"><a href="plans.html" style="font-size:10.5px;color:var(--accent);font-weight:700">Compare all plans →</a></div>
+      <div style="text-align:center;margin-top:8px"><a href="plans.html" style="font-size:10.5px;color:var(--accent);font-weight:700">Compare all plans & top-ups →</a></div>
     </div>
 
     <!-- Coupon redeem -->
@@ -644,16 +657,26 @@ const stocks = [
   mkStock("LTM","LTM Limited","IT",6200,580000),
   mkStock("PIDILITIND","Pidilite Industries","Chemicals",2950,720000),
 ];
-const FREE_LIMIT = 10;  // first 10 stocks visible on Free plan
-const LITE_LIMIT = 30;  // first 30 stocks visible on Pro Lite plan
-// Pro Max sees all 50
 
-let cash = 100000;
+// ============================================================
+// PLAN STRUCTURE — Trial / Basic / Growth / Pro
+// ============================================================
+const TRIAL_DAYS = 3;
+const PLAN_RANK_LOCAL = {trial:0, basic:1, growth:2, pro:3};
+const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
+const MONTHLY_TOPUP = {trial:0, basic:50000, growth:100000, pro:200000};
+const STOCK_LIMIT = {trial:50, basic:15, growth:30, pro:50};
+const DAILY_TRADE_LIMIT = {trial:Infinity, basic:10, growth:25, pro:Infinity};
+const HISTORY_DAYS = {trial:3, basic:5, growth:15, pro:30};
+const PLAN_LABEL = {trial:"TRIAL", basic:"BASIC", growth:"GROWTH", pro:"PRO"};
+const PLAN_PRICE = {basic:149, growth:299, pro:599}; // ₹/month
+
+let cash = PLAN_START.trial;
 let holdings = {};
-let peakValue = 100000;
+let peakValue = PLAN_START.trial;
 let modalStock = null, modalSide = "buy", modalQty = 1;
 let detailIdx = null;
-let userPlan = "free"; // free | lite | max — comes from Firestore once logged in
+let userPlan = "trial"; // trial | basic | growth | pro — comes from Firestore once logged in
 const orders = [];
 const MAX_HIST = 90;
 
@@ -773,7 +796,7 @@ function sparkline(canvas, hist, up){
 
 function renderWatchlist(){
   const wl = document.getElementById("watchlist");
-  const visibleCount = userPlan === "free" ? FREE_LIMIT : (userPlan === "lite" ? LITE_LIMIT : stocks.length);
+  const visibleCount = STOCK_LIMIT[userPlan] || STOCK_LIMIT.basic;
   const searchEl = document.getElementById("search-input");
   const q = searchEl ? searchEl.value.trim().toUpperCase() : "";
   const viewSel = document.getElementById("view-select");
@@ -834,19 +857,29 @@ function renderWatchlist(){
     });
   }
 
-  // upgrade zone: Free sees both, Lite sees only Max, Max sees none
+  // upgrade zone: show only tiers ABOVE the user's current plan
   const upgZone = document.getElementById("upgrade-zone");
-  const liteCard = document.querySelector(".lite-card");
-  if(userPlan === "max"){
+  const basicCard = document.querySelector(".basic-card");
+  const growthCard = document.querySelector(".growth-card");
+  const proCard = document.querySelector(".pro-card");
+  const myRank = PLAN_RANK_LOCAL[userPlan] ?? 0;
+  if(userPlan === "pro"){
     upgZone.style.display = "none";
-  } else if(userPlan === "lite"){
-    upgZone.style.display = "block";
-    if(liteCard) liteCard.style.display = "none"; // already has Lite
-    document.getElementById("upgrade-cards").style.gridTemplateColumns = "1fr";
   } else {
     upgZone.style.display = "block";
-    if(liteCard) liteCard.style.display = "block";
-    document.getElementById("upgrade-cards").style.gridTemplateColumns = "1fr 1fr";
+    const cards = [
+      {el: basicCard, rank: PLAN_RANK_LOCAL.basic},
+      {el: growthCard, rank: PLAN_RANK_LOCAL.growth},
+      {el: proCard, rank: PLAN_RANK_LOCAL.pro}
+    ];
+    let visibleCount2 = 0;
+    cards.forEach(c=>{
+      if(!c.el) return;
+      const show = c.rank > myRank;
+      c.el.style.display = show ? "block" : "none";
+      if(show) visibleCount2++;
+    });
+    document.getElementById("upgrade-cards").style.gridTemplateColumns = visibleCount2 === 1 ? "1fr" : visibleCount2 === 2 ? "1fr 1fr" : "1fr 1fr 1fr";
   }
 }
 
@@ -854,8 +887,6 @@ function goPlan(plan){
   track("upgrade_click", {plan});
   location.href = "plans.html?plan=" + plan;
 }
-
-const PLAN_START = {free:100000, lite:500000, max:1000000};
 
 function renderSummary(){
   let holdval = 0, invested = 0;
@@ -872,7 +903,7 @@ function renderSummary(){
   document.getElementById("stat-cash").textContent = fmtInt(cash);
   document.getElementById("stat-today").textContent = (todayPnl>=0?"+":"") + fmtInt(todayPnl);
   const pnlEl = document.getElementById("port-pnl");
-  const startAmt = PLAN_START[userPlan] || 100000;
+  const startAmt = PLAN_START[userPlan] || PLAN_START.trial;
   const overallPnl = total - startAmt;
   const overallPct = (overallPnl/startAmt*100);
   pnlEl.textContent = (overallPnl>=0?"▲ +":"▼ ") + fmtInt(Math.abs(overallPnl)) + ` (${overallPnl>=0?"+":""}${overallPct.toFixed(2)}%)`;
@@ -1006,7 +1037,37 @@ function calcCharges(value){
   return {brokerage, stt, gst, misc, total:+total.toFixed(2)};
 }
 
+// ===== Trial expiry + daily trade limit checks =====
+function isTrialExpired(){
+  if(userPlan !== "trial" || !planStartDate) return false;
+  return Date.now() > planStartDate + (TRIAL_DAYS * 24*60*60*1000);
+}
+function getTradesRemainingToday(){
+  const limit = DAILY_TRADE_LIMIT[userPlan] ?? DAILY_TRADE_LIMIT.basic;
+  if(limit === Infinity) return Infinity;
+  if(dailyTradeDate !== todayStr()){ return limit; } // new day, fresh count
+  return Math.max(0, limit - dailyTradeCount);
+}
+function recordTradeForLimit(){
+  const today = todayStr();
+  if(dailyTradeDate !== today){ dailyTradeDate = today; dailyTradeCount = 0; }
+  dailyTradeCount++;
+}
+
 function confirmTrade(){
+  if(isTrialExpired()){
+    showToast("⏰ Your trial has ended. Subscribe to keep trading!");
+    setTimeout(()=>location.href="plans.html", 1200);
+    closeModal();
+    return;
+  }
+  const remaining = getTradesRemainingToday();
+  if(remaining <= 0){
+    const err = document.getElementById("m-err");
+    err.textContent = `Daily trade limit reached (${DAILY_TRADE_LIMIT[userPlan]} trades/day on your plan). Upgrade for more.`;
+    err.style.display = "block";
+    return;
+  }
   const value = modalQty * modalStock.price;
   const ch = calcCharges(value);
   const err = document.getElementById("m-err");
@@ -1020,6 +1081,7 @@ function confirmTrade(){
     const h = holdings[modalStock.sym];
     if(h){ h.avg = (h.avg*h.qty + value)/(h.qty + modalQty); h.qty += modalQty; }
     else holdings[modalStock.sym] = {qty: modalQty, avg: modalStock.price};
+    recordTradeForLimit(); updateStatusBanner();
     showToast(`✅ ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
     logOrder("BUY", modalStock.sym, modalQty, modalStock.price, ch.total);
   } else {
@@ -1032,6 +1094,7 @@ function confirmTrade(){
     cash += proceeds;
     h.qty -= modalQty;
     if(h.qty === 0) delete holdings[modalStock.sym];
+    recordTradeForLimit(); updateStatusBanner();
     showToast(`💰 ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
     logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total);
   }
@@ -1060,19 +1123,35 @@ function showToast(msg){
 // ---- Cloud state (unchanged contract from old index.html) ----
 let planStartDate = null;
 let lastTopupDate = null;
+let dailyTradeDate = null;   // "YYYY-MM-DD" — tracks which day the trade count applies to
+let dailyTradeCount = 0;     // trades made today (resets when date changes)
+let lastResetMonth = null;   // "YYYY-MM" — tracks which month the free monthly reset was last used
+function todayStr(){
+  const ist = new Date(Date.now() + (5.5*60*60*1000));
+  return ist.toISOString().slice(0,10);
+}
+function thisMonthStr(){
+  const ist = new Date(Date.now() + (5.5*60*60*1000));
+  return ist.toISOString().slice(0,7);
+}
 
 function getState(){
-  return {cash, holdings, orders: orders.slice(0,100), plan: userPlan, peakValue,
-    planStartDate, lastTopupDate, updatedAt: Date.now()};
+  return {cash, holdings, orders: orders.slice(0,200), plan: userPlan, peakValue,
+    planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth,
+    rulesAgreedAt: window._rulesAgreedAt || null, updatedAt: Date.now()};
 }
 function applyState(st){
   if(!st) return;
   cash = typeof st.cash === "number" ? st.cash : cash;
   holdings = st.holdings || {};
-  userPlan = st.plan || "free";
-  peakValue = typeof st.peakValue === "number" ? st.peakValue : PLAN_START[userPlan] || 100000;
+  userPlan = st.plan || "trial";
+  peakValue = typeof st.peakValue === "number" ? st.peakValue : PLAN_START[userPlan] || PLAN_START.trial;
   planStartDate = st.planStartDate || null;
   lastTopupDate = st.lastTopupDate || null;
+  dailyTradeDate = st.dailyTradeDate || null;
+  dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
+  lastResetMonth = st.lastResetMonth || null;
+  window._rulesAgreedAt = st.rulesAgreedAt || null;
   orders.length = 0;
   (st.orders || []).forEach(o=>orders.push(o));
   updatePlanBadge();
@@ -1081,30 +1160,75 @@ function applyState(st){
 function updatePlanBadge(){
   const badge = document.getElementById("plan-badge");
   badge.className = "plan-badge " + userPlan;
-  badge.textContent = userPlan === "max" ? "PRO MAX" : userPlan === "lite" ? "PRO LITE" : "FREE";
+  badge.textContent = PLAN_LABEL[userPlan] || "TRIAL";
+  updateStatusBanner();
 }
 
-// ===== Plan upgrade: instant capital bonus + reset monthly top-up cycle =====
-const MONTHLY_TOPUP = {free:0, lite:50000, max:100000};
-const PLAN_RANK_LOCAL = {free:0, lite:1, max:2};
+function updateStatusBanner(){
+  const banner = document.getElementById("status-banner");
+  if(!banner) return;
+  if(userPlan === "trial"){
+    if(isTrialExpired()){
+      banner.style.display = "block";
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `⏰ Your 3-day trial has ended. <a href="plans.html" style="color:var(--red);text-decoration:underline">Subscribe now →</a>`;
+    } else if(planStartDate){
+      const msLeft = (planStartDate + TRIAL_DAYS*24*60*60*1000) - Date.now();
+      const hoursLeft = Math.max(0, Math.ceil(msLeft / (60*60*1000)));
+      banner.style.display = "block";
+      banner.style.background = "rgba(245,158,11,0.08)";
+      banner.style.border = "1px solid rgba(245,158,11,0.25)";
+      banner.style.color = "var(--gold)";
+      banner.innerHTML = `🎁 Trial: ~${hoursLeft} hour${hoursLeft===1?'':'s'} left · <a href="plans.html" style="color:var(--gold);text-decoration:underline">See plans →</a>`;
+    } else {
+      banner.style.display = "none";
+    }
+  } else {
+    const limit = DAILY_TRADE_LIMIT[userPlan];
+    if(limit !== Infinity){
+      const remaining = getTradesRemainingToday();
+      banner.style.display = "block";
+      banner.style.background = remaining === 0 ? "rgba(239,68,68,0.1)" : "rgba(59,130,246,0.07)";
+      banner.style.border = remaining === 0 ? "1px solid rgba(239,68,68,0.3)" : "1px solid rgba(59,130,246,0.18)";
+      banner.style.color = remaining === 0 ? "var(--red)" : "var(--subtle)";
+      banner.innerHTML = remaining === 0
+        ? `🚫 Daily trade limit reached (${limit}/day). Resets tomorrow or <a href="plans.html" style="color:var(--red);text-decoration:underline">upgrade →</a>`
+        : `📊 ${remaining} of ${limit} trades left today`;
+    } else {
+      banner.style.display = "none";
+    }
+  }
+}
+
+// ===== Plan upgrade: trial→paid is a fresh start; paid→higher-paid adds the difference =====
 function applyPlanUpgrade(newPlan){
   const oldPlan = userPlan;
-  if(PLAN_RANK_LOCAL[newPlan] > PLAN_RANK_LOCAL[oldPlan]){
-    const bonus = PLAN_START[newPlan] - PLAN_START[oldPlan];
-    cash += bonus;
-    userPlan = newPlan;
-    planStartDate = Date.now();
-    lastTopupDate = Date.now();
-    updatePlanBadge(); renderWatchlist(); renderSummary();
-    if(window.cloudSave) window.cloudSave(getState());
-    return bonus;
+  let amount = 0;
+  if(oldPlan === "trial"){
+    // Converting from trial to a real paid plan = fresh start at that plan's own capital
+    cash = PLAN_START[newPlan];
+    amount = PLAN_START[newPlan];
+  } else if(PLAN_RANK_LOCAL[newPlan] > PLAN_RANK_LOCAL[oldPlan]){
+    amount = PLAN_START[newPlan] - PLAN_START[oldPlan];
+    cash += amount;
+  } else {
+    return 0; // not a valid upgrade
   }
-  return 0;
+  userPlan = newPlan;
+  planStartDate = Date.now();
+  lastTopupDate = Date.now();
+  dailyTradeDate = todayStr();
+  dailyTradeCount = 0;
+  updatePlanBadge(); renderWatchlist(); renderSummary();
+  if(window.cloudSave) window.cloudSave(getState());
+  return amount;
 }
 
 // ===== Monthly top-up: checked once per login =====
 function checkMonthlyTopup(){
-  if(userPlan === "free" || !planStartDate) return 0;
+  if(userPlan === "trial" || !planStartDate) return 0;
   const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
   const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -1225,7 +1349,7 @@ if(!DEMO_MODE){
       // if neither, leave the default "LIVE" placeholder as-is (simulated, pre-first-fetch)
     }
 
-    const PLAN_RANK = {free:0, lite:1, max:2};
+    const PLAN_RANK = {trial:0, basic:1, growth:2, pro:3};
 
     // ===== Community posts (per-stock comments) =====
     window.submitPost = async function(text, stockTag, sentiment){
@@ -1414,7 +1538,7 @@ if(!DEMO_MODE){
         const gsnap = await getDoc(doc(db, "grants", email.toLowerCase()));
         if(gsnap.exists()){
           const grantPlan = gsnap.data().plan;
-          if(PLAN_RANK[grantPlan] > PLAN_RANK[currentPlan||"free"]) return grantPlan;
+          if(PLAN_RANK[grantPlan] > PLAN_RANK[currentPlan||"trial"]) return grantPlan;
         }
       }catch(e){ console.error("Grant check failed", e); }
       return null;
@@ -1482,7 +1606,7 @@ if(!DEMO_MODE){
             displayName: auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",
             peakValue: state.peakValue || 0,
-            plan: state.plan || "free",
+            plan: state.plan || "trial",
             updatedAt: Date.now()
           }, {merge:true});
         }catch(e){ console.error("Save failed", e); }
@@ -1513,6 +1637,9 @@ if(!DEMO_MODE){
             applyState(snap.data());
             showToast("Welcome back, " + (user.displayName||"Trader").split(" ")[0] + "! 👋");
           } else {
+            // New user — trial starts now
+            planStartDate = Date.now();
+            lastTopupDate = Date.now();
             // New user — check for referral code in URL before first save
             const urlParams = new URLSearchParams(location.search);
             const refCode = urlParams.get("ref");
