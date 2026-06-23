@@ -28,40 +28,49 @@
   .intro{padding:2px 16px 16px;text-align:center}
   .intro p{font-size:11.5px;color:var(--muted)}
 
-  /* Launch notice */
   .launch-notice{margin:0 14px 16px;background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);
     border-radius:13px;padding:13px 15px}
   .launch-notice-title{font-size:11.5px;font-weight:800;color:#93C5FD;margin-bottom:5px}
   .launch-notice p{font-size:10.5px;color:var(--subtle);line-height:1.5}
 
-  /* Plans */
-  .plans{padding:0 14px;display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
-  .plan{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;position:relative}
+  .trial-status{margin:0 14px 16px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);
+    border-radius:13px;padding:13px 15px;text-align:center}
+  .trial-status-title{font-size:12px;font-weight:800;color:var(--gold);margin-bottom:4px}
+  .trial-status p{font-size:10.5px;color:var(--subtle);line-height:1.5}
+
+  .sec-title{padding:4px 16px 11px;font-size:12.5px;font-weight:800}
+  .plans{padding:0 14px;display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+  .plan{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:17px;position:relative}
   .plan.featured{border-color:var(--accent)}
-  .plan.max-plan{border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.03)}
+  .plan.pro-plan{border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.03)}
   .plan.highlighted{box-shadow:0 0 0 2px var(--accent), 0 8px 24px rgba(59,130,246,0.2)}
   .plan-badge-tag{position:absolute;top:-9px;left:18px;font-size:8.5px;font-weight:800;
     padding:3px 10px;border-radius:20px;letter-spacing:0.05em}
   .plan-badge-tag.popular{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
   .plan-badge-tag.best{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
-  .plan-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;margin-top:4px}
-  .plan-name{font-size:16px;font-weight:800}
+  .plan-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:13px;margin-top:4px}
+  .plan-name{font-size:15px;font-weight:800}
   .plan-price{text-align:right}
-  .plan-amt{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace}
+  .plan-amt{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace}
   .plan-period{font-size:10px;color:var(--muted)}
-  .plan-feats{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
-  .plan-feat{font-size:12px;color:var(--subtle);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+  .plan-feats{display:flex;flex-direction:column;gap:7px;margin-bottom:15px}
+  .plan-feat{font-size:11.5px;color:var(--subtle);display:flex;align-items:flex-start;gap:7px;line-height:1.4}
   .plan-feat::before{content:"✓";color:var(--green);font-weight:800;flex-shrink:0;margin-top:1px}
-  .plan-feat.dim{color:var(--muted)}
-  .plan-feat.dim::before{content:"–";color:var(--muted)}
-  .plan-btn{width:100%;padding:13px;border-radius:12px;font-size:13px;font-weight:800;text-align:center;
+  .plan-btn{width:100%;padding:12px;border-radius:11px;font-size:12.5px;font-weight:800;text-align:center;
     cursor:pointer;border:none;font-family:'Inter',sans-serif}
-  .plan-btn.free-btn{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
-  .plan-btn.lite-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-  .plan-btn.max-btn{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
+  .plan-btn.basic-btn{background:linear-gradient(135deg,#334155,#475569);color:#fff}
+  .plan-btn.growth-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+  .plan-btn.pro-btn{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
   .plan-btn.current{background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
 
-  /* Coupon */
+  .topup-grid{padding:0 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+  .topup-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:13px;text-align:center}
+  .topup-amt{font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--green);margin-bottom:3px}
+  .topup-price{font-size:11px;color:var(--muted);margin-bottom:9px}
+  .topup-btn{width:100%;padding:8px;border-radius:9px;font-size:11px;font-weight:800;text-align:center;
+    cursor:pointer;background:var(--surface);border:1px solid var(--border);color:var(--subtle);font-family:'Inter',sans-serif}
+  .topup-note{padding:0 16px 16px;font-size:10px;color:var(--muted);text-align:center;line-height:1.5}
+
   .coupon-box{margin:0 14px 16px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 15px}
   .coupon-title{font-size:11.5px;font-weight:700;color:var(--subtle);margin-bottom:9px}
   .coupon-row{display:flex;gap:8px}
@@ -72,7 +81,6 @@
     padding:9px 16px;border-radius:9px;font-size:11.5px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif}
   .coupon-msg{font-size:10.5px;margin-top:7px;min-height:14px}
 
-  /* WhatsApp fallback */
   .wa-box{margin:0 14px 16px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);
     border-radius:13px;padding:14px 15px;text-align:center}
   .wa-box p{font-size:11px;color:var(--subtle);line-height:1.5;margin-bottom:10px}
@@ -98,78 +106,94 @@
 
   <div class="back-hdr">
     <span class="back-btn" onclick="history.back()">←</span>
-    <span class="back-title">Choose Your Plan</span>
+    <span class="back-title">Plans & Top-ups</span>
   </div>
 
   <div class="screen">
 
-    <div class="intro"><p>Start free · Upgrade anytime · No auto-renewal surprises</p></div>
+    <div class="intro"><p>3-day free trial · Cancel anytime · No hidden charges</p></div>
 
     <div class="launch-notice">
       <div class="launch-notice-title">🚀 Early Access Phase</div>
       <p>Online payments are launching shortly. For now, upgrade using an invite code (if someone shared one with you) or message us on WhatsApp for early access.</p>
     </div>
 
+    <div class="trial-status" id="trial-status" style="display:none">
+      <div class="trial-status-title" id="trial-status-title">🎁 Trial Active</div>
+      <p id="trial-status-desc">You have full access to all 50 stocks and ₹20 Lakh virtual capital during your trial.</p>
+    </div>
+
+    <div class="sec-title">Choose Your Plan</div>
     <div class="plans">
 
-      <!-- Free -->
-      <div class="plan" id="plan-free">
+      <div class="plan" id="plan-basic">
         <div class="plan-top">
-          <div class="plan-name">Free</div>
-          <div class="plan-price"><div class="plan-amt">₹0</div><div class="plan-period">forever</div></div>
-        </div>
-        <div class="plan-feats">
-          <div class="plan-feat">₹1 Lakh virtual capital</div>
-          <div class="plan-feat">10 NSE stocks</div>
-          <div class="plan-feat">Basic portfolio tracking</div>
-          <div class="plan-feat">Free reset anytime</div>
-          <div class="plan-feat dim">No monthly top-up</div>
-          <div class="plan-feat dim">No leaderboard rank</div>
-        </div>
-        <div class="plan-btn free-btn" id="free-btn">Current Plan</div>
-      </div>
-
-      <!-- Pro Lite -->
-      <div class="plan featured" id="plan-lite">
-        <div class="plan-badge-tag popular">POPULAR</div>
-        <div class="plan-top">
-          <div class="plan-name" style="color:#60A5FA">Pro Lite</div>
-          <div class="plan-price"><div class="plan-amt">₹199</div><div class="plan-period">/year</div></div>
+          <div class="plan-name">Basic</div>
+          <div class="plan-price"><div class="plan-amt">₹149</div><div class="plan-period">/month</div></div>
         </div>
         <div class="plan-feats">
           <div class="plan-feat">₹5 Lakh virtual capital</div>
-          <div class="plan-feat">30 NSE stocks</div>
+          <div class="plan-feat">15 NSE stocks</div>
           <div class="plan-feat">+₹50,000 added every month</div>
-          <div class="plan-feat">Leaderboard rank</div>
-          <div class="plan-feat">Community chat & comments</div>
-          <div class="plan-feat">Referral rewards</div>
+          <div class="plan-feat">10 trades per day</div>
+          <div class="plan-feat">5-day order history</div>
+          <div class="plan-feat">1 free reset/month</div>
         </div>
-        <div class="plan-btn lite-btn" id="lite-btn" onclick="startUpgrade('lite')">Get Pro Lite</div>
+        <div class="plan-btn basic-btn" id="basic-btn" onclick="startUpgrade('basic')">Get Basic</div>
       </div>
 
-      <!-- Pro Max -->
-      <div class="plan max-plan" id="plan-max">
-        <div class="plan-badge-tag best">BEST VALUE</div>
+      <div class="plan featured" id="plan-growth">
+        <div class="plan-badge-tag popular">POPULAR</div>
         <div class="plan-top">
-          <div class="plan-name" style="color:var(--gold)">Pro Max</div>
-          <div class="plan-price"><div class="plan-amt" style="color:var(--gold)">₹499</div><div class="plan-period">/year</div></div>
+          <div class="plan-name" style="color:#60A5FA">Growth</div>
+          <div class="plan-price"><div class="plan-amt">₹299</div><div class="plan-period">/month</div></div>
         </div>
         <div class="plan-feats">
           <div class="plan-feat">₹10 Lakh virtual capital</div>
-          <div class="plan-feat">All 50 NSE stocks</div>
+          <div class="plan-feat">30 NSE stocks</div>
           <div class="plan-feat">+₹1,00,000 added every month</div>
-          <div class="plan-feat">Leaderboard rank + Ambassador badge</div>
+          <div class="plan-feat">25 trades per day</div>
+          <div class="plan-feat">15-day order history</div>
+          <div class="plan-feat">1 free reset/month</div>
+          <div class="plan-feat">Community chat & comments</div>
+          <div class="plan-feat">Referral rewards</div>
+        </div>
+        <div class="plan-btn growth-btn" id="growth-btn" onclick="startUpgrade('growth')">Get Growth</div>
+      </div>
+
+      <div class="plan pro-plan" id="plan-pro">
+        <div class="plan-badge-tag best">BEST VALUE</div>
+        <div class="plan-top">
+          <div class="plan-name" style="color:var(--gold)">Pro</div>
+          <div class="plan-price"><div class="plan-amt" style="color:var(--gold)">₹599</div><div class="plan-period">/month</div></div>
+        </div>
+        <div class="plan-feats">
+          <div class="plan-feat">₹20 Lakh virtual capital</div>
+          <div class="plan-feat">All 50 NSE stocks</div>
+          <div class="plan-feat">+₹2,00,000 added every month</div>
+          <div class="plan-feat">Unlimited trades</div>
+          <div class="plan-feat">30-day order history</div>
+          <div class="plan-feat">1 free reset/month</div>
           <div class="plan-feat">Community chat & comments</div>
           <div class="plan-feat">Referral rewards</div>
           <div class="plan-feat">Downloadable certificate</div>
           <div class="plan-feat">Priority access to new features</div>
         </div>
-        <div class="plan-btn max-btn" id="max-btn" onclick="startUpgrade('max')">Get Pro Max</div>
+        <div class="plan-btn pro-btn" id="pro-btn" onclick="startUpgrade('pro')">Get Pro</div>
       </div>
 
     </div>
 
-    <!-- Coupon -->
+    <div class="sec-title">💰 Buy Extra Virtual Capital</div>
+    <div class="topup-grid">
+      <div class="topup-card"><div class="topup-amt">+₹1 Lakh</div><div class="topup-price">₹29</div><div class="topup-btn" onclick="startTopup(29,100000)">Buy</div></div>
+      <div class="topup-card"><div class="topup-amt">+₹2.5 Lakh</div><div class="topup-price">₹49</div><div class="topup-btn" onclick="startTopup(49,250000)">Buy</div></div>
+      <div class="topup-card"><div class="topup-amt">+₹5 Lakh</div><div class="topup-price">₹99</div><div class="topup-btn" onclick="startTopup(99,500000)">Buy</div></div>
+      <div class="topup-card"><div class="topup-amt">+₹10 Lakh</div><div class="topup-price">₹199</div><div class="topup-btn" onclick="startTopup(199,1000000)">Buy</div></div>
+      <div class="topup-card"><div class="topup-amt">+₹20 Lakh</div><div class="topup-price">₹349</div><div class="topup-btn" onclick="startTopup(349,2000000)">Buy</div></div>
+    </div>
+    <div class="topup-note">Top-ups add virtual capital to your existing portfolio instantly. Available on any active paid plan.</div>
+
     <div class="coupon-box">
       <div class="coupon-title">🎟️ Have an invite/coupon code?</div>
       <div class="coupon-row">
@@ -179,7 +203,6 @@
       <div class="coupon-msg" id="coupon-msg"></div>
     </div>
 
-    <!-- WhatsApp fallback -->
     <div class="wa-box">
       <p>Don't have a code? Message us directly and we'll help you get early access.</p>
       <button class="wa-btn" onclick="contactWhatsApp()">📲 Contact on WhatsApp</button>
@@ -191,7 +214,7 @@
         <span>Powered by ScaleAIQ</span>
       </div>
       <div class="footer-links">
-        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="contact.html">Contact</a><br>
+        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="rules.html">Rules</a> · <a href="contact.html">Contact</a><br>
         Virtual trading only · Not investment advice · © 2026 ScaleAIQ
       </div>
     </div>
@@ -213,17 +236,20 @@ const CONFIG = {
   }
 };
 const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
-const PLAN_RANK = {free:0, lite:1, max:2};
-const PLAN_START = {free:100000, lite:500000, max:1000000};
+
+const TRIAL_DAYS = 3;
+const VALID_PLANS = ["trial","basic","growth","pro"];
+const PLAN_RANK = {trial:0, basic:1, growth:2, pro:3};
+const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
 const fmtInt = n => "₹" + Math.round(n).toLocaleString("en-IN");
-let userPlan = "free";
+let userPlan = "trial";
+let myPlanStartDate = null;
 
 function showToast(msg){
   const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
   clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove("show"),3000);
 }
 
-// Highlight plan from ?plan= URL param (set by index.html's goPlan())
 const urlParams = new URLSearchParams(location.search);
 const highlightPlan = urlParams.get("plan");
 if(highlightPlan){
@@ -234,33 +260,48 @@ if(highlightPlan){
   }
 }
 
-// ====================================================================
-// PAYMENT ENTRY POINT — currently shows "coming soon" since Razorpay
-// isn't wired in yet (by design, built last). When ready, this function
-// is where the Razorpay checkout call gets added — everything else on
-// this page (plan display, coupon, highlighting) stays unchanged.
-// ====================================================================
 function startUpgrade(plan){
-  const planLabel = plan === "max" ? "Pro Max (₹499/year)" : "Pro Lite (₹199/year)";
   showToast("💳 Online payment launching soon! Use a coupon code below or message us on WhatsApp.");
+}
+function startTopup(price, amount){
+  showToast("💳 Top-up payments launching soon! ₹"+price+" for "+fmtInt(amount)+" will be available shortly.");
 }
 
 function contactWhatsApp(){
-  const msg = "Hi! I'd like to get early access to TradeSeekho Pro. Can you help me?";
+  const msg = "Hi! I'd like to get early access to TradeSeekho. Can you help me?";
   window.open("https://wa.me/917990368493?text="+encodeURIComponent(msg), "_blank");
 }
 
 function updateButtonsForPlan(){
-  const freeBtn = document.getElementById("free-btn");
-  const liteBtn = document.getElementById("lite-btn");
-  const maxBtn = document.getElementById("max-btn");
-  if(userPlan === "free"){
-    freeBtn.textContent = "Current Plan"; freeBtn.className = "plan-btn current";
-  } else if(userPlan === "lite"){
-    liteBtn.textContent = "Current Plan"; liteBtn.className = "plan-btn current"; liteBtn.onclick = null;
-  } else if(userPlan === "max"){
-    maxBtn.textContent = "Current Plan"; maxBtn.className = "plan-btn current"; maxBtn.onclick = null;
-    liteBtn.style.display = "none";
+  const basicBtn = document.getElementById("basic-btn");
+  const growthBtn = document.getElementById("growth-btn");
+  const proBtn = document.getElementById("pro-btn");
+  const trialStatus = document.getElementById("trial-status");
+
+  if(userPlan === "trial"){
+    trialStatus.style.display = "block";
+    if(myPlanStartDate){
+      const msLeft = (myPlanStartDate + TRIAL_DAYS*24*60*60*1000) - Date.now();
+      if(msLeft <= 0){
+        document.getElementById("trial-status-title").textContent = "⏰ Trial Ended";
+        document.getElementById("trial-status-desc").textContent = "Choose a plan below to continue trading.";
+      } else {
+        const hoursLeft = Math.max(0, Math.ceil(msLeft/(60*60*1000)));
+        document.getElementById("trial-status-title").textContent = "🎁 Trial Active — ~"+hoursLeft+"h left";
+        document.getElementById("trial-status-desc").textContent = "You have full access to all 50 stocks and ₹20 Lakh virtual capital during your trial.";
+      }
+    }
+  } else {
+    trialStatus.style.display = "none";
+    if(userPlan === "basic"){
+      basicBtn.textContent = "Current Plan"; basicBtn.className = "plan-btn current"; basicBtn.onclick = null;
+    } else if(userPlan === "growth"){
+      growthBtn.textContent = "Current Plan"; growthBtn.className = "plan-btn current"; growthBtn.onclick = null;
+      basicBtn.style.display = "none";
+    } else if(userPlan === "pro"){
+      proBtn.textContent = "Current Plan"; proBtn.className = "plan-btn current"; proBtn.onclick = null;
+      basicBtn.style.display = "none"; growthBtn.style.display = "none";
+    }
   }
 }
 </script>
@@ -288,20 +329,32 @@ if(!DEMO_MODE){
         const c = csnap.data();
         if(!c.active){ msgEl.textContent="This code is no longer active"; msgEl.style.color="var(--red)"; return; }
         if((c.usedCount||0) >= c.maxUses){ msgEl.textContent="This code has reached its usage limit"; msgEl.style.color="var(--red)"; return; }
-        if(PLAN_RANK[c.plan] <= PLAN_RANK[userPlan]){ msgEl.textContent="You already have this plan or higher"; msgEl.style.color="var(--gold)"; return; }
-        // Read current cash so we can add the upgrade bonus correctly
+        if(!VALID_PLANS.includes(c.plan) || PLAN_RANK[c.plan] <= PLAN_RANK[userPlan]){
+          msgEl.textContent="You already have this plan or higher"; msgEl.style.color="var(--gold)"; return;
+        }
+
         const userSnap = await getDoc(doc(db,"users",uid));
         const currentCash = userSnap.exists() && typeof userSnap.data().cash === "number" ? userSnap.data().cash : PLAN_START[userPlan];
-        const bonus = PLAN_START[c.plan] - PLAN_START[userPlan];
-        const newCash = currentCash + bonus;
         const now = Date.now();
-        await setDoc(doc(db,"users",uid), {plan:c.plan, cash:newCash, planStartDate:now, lastTopupDate:now}, {merge:true});
+        let newCash;
+        if(userPlan === "trial"){
+          newCash = PLAN_START[c.plan];
+        } else {
+          newCash = currentCash + (PLAN_START[c.plan] - PLAN_START[userPlan]);
+        }
+
+        await setDoc(doc(db,"users",uid), {
+          plan:c.plan, cash:newCash, planStartDate:now, lastTopupDate:now,
+          dailyTradeDate:null, dailyTradeCount:0
+        }, {merge:true});
         await setDoc(doc(db,"leaderboard",uid), {plan:c.plan}, {merge:true});
         await setDoc(doc(db,"coupons",code), {usedCount:(c.usedCount||0)+1}, {merge:true});
+
         userPlan = c.plan;
+        myPlanStartDate = now;
         updateButtonsForPlan();
-        msgEl.textContent = "🎉 "+c.plan.toUpperCase()+" unlocked! +"+fmtInt(bonus)+" added"; msgEl.style.color="var(--green)";
-        showToast("🎉 "+c.plan.toUpperCase()+" unlocked! +"+fmtInt(bonus)+" capital added — check Market tab");
+        msgEl.textContent = "🎉 "+c.plan.toUpperCase()+" unlocked! Capital: "+fmtInt(newCash); msgEl.style.color="var(--green)";
+        showToast("🎉 "+c.plan.toUpperCase()+" unlocked! Go to Market tab to see it live.");
         input.value = "";
       }catch(e){ msgEl.textContent="Error: "+e.message; msgEl.style.color="var(--red)"; }
     };
@@ -311,7 +364,12 @@ if(!DEMO_MODE){
         uid = user.uid;
         try{
           const snap = await getDoc(doc(db,"users",uid));
-          if(snap.exists()){ userPlan = snap.data().plan || "free"; updateButtonsForPlan(); }
+          if(snap.exists()){
+            const data = snap.data();
+            userPlan = VALID_PLANS.includes(data.plan) ? data.plan : "trial";
+            myPlanStartDate = data.planStartDate || null;
+            updateButtonsForPlan();
+          }
         }catch(e){ console.error(e); }
       }
     });
