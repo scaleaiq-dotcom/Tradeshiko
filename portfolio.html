@@ -376,6 +376,24 @@ function thisMonthStr(){
   const ist = new Date(Date.now() + (5.5*60*60*1000));
   return ist.toISOString().slice(0,7);
 }
+// ===== Market hours gating — NSE/BSE official 2026 holiday list (weekday holidays only) =====
+const NSE_HOLIDAYS_2026 = [
+  "2026-01-15","2026-01-26","2026-03-03","2026-03-26","2026-03-31","2026-04-03",
+  "2026-04-14","2026-05-01","2026-05-28","2026-06-26","2026-09-14","2026-10-02",
+  "2026-10-20","2026-11-10","2026-11-24","2026-12-25"
+];
+function isMarketOpenNow(){
+  const ist = new Date(Date.now() + (5.5*60*60*1000));
+  const day = ist.getUTCDay();
+  if(day === 0 || day === 6) return false;
+  const dateStr = ist.toISOString().slice(0,10);
+  if(NSE_HOLIDAYS_2026.includes(dateStr)) return false;
+  const hour = ist.getUTCHours(), minute = ist.getUTCMinutes();
+  const afterOpen = hour > 9 || (hour === 9 && minute >= 15);
+  const beforeClose = hour < 15 || (hour === 15 && minute <= 30);
+  return afterOpen && beforeClose;
+}
+
 function isTrialExpired(){
   if(userPlan !== "trial" || !planStartDate) return false;
   return Date.now() > planStartDate + (TRIAL_DAYS * 24*60*60*1000);
@@ -507,6 +525,13 @@ function render(){
     resetBtn.style.opacity = "1";
     resetStatus.textContent = "";
   }
+
+  // Market hours: grey out all buy/sell buttons when closed
+  const marketOpen = isMarketOpenNow();
+  document.querySelectorAll(".ha-buy, .ha-sell, .quick-sell").forEach(btn=>{
+    btn.style.opacity = marketOpen ? "1" : "0.4";
+    btn.style.pointerEvents = marketOpen ? "auto" : "none";
+  });
 }
 
 function toggleHold(idx){
@@ -653,6 +678,11 @@ function calcCharges(value){
   return {brokerage, stt, gst, misc, total:+(brokerage+stt+gst+misc).toFixed(2)};
 }
 function confirmTrade(){
+  if(!isMarketOpenNow()){
+    showToast("🌙 Market is closed. Trading resumes 9:15 AM–3:30 PM IST (Mon–Fri, excluding holidays).");
+    closeTrade();
+    return;
+  }
   if(isTrialExpired()){
     showToast("⏰ Your trial has ended. Subscribe to keep trading!");
     setTimeout(()=>location.href="plans.html", 1200);
@@ -724,12 +754,15 @@ if(!DEMO_MODE){
     const db = getFirestore(app);
     let uid = null, saveTimer = null;
 
+    const ADMIN_EMAILS_HIDE = ["scaleaiq@gmail.com", "jitendramathur.85@gmail.com"];
     window.cloudSave = function(state){
       if(!uid) return;
       clearTimeout(saveTimer);
       saveTimer = setTimeout(async ()=>{
         try{
           await setDoc(doc(db,"users",uid), state, {merge:true});
+          const myEmail = (auth.currentUser?.email || "").toLowerCase();
+          if(ADMIN_EMAILS_HIDE.includes(myEmail)) return; // skip public leaderboard for admin/test accounts
           await setDoc(doc(db, "leaderboard", uid), {
             displayName: auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",

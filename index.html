@@ -737,7 +737,7 @@ function tick(){
     s.history.push(s.price);
     if(s.history.length > MAX_HIST) s.history.shift();
   });
-  renderTicker(); renderWatchlist(); renderSummary(); updateClock();
+  renderTicker(); renderWatchlist(); renderSummary(); updateClock(); updateStatusBanner();
   if(detailIdx !== null) renderDetail();
 }
 
@@ -1043,6 +1043,41 @@ function calcCharges(value){
 }
 
 // ===== Trial expiry + daily trade limit checks =====
+// ===== Market hours gating — NSE/BSE official 2026 holiday list (weekday holidays only) =====
+const NSE_HOLIDAYS_2026 = [
+  "2026-01-15","2026-01-26","2026-03-03","2026-03-26","2026-03-31","2026-04-03",
+  "2026-04-14","2026-05-01","2026-05-28","2026-06-26","2026-09-14","2026-10-02",
+  "2026-10-20","2026-11-10","2026-11-24","2026-12-25"
+];
+function isMarketOpenNow(){
+  const ist = new Date(Date.now() + (5.5*60*60*1000));
+  const day = ist.getUTCDay(); // 0=Sun, 6=Sat
+  if(day === 0 || day === 6) return false; // weekend
+  const dateStr = ist.toISOString().slice(0,10);
+  if(NSE_HOLIDAYS_2026.includes(dateStr)) return false; // public holiday
+  const hour = ist.getUTCHours(), minute = ist.getUTCMinutes();
+  const afterOpen = hour > 9 || (hour === 9 && minute >= 15);
+  const beforeClose = hour < 15 || (hour === 15 && minute <= 30);
+  return afterOpen && beforeClose;
+}
+function updateMarketClosedUI(){
+  const open = isMarketOpenNow();
+  document.querySelectorAll(".btn-buy, .btn-sell").forEach(btn=>{
+    btn.disabled = !open;
+    btn.style.opacity = open ? "1" : "0.4";
+  });
+  const banner = document.getElementById("status-banner");
+  if(!open && banner){
+    banner.style.display = "block";
+    banner.style.background = "rgba(100,116,139,0.1)";
+    banner.style.border = "1px solid rgba(100,116,139,0.3)";
+    banner.style.color = "var(--muted)";
+    banner.innerHTML = `🌙 Market is closed — you can browse prices and your portfolio, but trading resumes during market hours (9:15 AM–3:30 PM IST, Mon–Fri, excluding holidays)`;
+    return true; // signal: closed banner shown, caller should not overwrite it
+  }
+  return false;
+}
+
 function isTrialExpired(){
   if(userPlan !== "trial" || !planStartDate) return false;
   return Date.now() > planStartDate + (TRIAL_DAYS * 24*60*60*1000);
@@ -1060,6 +1095,11 @@ function recordTradeForLimit(){
 }
 
 function confirmTrade(){
+  if(!isMarketOpenNow()){
+    showToast("🌙 Market is closed. Trading resumes 9:15 AM–3:30 PM IST (Mon–Fri, excluding holidays).");
+    closeModal();
+    return;
+  }
   if(isTrialExpired()){
     showToast("⏰ Your trial has ended. Subscribe to keep trading!");
     setTimeout(()=>location.href="plans.html", 1200);
@@ -1185,6 +1225,9 @@ function updatePlanBadge(){
 function updateStatusBanner(){
   const banner = document.getElementById("status-banner");
   if(!banner) return;
+  if(updateMarketClosedUI()) return; // market closed banner takes priority, already shown (also disables buy/sell buttons)
+  // market is open — re-enable buy/sell buttons before showing trial/trade-limit info
+  document.querySelectorAll(".btn-buy, .btn-sell").forEach(btn=>{ btn.disabled = false; btn.style.opacity = "1"; });
   if(userPlan === "trial"){
     if(isTrialExpired()){
       banner.style.display = "block";
@@ -1608,6 +1651,7 @@ if(!DEMO_MODE){
 
     window.doLogout = async function(){ await signOut(auth); location.reload(); };
 
+    const ADMIN_EMAILS_HIDE = ["scaleaiq@gmail.com", "jitendramathur.85@gmail.com"];
     window.cloudSave = function(state){
       if(!uid) return;
       clearTimeout(saveTimer);
@@ -1619,6 +1663,10 @@ if(!DEMO_MODE){
             email: auth.currentUser?.email || "",
             photoURL: auth.currentUser?.photoURL || ""
           }, {merge:true});
+          // Admin/test accounts: skip the public leaderboard write entirely —
+          // your own testing activity should never show up to real users.
+          const myEmail = (auth.currentUser?.email || "").toLowerCase();
+          if(ADMIN_EMAILS_HIDE.includes(myEmail)) return;
           // Public leaderboard entry — only non-sensitive fields (no cash/holdings/orders)
           await setDoc(doc(db, "leaderboard", uid), {
             displayName: auth.currentUser?.displayName || "Trader",
@@ -1640,6 +1688,12 @@ if(!DEMO_MODE){
         if(al) al.style.display = "none";
         startLivePriceListener();
         loadMyLikesIdx();
+        // One-time cleanup: if this is an admin/test account, remove any past
+        // leaderboard entry from before this exclusion was added.
+        const myEmailLower = (user.email || "").toLowerCase();
+        if(ADMIN_EMAILS_HIDE.includes(myEmailLower)){
+          deleteDoc(doc(db,"leaderboard",uid)).catch(()=>{}); // silent — fine if it didn't exist
+        }
         const av = document.getElementById("avatar");
         const initial = (user.displayName || "T").charAt(0).toUpperCase();
         if(user.photoURL){
