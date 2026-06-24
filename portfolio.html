@@ -198,6 +198,9 @@
       </div>
     </div>
 
+    <!-- Trial / plan-renewal / trade-limit status -->
+    <div id="status-banner" style="display:none;margin:0 14px 14px;border-radius:12px;padding:10px 13px;font-size:11px;font-weight:700"></div>
+
     <!-- Holdings -->
     <div class="sec-hdr">
       <span class="sec-title">Holdings</span>
@@ -405,6 +408,74 @@ function isPlanExpired(){
   if(userPlan === "trial" || !planStartDate) return false;
   return Date.now() > planStartDate + (PLAN_DURATION_DAYS * 24*60*60*1000);
 }
+function updateStatusBanner(){
+  const banner = document.getElementById("status-banner");
+  if(!banner) return;
+  if(!isMarketOpenNow()){
+    banner.style.display = "block";
+    banner.style.background = "rgba(100,116,139,0.1)";
+    banner.style.border = "1px solid rgba(100,116,139,0.3)";
+    banner.style.color = "var(--muted)";
+    banner.innerHTML = `🌙 Market is closed — trading resumes during market hours (9:15 AM–3:30 PM IST, Mon–Fri, excluding holidays)`;
+    return;
+  }
+  if(userPlan === "trial"){
+    if(isTrialExpired()){
+      banner.style.display = "block";
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `⏰ Your 3-day trial has ended. <a href="plans.html" style="color:var(--red);text-decoration:underline">Subscribe now →</a>`;
+    } else if(planStartDate){
+      const msLeft = (planStartDate + TRIAL_DAYS*24*60*60*1000) - Date.now();
+      const hoursLeft = Math.max(0, Math.ceil(msLeft / (60*60*1000)));
+      banner.style.display = "block";
+      banner.style.background = "rgba(245,158,11,0.08)";
+      banner.style.border = "1px solid rgba(245,158,11,0.25)";
+      banner.style.color = "var(--gold)";
+      banner.innerHTML = `🎁 Trial: ~${hoursLeft} hour${hoursLeft===1?'':'s'} left · <a href="plans.html" style="color:var(--gold);text-decoration:underline">See plans →</a>`;
+    } else {
+      banner.style.display = "none";
+    }
+  } else {
+    if(isPlanExpired()){
+      banner.style.display = "block";
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `⏰ Your ${PLAN_LABEL[userPlan]||userPlan.toUpperCase()} plan has expired. <a href="plans.html" style="color:var(--red);text-decoration:underline">Renew now →</a>`;
+      return;
+    }
+    const limit = DAILY_TRADE_LIMIT[userPlan];
+    const remaining = limit !== Infinity ? getTradesRemainingToday() : Infinity;
+    const daysUntilExpiry = planStartDate
+      ? Math.ceil(((planStartDate + PLAN_DURATION_DAYS*24*60*60*1000) - Date.now()) / (24*60*60*1000))
+      : null;
+    const renewalApproaching = daysUntilExpiry !== null && daysUntilExpiry <= 5 && daysUntilExpiry >= 0;
+
+    if(remaining === 0){
+      banner.style.display = "block";
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `🚫 Daily trade limit reached (${limit}/day). Resets tomorrow or <a href="plans.html" style="color:var(--red);text-decoration:underline">upgrade →</a>`;
+    } else if(renewalApproaching){
+      banner.style.display = "block";
+      banner.style.background = "rgba(245,158,11,0.08)";
+      banner.style.border = "1px solid rgba(245,158,11,0.25)";
+      banner.style.color = "var(--gold)";
+      banner.innerHTML = `🔔 Your ${PLAN_LABEL[userPlan]||userPlan.toUpperCase()} plan renews in ${daysUntilExpiry} day${daysUntilExpiry===1?'':'s'} · <a href="plans.html" style="color:var(--gold);text-decoration:underline">Renew now →</a>`;
+    } else if(limit !== Infinity){
+      banner.style.display = "block";
+      banner.style.background = "rgba(59,130,246,0.07)";
+      banner.style.border = "1px solid rgba(59,130,246,0.18)";
+      banner.style.color = "var(--subtle)";
+      banner.innerHTML = `📊 ${remaining} of ${limit} trades left today`;
+    } else {
+      banner.style.display = "none";
+    }
+  }
+}
 function getTradesRemainingToday(){
   const limit = DAILY_TRADE_LIMIT[userPlan] ?? DAILY_TRADE_LIMIT.basic;
   if(limit === Infinity) return Infinity;
@@ -539,6 +610,7 @@ function render(){
     btn.style.opacity = marketOpen ? "1" : "0.4";
     btn.style.pointerEvents = marketOpen ? "auto" : "none";
   });
+  updateStatusBanner();
 }
 
 function toggleHold(idx){
@@ -712,7 +784,7 @@ function confirmTrade(){
   const px = getPrice(tradeSym) || 1;
   const tradeValuePreCheck = tradeQty * px;
   const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
-  if(tradeValuePreCheck > tradeCap){
+  if(tradeSide === "buy" && tradeValuePreCheck > tradeCap){
     const err = document.getElementById("m-err");
     err.textContent = `Max ₹${fmtInt(tradeCap)} per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
     err.style.display = "block";

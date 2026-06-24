@@ -1131,7 +1131,7 @@ function confirmTrade(){
   }
   const value = modalQty * modalStock.price;
   const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
-  if(value > tradeCap){
+  if(modalSide === "buy" && value > tradeCap){
     const err = document.getElementById("m-err");
     err.textContent = `Max ₹${fmtInt(tradeCap)} per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
     err.style.display = "block";
@@ -1279,17 +1279,34 @@ function updateStatusBanner(){
       return;
     }
     const limit = DAILY_TRADE_LIMIT[userPlan];
-    if(limit !== Infinity){
-      const remaining = getTradesRemainingToday();
+    const remaining = limit !== Infinity ? getTradesRemainingToday() : Infinity;
+    const daysUntilExpiry = planStartDate
+      ? Math.ceil(((planStartDate + PLAN_DURATION_DAYS*24*60*60*1000) - Date.now()) / (24*60*60*1000))
+      : null;
+    const renewalApproaching = daysUntilExpiry !== null && daysUntilExpiry <= 5 && daysUntilExpiry >= 0;
+
+    if(remaining === 0){
+      // Daily limit reached takes priority — most actionable for right now
       banner.style.display = "block";
-      banner.style.background = remaining === 0 ? "rgba(239,68,68,0.1)" : "rgba(59,130,246,0.07)";
-      banner.style.border = remaining === 0 ? "1px solid rgba(239,68,68,0.3)" : "1px solid rgba(59,130,246,0.18)";
-      banner.style.color = remaining === 0 ? "var(--red)" : "var(--subtle)";
-      banner.innerHTML = remaining === 0
-        ? `🚫 Daily trade limit reached (${limit}/day). Resets tomorrow or <a href="plans.html" style="color:var(--red);text-decoration:underline">upgrade →</a>`
-        : `📊 ${remaining} of ${limit} trades left today`;
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `🚫 Daily trade limit reached (${limit}/day). Resets tomorrow or <a href="plans.html" style="color:var(--red);text-decoration:underline">upgrade →</a>`;
+    } else if(renewalApproaching){
+      // Applies to Basic/Growth/Pro alike — Pro has unlimited trades but still expires after 30 days
+      banner.style.display = "block";
+      banner.style.background = "rgba(245,158,11,0.08)";
+      banner.style.border = "1px solid rgba(245,158,11,0.25)";
+      banner.style.color = "var(--gold)";
+      banner.innerHTML = `🔔 Your ${PLAN_LABEL[userPlan]} plan renews in ${daysUntilExpiry} day${daysUntilExpiry===1?'':'s'} · <a href="plans.html" style="color:var(--gold);text-decoration:underline">Renew now →</a>`;
+    } else if(limit !== Infinity){
+      banner.style.display = "block";
+      banner.style.background = "rgba(59,130,246,0.07)";
+      banner.style.border = "1px solid rgba(59,130,246,0.18)";
+      banner.style.color = "var(--subtle)";
+      banner.innerHTML = `📊 ${remaining} of ${limit} trades left today`;
     } else {
-      banner.style.display = "none";
+      banner.style.display = "none"; // Pro, not near renewal, nothing to show
     }
   }
 }
