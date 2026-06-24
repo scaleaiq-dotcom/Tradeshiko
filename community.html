@@ -129,7 +129,8 @@
 
     <!-- Composer -->
     <div class="composer">
-      <textarea class="post-input" id="post-text" rows="2" placeholder="What's your market view today?"></textarea>
+      <textarea class="post-input" id="post-text" rows="2" maxlength="280" placeholder="What's your market view today?" oninput="updatePostCounter()"></textarea>
+      <div id="post-counter" style="font-size:9.5px;color:var(--muted);text-align:right;margin:-6px 0 9px">0/280</div>
       <div class="composer-row">
         <select class="stock-select" id="post-stock">
           <option value="">General (no stock tag)</option>
@@ -215,13 +216,23 @@ function setSentiment(s){
   document.getElementById("sent-bull").classList.toggle("act", currentSentiment==="bullish");
   document.getElementById("sent-bear").classList.toggle("act", currentSentiment==="bearish");
 }
+const MAX_POST_LEN = 280;
+const MAX_REPLY_LEN = 200;
+function updatePostCounter(){
+  const len = document.getElementById("post-text").value.length;
+  const counter = document.getElementById("post-counter");
+  counter.textContent = len + "/" + MAX_POST_LEN;
+  counter.style.color = len >= MAX_POST_LEN ? "var(--red)" : "var(--muted)";
+}
 function submitFeedPost(){
   const text = document.getElementById("post-text").value.trim();
   const stockTag = document.getElementById("post-stock").value;
   if(!text){ alert("Likho kuch pehle!"); return; }
+  if(text.length > MAX_POST_LEN){ alert("Post too long — max "+MAX_POST_LEN+" characters."); return; }
   if(window.submitPost){
     window.submitPost(text, stockTag, currentSentiment);
     document.getElementById("post-text").value = "";
+    updatePostCounter();
     setSentiment("neutral"); currentSentiment = "neutral";
     document.getElementById("sent-bull").classList.remove("act");
     document.getElementById("sent-bear").classList.remove("act");
@@ -264,7 +275,7 @@ function renderFeed(items){
       </div>
       <div class="reply-box" id="reply-box-${p.id}">
         <div class="reply-input-row">
-          <input type="text" class="reply-input" id="reply-input-${p.id}" placeholder="Write a reply...">
+          <input type="text" class="reply-input" id="reply-input-${p.id}" maxlength="200" placeholder="Write a reply... (max 200 chars)">
           <button class="reply-send" onclick="submitReply('${p.id}')">Send</button>
         </div>
         <div class="reply-list" id="reply-list-${p.id}"></div>
@@ -395,6 +406,7 @@ if(!DEMO_MODE){
       const input = document.getElementById("reply-input-"+postId);
       const text = (input.value || "").trim();
       if(!text) return;
+      if(text.length > 200){ alert("Reply too long — max 200 characters."); return; }
       try{
         await addDoc(collection(db,"replies"), {
           postId, uid, text,
