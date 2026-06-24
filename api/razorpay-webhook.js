@@ -73,13 +73,15 @@ module.exports = async function handler(req, res){
         console.error('Invalid planId on payment notes:', planId);
         return res.status(200).json({ received: true, skipped: true, reason: 'invalid planId' });
       }
-      // Same fresh-start / add-the-difference logic as applyPlanUpgrade() client-side
+      // Same rule as applyPlanChange() client-side: trial->paid is a fresh
+      // start; any paid-plan payment (whether a renewal of the same plan or
+      // a genuine upgrade) ADDS the full new plan's capital on top of
+      // whatever cash they currently have. Holdings are never touched here.
       let newCash;
       if (currentPlan === 'trial') {
-        newCash = PLAN_START[planId]; // trial -> paid: fresh start at the new plan's capital
+        newCash = PLAN_START[planId]; // trial -> paid: fresh start, trial cash discarded
       } else {
-        const diff = PLAN_START[planId] - PLAN_START[currentPlan];
-        newCash = currentCash + Math.max(diff, 0); // upgrade adds the difference; same-plan renewal adds 0
+        newCash = currentCash + PLAN_START[planId]; // full new plan capital added on top
       }
       await userRef.set({
         plan: planId,
