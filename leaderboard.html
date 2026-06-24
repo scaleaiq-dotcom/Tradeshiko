@@ -109,9 +109,9 @@
   <div class="hdr">
     <span class="hdr-title">🏆 Leaderboard</span>
     <div class="tabs">
-      <div class="tab act" onclick="showInfo('All-time, ranked by peak portfolio value ever reached.')">All-Time</div>
-      <div class="tab" onclick="showInfo('Weekly leaderboard launches once live market prices go live (Phase 2). For now all-time peak is shown.')">Week</div>
-      <div class="tab" onclick="showInfo('Monthly leaderboard launches once live market prices go live (Phase 2). For now all-time peak is shown.')">Month</div>
+      <div class="tab act" onclick="showInfo('All-time, ranked by your trading return % — only money actually put into trades counts, so upgrading plans never affects your rank.')">All-Time</div>
+      <div class="tab" onclick="showInfo('Weekly rankings are coming soon — for now, all-time trading return is shown.')">Week</div>
+      <div class="tab" onclick="showInfo('Monthly rankings are coming soon — for now, all-time trading return is shown.')">Month</div>
     </div>
   </div>
 
@@ -129,7 +129,7 @@
 
     <div class="sec-hdr">
       <span class="sec-title">Full Rankings</span>
-      <span class="sec-sub" id="rank-note">Ranked by peak value</span>
+      <span class="sec-sub" id="rank-note">Ranked by trading return %</span>
     </div>
 
     <div id="ldr-list">
@@ -181,7 +181,7 @@ const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
 
 function showInfo(msg){
   const t = document.getElementById("rank-note");
-  if(t){ t.textContent = msg; setTimeout(()=>{ t.textContent = "Ranked by peak value"; }, 4000); }
+  if(t){ t.textContent = msg; setTimeout(()=>{ t.textContent = "Ranked by trading return %"; }, 4000); }
 }
 
 function avatarStyle(photoURL, name){
@@ -221,7 +221,7 @@ function renderLeaderboard(entries, myUid){
     if(!e) return;
     const rank = idx+1;
     const size = rank===1 ? 50 : rank===2 ? 40 : 36;
-    const pct = typeof e.peakPnlPct === "number" ? e.peakPnlPct : 0;
+    const pct = typeof e.tradingReturnPct === "number" ? e.tradingReturnPct : 0;
     const barH = rank===1?60:rank===2?40:30;
     const crown = rank===1 ? " 👑" : "";
     podiumHtml += `<div class="pod">
@@ -240,7 +240,7 @@ function renderLeaderboard(entries, myUid){
     const isYou = e.uid === myUid;
     const startAmt = e.totalCapitalIn || PLAN_START[e.plan] || PLAN_START.trial;
     const pnl = (e.peakValue||0) - startAmt;
-    const pct = typeof e.peakPnlPct === "number" ? e.peakPnlPct : (pnl/startAmt*100);
+    const pct = typeof e.tradingReturnPct === "number" ? e.tradingReturnPct : (pnl/startAmt*100);
     const pctCls = pct >= 0 ? "g" : "r";
     const rankColor = i===0?"var(--gold)":i===1?"var(--subtle)":i===2?"#CD7C3A":"var(--muted)";
     const planLabel = ({trial:'Trial',basic:'Basic',growth:'Growth',pro:'Pro'})[e.plan] || 'Trial';
@@ -291,7 +291,7 @@ if(!DEMO_MODE){
       const al = document.getElementById("auth-loading");
       if(user){
         try{
-          const q = query(collection(db,"leaderboard"), orderBy("peakPnlPct","desc"), limit(100));
+          const q = query(collection(db,"leaderboard"), orderBy("tradingReturnPct","desc"), limit(100));
           const snap = await getDocs(q);
           const entries = [];
           snap.forEach(d=>entries.push({uid:d.id, ...d.data()}));

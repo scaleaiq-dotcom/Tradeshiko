@@ -85,6 +85,10 @@
   .port-val{font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
   .port-pnl{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:14px}
   .port-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .tr-row{display:flex;justify-content:space-between;align-items:center;margin-top:13px;padding-top:12px;border-top:1px solid var(--border)}
+  .tr-lbl{font-size:9.5px;color:var(--muted);font-weight:700}
+  .tr-val{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--subtle)}
+  .tr-val.g{color:var(--green)} .tr-val.r{color:var(--red)}
   .stat{display:flex;flex-direction:column;gap:2px}
   .stat-l{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:600}
   .stat-v{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace}
@@ -360,6 +364,10 @@
         <div class="stat"><span class="stat-l">Cash</span><span class="stat-v" id="stat-cash">₹1,00,000</span></div>
         <div class="stat"><span class="stat-l">Today P&L</span><span class="stat-v" id="stat-today">+₹0</span></div>
         <div class="stat"><span class="stat-l">Rank</span><span class="stat-v" style="color:var(--gold)" id="stat-rank">—</span></div>
+      </div>
+      <div class="tr-row">
+        <span class="tr-lbl">📈 Trading Return <span style="font-weight:600">(your leaderboard rank)</span></span>
+        <span class="tr-val" id="trading-return-val">—</span>
       </div>
     </div>
 
@@ -686,6 +694,17 @@ let cash = PLAN_START.trial;
 let holdings = {};
 let peakValue = PLAN_START.trial;
 let totalCapitalIn = PLAN_START.trial; // true cost basis: every rupee ever deposited (signup + upgrades + topups), separate from plan-change "leftover" cash
+// ===== Trading Return % tracking (leaderboard ranking metric) =====
+// This is DELIBERATELY separate from totalCapitalIn/peakValue above — those
+// measure overall account P&L (including idle cash), but ranking should
+// only reflect actual trading skill, immune to plan upgrades adding cash.
+// cumulativeRealizedGain: lifetime profit/loss from every COMPLETED sell
+// cumulativeSoldCostBasis: lifetime cost basis of everything ever sold
+// Combined with CURRENT holdings (live), these give a true "return on
+// capital actually deployed into trades" — upgrades/topups never touch it,
+// since idle cash never enters the calculation.
+let cumulativeRealizedGain = 0;
+let cumulativeSoldCostBasis = 0;
 let modalStock = null, modalSide = "buy", modalQty = 1;
 let detailIdx = null;
 let userPlan = "trial"; // trial | basic | growth | pro — comes from Firestore once logged in
@@ -910,10 +929,39 @@ function renderSummary(){
   }
   const total = cash + holdval;
   if(total > peakValue) peakValue = total;
-  const todayPnl = holdval - invested;
+  // Today's P&L = unrealized gain on stocks still held TODAY
+  //             + realized gain/loss from any sells COMPLETED today
+  // (the old formula only counted the first part, so a day spent
+  // round-tripping trades — buy then sell, ending with no holdings —
+  // always showed +₹0, even after real gains or losses)
+  const unrealizedToday = holdval - invested;
+  const realizedToday = orders
+    .filter(o => o.side === "SELL" && typeof o.avgCost === "number" && o.date === new Date().toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"}))
+    .reduce((sum,o) => sum + (o.price - o.avgCost)*o.qty - (o.charges||0), 0);
+  const todayPnl = unrealizedToday + realizedToday;
   document.getElementById("port-val").textContent = fmtInt(total);
   document.getElementById("stat-cash").textContent = fmtInt(cash);
   document.getElementById("stat-today").textContent = (todayPnl>=0?"+":"") + fmtInt(todayPnl);
+
+  // ===== Live Trading Return % — the leaderboard ranking metric =====
+  // Only counts capital actually deployed into trades (current holdings'
+  // cost + everything ever sold) — idle cash from upgrades/topups never
+  // enters this, so it's immune to the "upgrading tanks my rank" problem.
+  // This updates live on YOUR OWN screen every render (free — just math on
+  // data already streaming in); what gets PUBLISHED to the shared
+  // leaderboard only saves periodically (on trade/login/plan-change) to
+  // keep costs flat regardless of user count.
+  const tradingCapitalDeployed = invested + cumulativeSoldCostBasis;
+  const tradingGain = (holdval - invested) + cumulativeRealizedGain;
+  const tradingReturnPct = tradingCapitalDeployed > 0 ? (tradingGain / tradingCapitalDeployed * 100) : 0;
+  window._latestTradingReturnPct = tradingReturnPct; // read by cloudSave when publishing to leaderboard
+  const trEl = document.getElementById("trading-return-val");
+  if(trEl){
+    const hasTraded = tradingCapitalDeployed > 0;
+    trEl.textContent = hasTraded ? ((tradingReturnPct>=0?"+":"") + tradingReturnPct.toFixed(2) + "%") : "—";
+    trEl.className = "tr-val " + (tradingReturnPct >= 0 ? "g" : "r");
+  }
+
   const pnlEl = document.getElementById("port-pnl");
   // Overall P&L = current total value vs TRUE capital ever deposited
   // (signup + upgrades + topups) — NOT the current plan's nominal starting
@@ -1168,6 +1216,11 @@ function confirmTrade(){
     cash += proceeds;
     h.qty -= modalQty;
     if(h.qty === 0) delete holdings[modalStock.sym];
+    // Trading-return tracking — lifetime realized gain & cost basis of
+    // everything ever sold. Immune to plan upgrades (idle cash never
+    // touches this), unlike the overall account P&L stat above.
+    cumulativeRealizedGain += (modalStock.price - avgCostAtSale) * modalQty - ch.total;
+    cumulativeSoldCostBasis += avgCostAtSale * modalQty;
     recordTradeForLimit(); updateStatusBanner();
     showToast(`💰 ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
     logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total, avgCostAtSale);
@@ -1213,6 +1266,7 @@ function thisMonthStr(){
 
 function getState(){
   return {cash, holdings, orders: orders.slice(0,200), plan: userPlan, peakValue, totalCapitalIn,
+    cumulativeRealizedGain, cumulativeSoldCostBasis,
     planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth,
     rulesAgreedAt: window._rulesAgreedAt || null, updatedAt: Date.now()};
 }
@@ -1248,6 +1302,8 @@ function applyState(st){
       totalCapitalIn = cash + holdingsCostBasis;
     }
   }
+  cumulativeRealizedGain = typeof st.cumulativeRealizedGain === "number" ? st.cumulativeRealizedGain : 0;
+  cumulativeSoldCostBasis = typeof st.cumulativeSoldCostBasis === "number" ? st.cumulativeSoldCostBasis : 0;
   dailyTradeDate = st.dailyTradeDate || null;
   dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
   lastResetMonth = st.lastResetMonth || null;
@@ -1759,18 +1815,21 @@ if(!DEMO_MODE){
           const myEmail = (auth.currentUser?.email || "").toLowerCase();
           if(ADMIN_EMAILS_HIDE.includes(myEmail)) return;
           // Public leaderboard entry — only non-sensitive fields (no cash/holdings/orders)
-          // Pre-compute peak % gain here so Firestore can sort by it directly
-          // (orderBy needs a real stored field, not a derived calculation).
-          // This is what fixes "Pro always on top" — ranking by % growth
-          // relative to true capital deposited, not by raw ₹ size.
           const capIn = state.totalCapitalIn || PLAN_START[state.plan] || PLAN_START.trial;
           const peakPnlPct = capIn > 0 ? ((state.peakValue||0) - capIn) / capIn * 100 : 0;
+          // tradingReturnPct is the ACTUAL ranking metric now — computed live
+          // in renderSummary() from capital actually deployed into trades,
+          // completely immune to plan upgrades adding idle cash. This save
+          // only happens on trade/login/plan-change (not continuously), to
+          // keep cost flat regardless of user count — see hybrid model.
+          const tradingReturnPct = typeof window._latestTradingReturnPct === "number" ? window._latestTradingReturnPct : 0;
           await setDoc(doc(db, "leaderboard", uid), {
             displayName: auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",
             peakValue: state.peakValue || 0,
             totalCapitalIn: state.totalCapitalIn || 0,
             peakPnlPct: peakPnlPct,
+            tradingReturnPct: tradingReturnPct,
             plan: state.plan || "trial",
             updatedAt: Date.now()
           }, {merge:true});

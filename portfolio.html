@@ -82,6 +82,10 @@
   .port-val{font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
   .port-pnl{font-size:12.5px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:15px}
   .port-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .tr-row{display:flex;justify-content:space-between;align-items:center;margin-top:13px;padding-top:12px;border-top:1px solid var(--border)}
+  .tr-lbl{font-size:9.5px;color:var(--muted);font-weight:700}
+  .tr-val{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--subtle)}
+  .tr-val.g{color:var(--green)} .tr-val.r{color:var(--red)}
   .stat{display:flex;flex-direction:column;gap:2px}
   .stat-l{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:600}
   .stat-v{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace}
@@ -195,6 +199,10 @@
         <div class="stat"><span class="stat-l">Cash Left</span><span class="stat-v" id="s-cash">₹1,00,000</span></div>
         <div class="stat"><span class="stat-l">In Stocks</span><span class="stat-v" id="s-stocks">₹0</span></div>
         <div class="stat"><span class="stat-l">Peak</span><span class="stat-v" style="color:var(--gold)" id="s-peak">₹1,00,000</span></div>
+      </div>
+      <div class="tr-row">
+        <span class="tr-lbl">📈 Trading Return <span style="font-weight:600">(your leaderboard rank)</span></span>
+        <span class="tr-val" id="trading-return-val">—</span>
       </div>
     </div>
 
@@ -370,6 +378,8 @@ let orders = [];
 let userPlan = "trial";
 let peakValue = PLAN_START.trial;
 let totalCapitalIn = PLAN_START.trial; // true cost basis — see index.html for full explanation
+let cumulativeRealizedGain = 0; // lifetime realized gain — for Trading Return % (leaderboard ranking)
+let cumulativeSoldCostBasis = 0; // lifetime cost basis of everything ever sold
 let planStartDate = null;
 let lastTopupDate = null;
 let dailyTradeDate = null;
@@ -518,6 +528,18 @@ function render(){
   document.getElementById("s-stocks").textContent = fmtInt(holdval);
   document.getElementById("s-peak").textContent = fmtInt(peakValue);
 
+  // Live Trading Return % — same metric/explanation as index.html
+  const tradingCapitalDeployed = invested + cumulativeSoldCostBasis;
+  const tradingGain = (holdval - invested) + cumulativeRealizedGain;
+  const tradingReturnPct = tradingCapitalDeployed > 0 ? (tradingGain / tradingCapitalDeployed * 100) : 0;
+  window._latestTradingReturnPct = tradingReturnPct;
+  const trEl = document.getElementById("trading-return-val");
+  if(trEl){
+    const hasTraded = tradingCapitalDeployed > 0;
+    trEl.textContent = hasTraded ? ((tradingReturnPct>=0?"+":"") + tradingReturnPct.toFixed(2) + "%") : "—";
+    trEl.className = "tr-val " + (tradingReturnPct >= 0 ? "g" : "r");
+  }
+
   const start = totalCapitalIn || PLAN_START[userPlan];
   const pnl = total - start;
   const pct = (pnl/start*100);
@@ -646,6 +668,8 @@ function applyState(st){
       totalCapitalIn = cash + holdingsCostBasis;
     }
   }
+  cumulativeRealizedGain = typeof st.cumulativeRealizedGain === "number" ? st.cumulativeRealizedGain : 0;
+  cumulativeSoldCostBasis = typeof st.cumulativeSoldCostBasis === "number" ? st.cumulativeSoldCostBasis : 0;
   dailyTradeDate = st.dailyTradeDate || null;
   dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
   lastResetMonth = st.lastResetMonth || null;
@@ -659,6 +683,7 @@ function applyState(st){
 }
 function getState(){
   return {cash, holdings, orders:orders.slice(0,200), plan:userPlan, peakValue, totalCapitalIn,
+    cumulativeRealizedGain, cumulativeSoldCostBasis,
     planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth, updatedAt:Date.now()};
 }
 
@@ -825,6 +850,8 @@ function confirmTrade(){
     cash += (value - ch.total);
     h.qty -= tradeQty;
     if(h.qty === 0) delete holdings[tradeSym];
+    cumulativeRealizedGain += (px - avgCostAtSale) * tradeQty - ch.total;
+    cumulativeSoldCostBasis += avgCostAtSale * tradeQty;
     recordTradeForLimit();
     orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, avgCost:avgCostAtSale, t, date, ts:now.getTime()});
     showToast(`💰 ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
@@ -871,12 +898,14 @@ if(!DEMO_MODE){
           if(ADMIN_EMAILS_HIDE.includes(myEmail)) return; // skip public leaderboard for admin/test accounts
           const capIn = state.totalCapitalIn || PLAN_START[state.plan] || PLAN_START.trial;
           const peakPnlPct = capIn > 0 ? ((state.peakValue||0) - capIn) / capIn * 100 : 0;
+          const tradingReturnPct = typeof window._latestTradingReturnPct === "number" ? window._latestTradingReturnPct : 0;
           await setDoc(doc(db, "leaderboard", uid), {
             displayName: auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",
             peakValue: state.peakValue || 0,
             totalCapitalIn: state.totalCapitalIn || 0,
             peakPnlPct: peakPnlPct,
+            tradingReturnPct: tradingReturnPct,
             plan: state.plan || "trial",
             updatedAt: Date.now()
           }, {merge:true});
