@@ -418,8 +418,8 @@ if(!DEMO_MODE){
       const trades = (userData.orders||[]).filter(o=>o.side==="BUY"||o.side==="SELL").length;
       document.getElementById("ps-trades").textContent = trades;
 
-      // Certificate: Pro plan only + peak >= 10% above starting amount
-      const start = PLAN_START[userData.plan||"trial"];
+      // Certificate: Pro plan only + peak >= 10% above true capital invested
+      const start = userData.totalCapitalIn || PLAN_START[userData.plan||"trial"];
       const isProPlan = userData.plan === "pro"; // new tier name — certificate is a Pro-only perk
       if(isProPlan && peak >= start*1.1){
         document.getElementById("cert-zone").style.display = "block";

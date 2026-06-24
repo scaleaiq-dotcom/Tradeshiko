@@ -422,20 +422,26 @@ if(!DEMO_MODE){
         }
 
         const userSnap = await getDoc(doc(db,"users",uid));
-        const currentCash = userSnap.exists() && typeof userSnap.data().cash === "number" ? userSnap.data().cash : PLAN_START[userPlan];
+        const userData = userSnap.exists() ? userSnap.data() : {};
+        const currentCash = typeof userData.cash === "number" ? userData.cash : PLAN_START[userPlan];
+        const currentCapitalIn = typeof userData.totalCapitalIn === "number" ? userData.totalCapitalIn : currentCash;
         const now = Date.now();
-        let newCash;
+        let newCash, newCapitalIn;
         if(userPlan === "trial"){
           newCash = PLAN_START[c.plan]; // fresh start — trial cash discarded
+          newCapitalIn = PLAN_START[c.plan]; // P&L baseline resets too
         } else {
           newCash = currentCash + PLAN_START[c.plan]; // full new plan capital ADDED on top
+          newCapitalIn = currentCapitalIn + PLAN_START[c.plan]; // this is a deposit, not trading profit
         }
 
         await setDoc(doc(db,"users",uid), {
-          plan:c.plan, cash:newCash, planStartDate:now, lastTopupDate:now,
+          plan:c.plan, cash:newCash, totalCapitalIn:newCapitalIn, planStartDate:now, lastTopupDate:now,
           dailyTradeDate:null, dailyTradeCount:0
         }, {merge:true});
-        await setDoc(doc(db,"leaderboard",uid), {plan:c.plan}, {merge:true});
+        const peakForBoard = typeof userData.peakValue === "number" ? userData.peakValue : newCash;
+        const peakPnlPct = newCapitalIn > 0 ? (peakForBoard - newCapitalIn) / newCapitalIn * 100 : 0;
+        await setDoc(doc(db,"leaderboard",uid), {plan:c.plan, totalCapitalIn:newCapitalIn, peakPnlPct:peakPnlPct}, {merge:true});
         await setDoc(doc(db,"coupons",code), {usedCount:(c.usedCount||0)+1}, {merge:true});
 
         userPlan = c.plan;

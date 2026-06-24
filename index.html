@@ -685,6 +685,7 @@ const PLAN_PRICE = {basic:149, growth:299, pro:599}; // ₹/month
 let cash = PLAN_START.trial;
 let holdings = {};
 let peakValue = PLAN_START.trial;
+let totalCapitalIn = PLAN_START.trial; // true cost basis: every rupee ever deposited (signup + upgrades + topups), separate from plan-change "leftover" cash
 let modalStock = null, modalSide = "buy", modalQty = 1;
 let detailIdx = null;
 let userPlan = "trial"; // trial | basic | growth | pro — comes from Firestore once logged in
@@ -914,7 +915,11 @@ function renderSummary(){
   document.getElementById("stat-cash").textContent = fmtInt(cash);
   document.getElementById("stat-today").textContent = (todayPnl>=0?"+":"") + fmtInt(todayPnl);
   const pnlEl = document.getElementById("port-pnl");
-  const startAmt = PLAN_START[userPlan] || PLAN_START.trial;
+  // Overall P&L = current total value vs TRUE capital ever deposited
+  // (signup + upgrades + topups) — NOT the current plan's nominal starting
+  // amount, which would wrongly count leftover capital from a higher plan
+  // (after a downgrade) or free top-ups as if they were trading profit.
+  const startAmt = totalCapitalIn || PLAN_START[userPlan] || PLAN_START.trial;
   const overallPnl = total - startAmt;
   const overallPct = (overallPnl/startAmt*100);
   pnlEl.textContent = (overallPnl>=0?"▲ +":"▼ ") + fmtInt(Math.abs(overallPnl)) + ` (${overallPnl>=0?"+":""}${overallPct.toFixed(2)}%)`;
@@ -1158,13 +1163,14 @@ function confirmTrade(){
       err.textContent = "Itne shares nahi hain! Aapke paas: " + (h ? h.qty : 0);
       err.style.display = "block"; return;
     }
+    const avgCostAtSale = h.avg; // capture before qty/holding changes below
     const proceeds = value - ch.total;
     cash += proceeds;
     h.qty -= modalQty;
     if(h.qty === 0) delete holdings[modalStock.sym];
     recordTradeForLimit(); updateStatusBanner();
     showToast(`💰 ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
-    logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total);
+    logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total, avgCostAtSale);
   }
   closeModal();
   renderWatchlist(); renderSummary();
@@ -1172,11 +1178,13 @@ function confirmTrade(){
   track(modalSide === "buy" ? "trade_buy" : "trade_sell", {stock: modalStock.sym, qty: modalQty});
   if(window.cloudSave) window.cloudSave(getState());
 }
-function logOrder(side, sym, qty, price, charges){
+function logOrder(side, sym, qty, price, charges, avgCost){
   const now = new Date();
   const t = now.toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit", timeZone:"Asia/Kolkata"});
   const date = now.toLocaleDateString("en-IN", {timeZone:"Asia/Kolkata"});
-  orders.unshift({side, sym, qty, price, charges:charges||0, t, date, ts:now.getTime()});
+  const entry = {side, sym, qty, price, charges:charges||0, t, date, ts:now.getTime()};
+  if(typeof avgCost === "number") entry.avgCost = avgCost; // cost basis at time of SELL — needed for realized P&L
+  orders.unshift(entry);
   if(orders.length > 100) orders.pop(); // keep more for reports; display limits to 5
 }
 
@@ -1204,7 +1212,7 @@ function thisMonthStr(){
 }
 
 function getState(){
-  return {cash, holdings, orders: orders.slice(0,200), plan: userPlan, peakValue,
+  return {cash, holdings, orders: orders.slice(0,200), plan: userPlan, peakValue, totalCapitalIn,
     planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth,
     rulesAgreedAt: window._rulesAgreedAt || null, updatedAt: Date.now()};
 }
@@ -1222,11 +1230,23 @@ function applyState(st){
     planStartDate = Date.now();
     lastTopupDate = Date.now();
     peakValue = PLAN_START.trial;
+    totalCapitalIn = PLAN_START.trial;
   } else {
     userPlan = st.plan;
     peakValue = typeof st.peakValue === "number" ? st.peakValue : PLAN_START[userPlan];
     planStartDate = st.planStartDate || null;
     lastTopupDate = st.lastTopupDate || null;
+    // Migration for accounts saved before totalCapitalIn existed: there's no
+    // way to know their true historical cost basis, so the most honest thing
+    // is to start P&L tracking from right now — cash + holdings at their
+    // AVERAGE BUY PRICE (not live price) has zero unrealized gain by
+    // definition, which is exactly the correct "fresh, accurate baseline".
+    if(typeof st.totalCapitalIn === "number"){
+      totalCapitalIn = st.totalCapitalIn;
+    } else {
+      const holdingsCostBasis = Object.values(holdings).reduce((sum,h)=>sum + h.qty*h.avg, 0);
+      totalCapitalIn = cash + holdingsCostBasis;
+    }
   }
   dailyTradeDate = st.dailyTradeDate || null;
   dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
@@ -1236,7 +1256,8 @@ function applyState(st){
   (st.orders || []).forEach(o=>orders.push(o));
   updatePlanBadge();
   renderWatchlist(); renderSummary();
-  if(isLegacyOrUnknown && window.cloudSave) window.cloudSave(getState()); // persist the migration
+  const needsMigrationSave = isLegacyOrUnknown || typeof st.totalCapitalIn !== "number";
+  if(needsMigrationSave && window.cloudSave) window.cloudSave(getState()); // persist the migration
 }
 function updatePlanBadge(){
   const badge = document.getElementById("plan-badge");
@@ -1319,10 +1340,12 @@ function applyPlanChange(newPlan){
   let amount = 0;
   if(oldPlan === "trial"){
     cash = PLAN_START[newPlan]; // fresh start — trial cash discarded
+    totalCapitalIn = PLAN_START[newPlan]; // P&L baseline resets too, same fresh start
     amount = PLAN_START[newPlan];
   } else if(PLAN_RANK_LOCAL[newPlan] > PLAN_RANK_LOCAL[oldPlan]){
     amount = PLAN_START[newPlan]; // full new plan capital ADDED on top — not just the difference
     cash += amount;
+    totalCapitalIn += amount; // this is a deposit, not trading profit — must not show as P&L
   } else if(PLAN_RANK_LOCAL[newPlan] < PLAN_RANK_LOCAL[oldPlan]){
     amount = 0; // downgrade — cash unchanged, only limits change below
   } else {
@@ -1354,6 +1377,7 @@ function checkMonthlyTopup(){
   const monthsToCredit = Math.min(monthsDue, 12); // sanity cap
   const amount = monthsToCredit * (MONTHLY_TOPUP[userPlan] || 0);
   cash += amount;
+  totalCapitalIn += amount; // free monthly top-up is a deposit, not trading profit
   lastTopupDate = (lastTopupDate || planStartDate) + (monthsToCredit * ONE_MONTH_MS);
   renderSummary();
   if(window.cloudSave) window.cloudSave(getState());
@@ -1735,10 +1759,18 @@ if(!DEMO_MODE){
           const myEmail = (auth.currentUser?.email || "").toLowerCase();
           if(ADMIN_EMAILS_HIDE.includes(myEmail)) return;
           // Public leaderboard entry — only non-sensitive fields (no cash/holdings/orders)
+          // Pre-compute peak % gain here so Firestore can sort by it directly
+          // (orderBy needs a real stored field, not a derived calculation).
+          // This is what fixes "Pro always on top" — ranking by % growth
+          // relative to true capital deposited, not by raw ₹ size.
+          const capIn = state.totalCapitalIn || PLAN_START[state.plan] || PLAN_START.trial;
+          const peakPnlPct = capIn > 0 ? ((state.peakValue||0) - capIn) / capIn * 100 : 0;
           await setDoc(doc(db, "leaderboard", uid), {
             displayName: auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",
             peakValue: state.peakValue || 0,
+            totalCapitalIn: state.totalCapitalIn || 0,
+            peakPnlPct: peakPnlPct,
             plan: state.plan || "trial",
             updatedAt: Date.now()
           }, {merge:true});

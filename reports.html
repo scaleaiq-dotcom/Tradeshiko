@@ -28,6 +28,11 @@
   .hdr-link{font-size:11px;color:var(--accent);font-weight:700}
 
   /* Summary strip */
+  .pnl-hero{margin:6px 14px 12px;padding:18px;border-radius:16px;background:var(--card);border:1px solid var(--border);text-align:center}
+  .pnl-hero-lbl{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px}
+  .pnl-hero-val{font-size:26px;font-weight:900;font-family:'JetBrains Mono',monospace}
+  .pnl-hero-val.g{color:var(--green)} .pnl-hero-val.r{color:var(--red)}
+  .pnl-hero-note{font-size:10px;color:var(--muted);margin-top:7px;line-height:1.5}
   .summary-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 14px 14px;margin-top:6px}
   .sum-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 10px;text-align:center}
   .sum-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:4px}
@@ -66,6 +71,11 @@
   .tl-charge{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace}
 
   .day-totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+  .day-pnl-row{display:flex;justify-content:space-between;align-items:center;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border)}
+  .day-pnl-lbl{font-size:10.5px;color:var(--subtle);font-weight:700}
+  .day-pnl-val{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace}
+  .day-pnl-val.g{color:var(--green)} .day-pnl-val.r{color:var(--red)}
+  .day-pnl-note{font-size:9px;color:var(--muted);margin-top:4px;font-style:italic}
   .dt-item{text-align:center}
   .dt-k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
   .dt-v{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:2px}
@@ -108,6 +118,13 @@
   </div>
 
   <div class="screen">
+
+    <!-- Overall Realized P&L — the headline number -->
+    <div class="pnl-hero" id="pnl-hero">
+      <div class="pnl-hero-lbl">Overall Realized P&L <span style="font-weight:600">(within your history window)</span></div>
+      <div class="pnl-hero-val" id="pnl-hero-val">₹0</div>
+      <div class="pnl-hero-note" id="pnl-hero-note"></div>
+    </div>
 
     <!-- Summary -->
     <div class="summary-row">
@@ -195,6 +212,27 @@ function renderReport(orders, plan){
   const totalCharges = trades.reduce((sum,o)=>sum+(o.charges||0),0);
   document.getElementById("sum-charges").textContent = fmtInt(totalCharges);
 
+  // ===== Overall Realized P&L =====
+  // Realized P&L only exists for SELL orders, computed as (sell price - cost
+  // basis at time of sale) × qty − charges. Cost basis is captured at the
+  // moment of sale (see confirmTrade in index.html/portfolio.html) — older
+  // sales made before this tracking existed won't have it, so they're
+  // honestly excluded from the P&L sum rather than guessed at.
+  let overallPnl = 0;
+  let untracked = 0;
+  trades.forEach(o=>{
+    if(o.side !== "SELL") return;
+    if(typeof o.avgCost !== "number"){ untracked++; return; }
+    overallPnl += (o.price - o.avgCost) * o.qty - (o.charges||0);
+  });
+  const pnlHeroVal = document.getElementById("pnl-hero-val");
+  const pnlHeroNote = document.getElementById("pnl-hero-note");
+  pnlHeroVal.textContent = (overallPnl>=0?"+":"") + fmtInt(overallPnl);
+  pnlHeroVal.className = "pnl-hero-val " + (overallPnl>=0?"g":"r");
+  pnlHeroNote.textContent = untracked > 0
+    ? `From completed sells in this window. ${untracked} older sale${untracked===1?'':'s'} predates P&L tracking and isn't included.`
+    : `From all completed sells within your ${retentionDays}-day history window.`;
+
   // group by date
   const groups = {};
   trades.forEach(o=>{
@@ -217,15 +255,22 @@ function renderReport(orders, plan){
 
   listEl.innerHTML = dates.map((date, idx)=>{
     const dayOrders = groups[date];
-    let bought = 0, sold = 0, charges = 0;
+    let bought = 0, sold = 0, charges = 0, dayPnl = 0, dayUntracked = 0;
     dayOrders.forEach(o=>{
       if(o.side==="BUY") bought += (o.qty*o.price);
-      if(o.side==="SELL") sold += (o.qty*o.price);
+      if(o.side==="SELL"){
+        sold += (o.qty*o.price);
+        if(typeof o.avgCost === "number") dayPnl += (o.price - o.avgCost) * o.qty - (o.charges||0);
+        else dayUntracked++;
+      }
       charges += (o.charges||0);
     });
     const netFlow = sold - bought - charges;
     const flowCls = netFlow >= 0 ? "g" : "r";
     const flowSign = netFlow >= 0 ? "+" : "";
+    const pnlCls = dayPnl >= 0 ? "g" : "r";
+    const pnlSign = dayPnl >= 0 ? "+" : "";
+    const hasSells = sold > 0;
     const tradeCount = dayOrders.filter(o=>o.side!=="RESET").length;
 
     const lines = dayOrders.map(o=>{
@@ -268,6 +313,10 @@ function renderReport(orders, plan){
           <div class="dt-item"><div class="dt-k">Sold</div><div class="dt-v">${fmtInt(sold)}</div></div>
           <div class="dt-item"><div class="dt-k">Charges</div><div class="dt-v r">${fmtInt(charges)}</div></div>
         </div>
+        ${hasSells ? `<div class="day-pnl-row">
+          <span class="day-pnl-lbl">Realized P&L this day</span>
+          <span class="day-pnl-val ${pnlCls}">${pnlSign}${fmtInt(Math.abs(dayPnl))}</span>
+        </div>${dayUntracked>0?`<div class="day-pnl-note">${dayUntracked} sale${dayUntracked===1?'':'s'} this day predates P&L tracking, not included above</div>`:``}` : ``}
       </div>
     </div>`;
   }).join("");

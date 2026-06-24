@@ -71,8 +71,9 @@
   .ldr-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ldr-plan{font-size:9px;color:var(--muted);margin-top:1px}
   .ldr-profit{text-align:right;flex-shrink:0}
-  .ldr-amt{font-size:12px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--green)}
-  .ldr-pct{font-size:9px;color:var(--green);font-family:'JetBrains Mono',monospace;margin-top:1px}
+  .ldr-amt{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:1px}
+  .ldr-pct{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace}
+  .ldr-pct.g{color:var(--green)} .ldr-pct.r{color:var(--red)}
 
   .empty{color:var(--muted);font-size:12.5px;background:var(--card);border:1px dashed var(--border);
     border-radius:13px;padding:24px;text-align:center;margin:0 14px}
@@ -220,13 +221,13 @@ function renderLeaderboard(entries, myUid){
     if(!e) return;
     const rank = idx+1;
     const size = rank===1 ? 50 : rank===2 ? 40 : 36;
-    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||PLAN_START.trial);
+    const pct = typeof e.peakPnlPct === "number" ? e.peakPnlPct : 0;
     const barH = rank===1?60:rank===2?40:30;
     const crown = rank===1 ? " 👑" : "";
     podiumHtml += `<div class="pod">
       <div class="pod-av" style="width:${size}px;height:${size}px;font-size:${rank===1?18:13}px;background:${avatarGrad(idx)};${e.photoURL?`background-image:url(${e.photoURL});`:''}">${e.photoURL?'':initialOf(e.displayName)}</div>
       <div class="pod-name" style="color:${rank===1?'var(--gold)':'var(--subtle)'}">${(e.displayName||'Trader').split(' ')[0]}${crown}</div>
-      <div class="pod-profit">${pnl>=0?'+':''}${fmtInt(pnl)}</div>
+      <div class="pod-profit">${pct>=0?'+':''}${pct.toFixed(1)}%</div>
       <div class="pod-bar" style="height:${barH}px;background:linear-gradient(180deg,${rank===1?'#92400E,#451A03':rank===2?'#374151,#1F2937':'#431407,#1F2937'});font-size:${rank===1?18:14}px;color:${rank===1?'var(--gold)':rank===2?'#9CA3AF':'#CD7C3A'}">${rank}</div>
     </div>`;
   });
@@ -237,9 +238,10 @@ function renderLeaderboard(entries, myUid){
   const listEl = document.getElementById("ldr-list");
   listEl.innerHTML = entries.slice(0,50).map((e,i)=>{
     const isYou = e.uid === myUid;
-    const pnl = (e.peakValue||0) - (PLAN_START[e.plan]||PLAN_START.trial);
-    const startAmt = PLAN_START[e.plan]||PLAN_START.trial;
-    const pct = (pnl/startAmt*100);
+    const startAmt = e.totalCapitalIn || PLAN_START[e.plan] || PLAN_START.trial;
+    const pnl = (e.peakValue||0) - startAmt;
+    const pct = typeof e.peakPnlPct === "number" ? e.peakPnlPct : (pnl/startAmt*100);
+    const pctCls = pct >= 0 ? "g" : "r";
     const rankColor = i===0?"var(--gold)":i===1?"var(--subtle)":i===2?"#CD7C3A":"var(--muted)";
     const planLabel = ({trial:'Trial',basic:'Basic',growth:'Growth',pro:'Pro'})[e.plan] || 'Trial';
     return `<div class="ldr ${isYou?'you':''}">
@@ -250,8 +252,8 @@ function renderLeaderboard(entries, myUid){
         <div class="ldr-plan">${planLabel}</div>
       </div>
       <div class="ldr-profit">
+        <div class="ldr-pct ${pctCls}">${pct>=0?'+':''}${pct.toFixed(1)}%</div>
         <div class="ldr-amt">${pnl>=0?'+':''}${fmtInt(pnl)}</div>
-        <div class="ldr-pct">${pnl>=0?'+':''}${pct.toFixed(1)}%</div>
       </div>
     </div>`;
   }).join("");
@@ -289,7 +291,7 @@ if(!DEMO_MODE){
       const al = document.getElementById("auth-loading");
       if(user){
         try{
-          const q = query(collection(db,"leaderboard"), orderBy("peakValue","desc"), limit(100));
+          const q = query(collection(db,"leaderboard"), orderBy("peakPnlPct","desc"), limit(100));
           const snap = await getDocs(q);
           const entries = [];
           snap.forEach(d=>entries.push({uid:d.id, ...d.data()}));

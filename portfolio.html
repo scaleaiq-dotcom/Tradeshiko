@@ -369,6 +369,7 @@ let holdings = {};
 let orders = [];
 let userPlan = "trial";
 let peakValue = PLAN_START.trial;
+let totalCapitalIn = PLAN_START.trial; // true cost basis — see index.html for full explanation
 let planStartDate = null;
 let lastTopupDate = null;
 let dailyTradeDate = null;
@@ -517,7 +518,7 @@ function render(){
   document.getElementById("s-stocks").textContent = fmtInt(holdval);
   document.getElementById("s-peak").textContent = fmtInt(peakValue);
 
-  const start = PLAN_START[userPlan];
+  const start = totalCapitalIn || PLAN_START[userPlan];
   const pnl = total - start;
   const pct = (pnl/start*100);
   const pnlEl = document.getElementById("port-pnl");
@@ -630,24 +631,34 @@ function applyState(st){
     planStartDate = Date.now();
     lastTopupDate = Date.now();
     peakValue = PLAN_START.trial;
+    totalCapitalIn = PLAN_START.trial;
   } else {
     userPlan = st.plan;
     peakValue = typeof st.peakValue==="number" ? st.peakValue : PLAN_START[userPlan];
     planStartDate = st.planStartDate || null;
     lastTopupDate = st.lastTopupDate || null;
+    // Migration for accounts saved before totalCapitalIn existed — see
+    // index.html's applyState for the full explanation of this approach.
+    if(typeof st.totalCapitalIn === "number"){
+      totalCapitalIn = st.totalCapitalIn;
+    } else {
+      const holdingsCostBasis = Object.values(holdings).reduce((sum,h)=>sum + h.qty*h.avg, 0);
+      totalCapitalIn = cash + holdingsCostBasis;
+    }
   }
   dailyTradeDate = st.dailyTradeDate || null;
   dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
   lastResetMonth = st.lastResetMonth || null;
   render();
-  if(isLegacyOrUnknown && window.cloudSave) window.cloudSave(getState());
+  const needsMigrationSave = isLegacyOrUnknown || typeof st.totalCapitalIn !== "number";
+  if(needsMigrationSave && window.cloudSave) window.cloudSave(getState());
   // Mandatory Rules & Regulations gate — must agree once before using the app
   if(!st.rulesAgreedAt){
     location.href = "rules.html";
   }
 }
 function getState(){
-  return {cash, holdings, orders:orders.slice(0,200), plan:userPlan, peakValue,
+  return {cash, holdings, orders:orders.slice(0,200), plan:userPlan, peakValue, totalCapitalIn,
     planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth, updatedAt:Date.now()};
 }
 
@@ -668,6 +679,7 @@ function doReset(){
   }
   const start = PLAN_START[userPlan];
   cash = start;
+  totalCapitalIn = start; // P&L baseline resets too — fresh start for tracking going forward
   holdings = {};
   lastResetMonth = thisMonthStr();
   orders.unshift({side:"RESET", sym:"Portfolio", qty:"", price:0, t:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"})});
@@ -809,11 +821,12 @@ function confirmTrade(){
   } else {
     const h = holdings[tradeSym];
     if(!h || tradeQty > h.qty){ err.textContent = "Itne shares nahi! Aapke paas: "+(h?h.qty:0); err.style.display="block"; return; }
+    const avgCostAtSale = h.avg; // capture before qty/holding changes below
     cash += (value - ch.total);
     h.qty -= tradeQty;
     if(h.qty === 0) delete holdings[tradeSym];
     recordTradeForLimit();
-    orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, t, date, ts:now.getTime()});
+    orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, avgCost:avgCostAtSale, t, date, ts:now.getTime()});
     showToast(`💰 ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
   }
   if(orders.length > 100) orders.pop();
@@ -856,10 +869,14 @@ if(!DEMO_MODE){
           await setDoc(doc(db,"users",uid), state, {merge:true});
           const myEmail = (auth.currentUser?.email || "").toLowerCase();
           if(ADMIN_EMAILS_HIDE.includes(myEmail)) return; // skip public leaderboard for admin/test accounts
+          const capIn = state.totalCapitalIn || PLAN_START[state.plan] || PLAN_START.trial;
+          const peakPnlPct = capIn > 0 ? ((state.peakValue||0) - capIn) / capIn * 100 : 0;
           await setDoc(doc(db, "leaderboard", uid), {
             displayName: auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",
             peakValue: state.peakValue || 0,
+            totalCapitalIn: state.totalCapitalIn || 0,
+            peakPnlPct: peakPnlPct,
             plan: state.plan || "trial",
             updatedAt: Date.now()
           }, {merge:true});
