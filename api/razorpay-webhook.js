@@ -66,6 +66,7 @@ module.exports = async function handler(req, res){
     const userData = userSnap.exists ? userSnap.data() : {};
     const currentPlan = VALID_PLANS.includes(userData.plan) ? userData.plan : 'trial';
     const currentCash = typeof userData.cash === 'number' ? userData.cash : PLAN_START.trial;
+    const currentCapitalIn = typeof userData.totalCapitalIn === 'number' ? userData.totalCapitalIn : currentCash;
     const now = Date.now();
 
     if (kind === 'plan') {
@@ -77,15 +78,20 @@ module.exports = async function handler(req, res){
       // start; any paid-plan payment (whether a renewal of the same plan or
       // a genuine upgrade) ADDS the full new plan's capital on top of
       // whatever cash they currently have. Holdings are never touched here.
-      let newCash;
+      // totalCapitalIn tracks the TRUE cost basis (deposits only) so P&L
+      // never confuses a deposit with trading profit.
+      let newCash, newCapitalIn;
       if (currentPlan === 'trial') {
         newCash = PLAN_START[planId]; // trial -> paid: fresh start, trial cash discarded
+        newCapitalIn = PLAN_START[planId];
       } else {
         newCash = currentCash + PLAN_START[planId]; // full new plan capital added on top
+        newCapitalIn = currentCapitalIn + PLAN_START[planId];
       }
       await userRef.set({
         plan: planId,
         cash: newCash,
+        totalCapitalIn: newCapitalIn,
         planStartDate: now,
         lastTopupDate: now,
         dailyTradeDate: null,
@@ -95,10 +101,14 @@ module.exports = async function handler(req, res){
       // Mirror to leaderboard — respecting the same admin-exclusion rule used client-side
       const myEmail = (userData.email || '').toLowerCase();
       if (!ADMIN_EMAILS.includes(myEmail)) {
+        const peakForBoard = userData.peakValue || newCash;
+        const peakPnlPct = newCapitalIn > 0 ? (peakForBoard - newCapitalIn) / newCapitalIn * 100 : 0;
         await db.doc('leaderboard/' + uid).set({
           displayName: userData.displayName || 'Trader',
           photoURL: userData.photoURL || '',
-          peakValue: userData.peakValue || newCash,
+          totalCapitalIn: newCapitalIn,
+          peakValue: peakForBoard,
+          peakPnlPct: peakPnlPct,
           plan: planId,
           updatedAt: now
         }, { merge: true });
@@ -109,7 +119,8 @@ module.exports = async function handler(req, res){
         console.error('Invalid topupPaise on payment notes:', topupPaise);
         return res.status(200).json({ received: true, skipped: true, reason: 'invalid topup amount' });
       }
-      await userRef.set({ cash: currentCash + grantAmount }, { merge: true });
+      // Top-up is a deposit, not trading profit — must count toward the cost basis too
+      await userRef.set({ cash: currentCash + grantAmount, totalCapitalIn: currentCapitalIn + grantAmount }, { merge: true });
     } else {
       return res.status(200).json({ received: true, skipped: true, reason: 'unknown kind: ' + kind });
     }
