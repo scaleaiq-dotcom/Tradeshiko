@@ -100,6 +100,7 @@
     max-width:88%;text-align:center;opacity:0;pointer-events:none}
   .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 </style>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 <div class="app">
@@ -260,11 +261,59 @@ if(highlightPlan){
   }
 }
 
-function startUpgrade(plan){
-  showToast("💳 Online payment launching soon! Use a coupon code below or message us on WhatsApp.");
+async function startUpgrade(plan){
+  if(!window.myUid){ showToast("Please login first (go to Market tab)"); return; }
+  await openRazorpayCheckout({ kind: "plan", id: plan, description: plan.charAt(0).toUpperCase()+plan.slice(1)+" Plan — TradeSeekho" });
 }
-function startTopup(price, amount){
-  showToast("💳 Top-up payments launching soon! ₹"+price+" for "+fmtInt(amount)+" will be available shortly.");
+async function startTopup(price, amount){
+  if(!window.myUid){ showToast("Please login first (go to Market tab)"); return; }
+  const paise = Math.round(price * 100);
+  await openRazorpayCheckout({ kind: "topup", id: String(paise), description: "Top-up: +"+fmtInt(amount)+" virtual capital" });
+}
+
+async function openRazorpayCheckout({ kind, id, description }){
+  showToast("Opening secure payment...");
+  try{
+    const resp = await fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid: window.myUid, kind, id })
+    });
+    const order = await resp.json();
+    if(!order.success){ showToast("Couldn't start payment: " + (order.error||"try again")); return; }
+
+    const options = {
+      key: order.keyId,
+      amount: order.amount,
+      currency: order.currency,
+      name: "ScaleAIQ",
+      description: description,
+      order_id: order.orderId,
+      prefill: { email: (window.firebase_currentUserEmail || "") },
+      theme: { color: "#3B82F6" },
+      handler: function(response){
+        showToast("✅ Payment successful! Updating your account...");
+        waitForGrantAndRefresh();
+      },
+      modal: {
+        ondismiss: function(){ /* user closed checkout — no action needed */ }
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.on("payment.failed", function(resp){
+      showToast("❌ Payment failed: " + (resp.error?.description || "please try again"));
+    });
+    rzp.open();
+  }catch(e){
+    console.error("Checkout failed", e);
+    showToast("Couldn't start payment — check your connection and try again");
+  }
+}
+
+// Webhook processing usually takes 1-3 seconds. Poll briefly, then reload
+// so the user sees their updated plan/cash reflected everywhere.
+function waitForGrantAndRefresh(){
+  setTimeout(()=>{ location.href = "index.html"; }, 2500);
 }
 
 function contactWhatsApp(){
@@ -362,6 +411,8 @@ if(!DEMO_MODE){
     onAuthStateChanged(auth, async (user)=>{
       if(user){
         uid = user.uid;
+        window.myUid = uid;
+        window.firebase_currentUserEmail = user.email || "";
         try{
           const snap = await getDoc(doc(db,"users",uid));
           if(snap.exists()){
