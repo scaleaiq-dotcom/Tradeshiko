@@ -158,8 +158,8 @@
   .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:72px;
     background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);
     display:flex;align-items:center;justify-content:space-around;padding:0 4px 10px;z-index:10}
-  .nav-i{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px;border-radius:11px;
-    cursor:pointer;flex:1;max-width:80px}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 9px;border-radius:11px;
+    cursor:pointer;flex:1;max-width:70px}
   .nav-i.act{background:rgba(59,130,246,0.12)}
   .nav-icon{font-size:18px;line-height:1}
   .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
@@ -483,6 +483,9 @@
     <div class="nav-i" onclick="location.href='community.html'">
       <span class="nav-icon">💬</span><span class="nav-lbl">Community</span>
     </div>
+    <div class="nav-i" onclick="location.href='plans.html'">
+      <span class="nav-icon">💎</span><span class="nav-lbl">Plans</span>
+    </div>
     <div class="nav-i" onclick="location.href='profile.html'">
       <span class="nav-icon">👤</span><span class="nav-lbl">Profile</span>
     </div>
@@ -673,6 +676,8 @@ const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
 const MONTHLY_TOPUP = {trial:0, basic:50000, growth:100000, pro:200000};
 const STOCK_LIMIT = {trial:50, basic:15, growth:30, pro:50};
 const DAILY_TRADE_LIMIT = {trial:Infinity, basic:10, growth:25, pro:Infinity};
+const PER_TRADE_CAP = {trial:Infinity, basic:50000, growth:150000, pro:Infinity};
+const PLAN_DURATION_DAYS = 30;
 const HISTORY_DAYS = {trial:3, basic:5, growth:15, pro:30};
 const PLAN_LABEL = {trial:"TRIAL", basic:"BASIC", growth:"GROWTH", pro:"PRO"};
 const PLAN_PRICE = {basic:149, growth:299, pro:599}; // ₹/month
@@ -738,7 +743,7 @@ function tick(){
     s.history.push(s.price);
     if(s.history.length > MAX_HIST) s.history.shift();
   });
-  renderTicker(); renderWatchlist(); renderSummary(); updateClock(); updateStatusBanner();
+  renderTicker(); renderWatchlist(); renderSummary(); updateClock(); updateStatusBanner(); if(window.updateMarketStatusUI) window.updateMarketStatusUI();
   if(detailIdx !== null) renderDetail();
 }
 
@@ -1083,6 +1088,10 @@ function isTrialExpired(){
   if(userPlan !== "trial" || !planStartDate) return false;
   return Date.now() > planStartDate + (TRIAL_DAYS * 24*60*60*1000);
 }
+function isPlanExpired(){
+  if(userPlan === "trial" || !planStartDate) return false;
+  return Date.now() > planStartDate + (PLAN_DURATION_DAYS * 24*60*60*1000);
+}
 function getTradesRemainingToday(){
   const limit = DAILY_TRADE_LIMIT[userPlan] ?? DAILY_TRADE_LIMIT.basic;
   if(limit === Infinity) return Infinity;
@@ -1107,6 +1116,12 @@ function confirmTrade(){
     closeModal();
     return;
   }
+  if(isPlanExpired()){
+    showToast("⏰ Your "+PLAN_LABEL[userPlan]+" plan has expired. Renew to keep trading!");
+    setTimeout(()=>location.href="plans.html", 1200);
+    closeModal();
+    return;
+  }
   const remaining = getTradesRemainingToday();
   if(remaining <= 0){
     const err = document.getElementById("m-err");
@@ -1115,6 +1130,13 @@ function confirmTrade(){
     return;
   }
   const value = modalQty * modalStock.price;
+  const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
+  if(value > tradeCap){
+    const err = document.getElementById("m-err");
+    err.textContent = `Max ₹${fmtInt(tradeCap)} per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
+    err.style.display = "block";
+    return;
+  }
   const ch = calcCharges(value);
   const err = document.getElementById("m-err");
   if(modalSide === "buy"){
@@ -1248,6 +1270,14 @@ function updateStatusBanner(){
       banner.style.display = "none";
     }
   } else {
+    if(isPlanExpired()){
+      banner.style.display = "block";
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `⏰ Your ${PLAN_LABEL[userPlan]} plan has expired. <a href="plans.html" style="color:var(--red);text-decoration:underline">Renew now →</a>`;
+      return;
+    }
     const limit = DAILY_TRADE_LIMIT[userPlan];
     if(limit !== Infinity){
       const remaining = getTradesRemainingToday();
@@ -1264,19 +1294,22 @@ function updateStatusBanner(){
   }
 }
 
-// ===== Plan upgrade: trial→paid is a fresh start; paid→higher-paid adds the difference =====
-function applyPlanUpgrade(newPlan){
+// ===== Plan change: trial→paid is a fresh start; paid→higher-paid ADDS the
+// full new plan's capital on top of current cash (holdings always untouched);
+// downgrade just changes limits, cash stays exactly as-is =====
+function applyPlanChange(newPlan){
   const oldPlan = userPlan;
   let amount = 0;
   if(oldPlan === "trial"){
-    // Converting from trial to a real paid plan = fresh start at that plan's own capital
-    cash = PLAN_START[newPlan];
+    cash = PLAN_START[newPlan]; // fresh start — trial cash discarded
     amount = PLAN_START[newPlan];
   } else if(PLAN_RANK_LOCAL[newPlan] > PLAN_RANK_LOCAL[oldPlan]){
-    amount = PLAN_START[newPlan] - PLAN_START[oldPlan];
+    amount = PLAN_START[newPlan]; // full new plan capital ADDED on top — not just the difference
     cash += amount;
+  } else if(PLAN_RANK_LOCAL[newPlan] < PLAN_RANK_LOCAL[oldPlan]){
+    amount = 0; // downgrade — cash unchanged, only limits change below
   } else {
-    return 0; // not a valid upgrade
+    return 0; // same plan, nothing to do
   }
   userPlan = newPlan;
   planStartDate = Date.now();
@@ -1287,6 +1320,8 @@ function applyPlanUpgrade(newPlan){
   if(window.cloudSave) window.cloudSave(getState());
   return amount;
 }
+// Old name kept as alias so any existing call sites keep working
+function applyPlanUpgrade(newPlan){ return applyPlanChange(newPlan);}
 
 // ===== Monthly top-up: checked once per login =====
 function checkMonthlyTopup(){
@@ -1409,7 +1444,11 @@ if(!DEMO_MODE){
     function updateMarketStatusUI(){
       const dotEl = document.querySelector(".live-dot");
       if(!dotEl) return;
-      if(marketOpenStatus === false){
+      // Use the reliable client-side market-hours check (accounts for time,
+      // weekends, and the official NSE holiday list) rather than the
+      // server-reported flag, which can go stale outside market hours since
+      // the price-fetch function simply skips writing anything when closed.
+      if(!isMarketOpenNow()){
         dotEl.innerHTML = '<span class="dot" style="background:var(--muted);animation:none"></span>CLOSED';
         dotEl.style.color = "var(--muted)";
       } else if(liveDataActive){
@@ -1418,6 +1457,7 @@ if(!DEMO_MODE){
       }
       // if neither, leave the default "LIVE" placeholder as-is (simulated, pre-first-fetch)
     }
+    window.updateMarketStatusUI = updateMarketStatusUI;
 
     const PLAN_RANK = {trial:0, basic:1, growth:2, pro:3};
 

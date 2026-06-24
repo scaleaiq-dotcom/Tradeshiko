@@ -19,7 +19,15 @@
   .mono{font-family:'JetBrains Mono',monospace}
   a{color:inherit;text-decoration:none}
   .app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
-  .screen{flex:1;padding-bottom:30px}
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:72px;
+    background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-around;padding:0 4px 10px;z-index:10}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 9px;border-radius:11px;cursor:pointer;flex:1;max-width:70px}
+  .nav-i.act{background:rgba(59,130,246,0.12)}
+  .nav-icon{font-size:18px;line-height:1}
+  .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .nav-i.act .nav-lbl{color:var(--accent)}
+  .screen{flex:1;padding-bottom:90px}
 
   .back-hdr{padding:14px 16px 8px;display:flex;align-items:center;gap:12px}
   .back-btn{font-size:18px;color:var(--subtle);cursor:pointer}
@@ -62,6 +70,7 @@
   .plan-btn.growth-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
   .plan-btn.pro-btn{background:linear-gradient(135deg,#D97706,var(--gold));color:#fff}
   .plan-btn.current{background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
+  .plan-btn.downgrade-btn{background:var(--surface);border:1px solid var(--border);color:var(--subtle)}
 
   .topup-grid{padding:0 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
   .topup-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:13px;text-align:center}
@@ -112,7 +121,7 @@
 
   <div class="screen">
 
-    <div class="intro"><p>3-day free trial · Cancel anytime · No hidden charges</p></div>
+    <div class="intro"><p>3-day free trial · Renews every 30 days · No hidden charges</p></div>
 
     <div class="launch-notice">
       <div class="launch-notice-title">🚀 Early Access Phase</div>
@@ -137,6 +146,7 @@
           <div class="plan-feat">15 NSE stocks</div>
           <div class="plan-feat">+₹50,000 added every month</div>
           <div class="plan-feat">10 trades per day</div>
+          <div class="plan-feat">Max ₹50,000 per trade</div>
           <div class="plan-feat">5-day order history</div>
           <div class="plan-feat">1 free reset/month</div>
         </div>
@@ -154,6 +164,7 @@
           <div class="plan-feat">30 NSE stocks</div>
           <div class="plan-feat">+₹1,00,000 added every month</div>
           <div class="plan-feat">25 trades per day</div>
+          <div class="plan-feat">Max ₹1,50,000 per trade</div>
           <div class="plan-feat">15-day order history</div>
           <div class="plan-feat">1 free reset/month</div>
           <div class="plan-feat">Community chat & comments</div>
@@ -172,7 +183,7 @@
           <div class="plan-feat">₹20 Lakh virtual capital</div>
           <div class="plan-feat">All 50 NSE stocks</div>
           <div class="plan-feat">+₹2,00,000 added every month</div>
-          <div class="plan-feat">Unlimited trades</div>
+          <div class="plan-feat">Unlimited trades, no per-trade cap</div>
           <div class="plan-feat">30-day order history</div>
           <div class="plan-feat">1 free reset/month</div>
           <div class="plan-feat">Community chat & comments</div>
@@ -220,6 +231,15 @@
       </div>
     </div>
 
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-i" onclick="location.href='index.html'"><span class="nav-icon">📊</span><span class="nav-lbl">Market</span></div>
+    <div class="nav-i" onclick="location.href='portfolio.html'"><span class="nav-icon">💼</span><span class="nav-lbl">Portfolio</span></div>
+    <div class="nav-i" onclick="location.href='leaderboard.html'"><span class="nav-icon">🏆</span><span class="nav-lbl">Ranks</span></div>
+    <div class="nav-i" onclick="location.href='community.html'"><span class="nav-icon">💬</span><span class="nav-lbl">Community</span></div>
+    <div class="nav-i act" onclick="location.href='plans.html'"><span class="nav-icon">💎</span><span class="nav-lbl">Plans</span></div>
+    <div class="nav-i" onclick="location.href='profile.html'"><span class="nav-icon">👤</span><span class="nav-lbl">Profile</span></div>
   </div>
 </div>
 
@@ -326,6 +346,7 @@ function updateButtonsForPlan(){
   const growthBtn = document.getElementById("growth-btn");
   const proBtn = document.getElementById("pro-btn");
   const trialStatus = document.getElementById("trial-status");
+  const buttons = { basic: basicBtn, growth: growthBtn, pro: proBtn };
 
   if(userPlan === "trial"){
     trialStatus.style.display = "block";
@@ -342,15 +363,33 @@ function updateButtonsForPlan(){
     }
   } else {
     trialStatus.style.display = "none";
-    if(userPlan === "basic"){
-      basicBtn.textContent = "Current Plan"; basicBtn.className = "plan-btn current"; basicBtn.onclick = null;
-    } else if(userPlan === "growth"){
-      growthBtn.textContent = "Current Plan"; growthBtn.className = "plan-btn current"; growthBtn.onclick = null;
-      basicBtn.style.display = "none";
-    } else if(userPlan === "pro"){
-      proBtn.textContent = "Current Plan"; proBtn.className = "plan-btn current"; proBtn.onclick = null;
-      basicBtn.style.display = "none"; growthBtn.style.display = "none";
+  }
+
+  // Always show all 3 plans — current plan shows a badge, higher tiers show
+  // "Get X" (real payment), lower tiers show "Switch to X" (free, instant downgrade)
+  ["basic","growth","pro"].forEach(plan=>{
+    const btn = buttons[plan];
+    if(!btn) return;
+    btn.style.display = "block";
+    if(userPlan === plan){
+      btn.textContent = "Current Plan"; btn.className = "plan-btn current"; btn.onclick = null;
+    } else if(userPlan === "trial" || PLAN_RANK[plan] > PLAN_RANK[userPlan]){
+      btn.textContent = "Get " + plan.charAt(0).toUpperCase()+plan.slice(1);
+      btn.className = "plan-btn " + plan + "-btn";
+      btn.onclick = ()=>startUpgrade(plan);
+    } else {
+      btn.textContent = "Switch to " + plan.charAt(0).toUpperCase()+plan.slice(1) + " (free)";
+      btn.className = "plan-btn downgrade-btn";
+      btn.onclick = ()=>confirmDowngrade(plan);
     }
+  });
+}
+
+async function confirmDowngrade(plan){
+  if(!window.myUid){ showToast("Please login first"); return; }
+  if(!confirm("Switch down to "+plan.charAt(0).toUpperCase()+plan.slice(1)+"? Your cash and holdings stay exactly the same — you'll just get "+plan+"'s stock count, daily trade limit, and history window going forward. No payment needed.")) return;
+  if(window.doDowngrade){
+    await window.doDowngrade(plan);
   }
 }
 </script>
@@ -387,9 +426,9 @@ if(!DEMO_MODE){
         const now = Date.now();
         let newCash;
         if(userPlan === "trial"){
-          newCash = PLAN_START[c.plan];
+          newCash = PLAN_START[c.plan]; // fresh start — trial cash discarded
         } else {
-          newCash = currentCash + (PLAN_START[c.plan] - PLAN_START[userPlan]);
+          newCash = currentCash + PLAN_START[c.plan]; // full new plan capital ADDED on top
         }
 
         await setDoc(doc(db,"users",uid), {
@@ -406,6 +445,23 @@ if(!DEMO_MODE){
         showToast("🎉 "+c.plan.toUpperCase()+" unlocked! Go to Market tab to see it live.");
         input.value = "";
       }catch(e){ msgEl.textContent="Error: "+e.message; msgEl.style.color="var(--red)"; }
+    };
+
+    // Downgrade: free, instant — cash and holdings stay exactly as-is,
+    // only the plan changes (which adjusts stock visibility, daily trade
+    // limit, per-trade cap, and history window going forward).
+    window.doDowngrade = async function(newPlan){
+      if(!uid) return;
+      try{
+        await setDoc(doc(db,"users",uid), { plan: newPlan }, {merge:true});
+        await setDoc(doc(db,"leaderboard",uid), { plan: newPlan }, {merge:true});
+        userPlan = newPlan;
+        updateButtonsForPlan();
+        showToast("Switched to "+newPlan.toUpperCase()+". Your cash and holdings are unchanged.");
+      }catch(e){
+        console.error("Downgrade failed", e);
+        showToast("Couldn't switch plan — try again");
+      }
     };
 
     onAuthStateChanged(auth, async (user)=>{

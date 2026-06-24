@@ -143,7 +143,7 @@
   .bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;height:72px;
     background:rgba(9,13,22,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);
     display:flex;align-items:center;justify-content:space-around;padding:0 4px 10px;z-index:10}
-  .nav-i{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px;border-radius:11px;cursor:pointer;flex:1;max-width:80px}
+  .nav-i{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 9px;border-radius:11px;cursor:pointer;flex:1;max-width:70px}
   .nav-i.act{background:rgba(59,130,246,0.12)}
   .nav-icon{font-size:18px;line-height:1}
   .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
@@ -240,6 +240,7 @@
     <div class="nav-i act" onclick="location.href='portfolio.html'"><span class="nav-icon">💼</span><span class="nav-lbl">Portfolio</span></div>
     <div class="nav-i" onclick="location.href='leaderboard.html'"><span class="nav-icon">🏆</span><span class="nav-lbl">Ranks</span></div>
     <div class="nav-i" onclick="location.href='community.html'"><span class="nav-icon">💬</span><span class="nav-lbl">Community</span></div>
+    <div class="nav-i" onclick="location.href='plans.html'"><span class="nav-icon">💎</span><span class="nav-lbl">Plans</span></div>
     <div class="nav-i" onclick="location.href='profile.html'"><span class="nav-icon">👤</span><span class="nav-lbl">Profile</span></div>
   </div>
 
@@ -355,6 +356,8 @@ const PLAN_RANK_LOCAL = {trial:0, basic:1, growth:2, pro:3};
 const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
 const MONTHLY_TOPUP = {trial:0, basic:50000, growth:100000, pro:200000};
 const DAILY_TRADE_LIMIT = {trial:Infinity, basic:10, growth:25, pro:Infinity};
+const PER_TRADE_CAP = {trial:Infinity, basic:50000, growth:150000, pro:Infinity};
+const PLAN_DURATION_DAYS = 30;
 const HISTORY_DAYS = {trial:3, basic:5, growth:15, pro:30};
 const PLAN_LABEL = {trial:"TRIAL", basic:"BASIC", growth:"GROWTH", pro:"PRO"};
 
@@ -397,6 +400,10 @@ function isMarketOpenNow(){
 function isTrialExpired(){
   if(userPlan !== "trial" || !planStartDate) return false;
   return Date.now() > planStartDate + (TRIAL_DAYS * 24*60*60*1000);
+}
+function isPlanExpired(){
+  if(userPlan === "trial" || !planStartDate) return false;
+  return Date.now() > planStartDate + (PLAN_DURATION_DAYS * 24*60*60*1000);
 }
 function getTradesRemainingToday(){
   const limit = DAILY_TRADE_LIMIT[userPlan] ?? DAILY_TRADE_LIMIT.basic;
@@ -689,6 +696,12 @@ function confirmTrade(){
     closeTrade();
     return;
   }
+  if(isPlanExpired()){
+    showToast("⏰ Your "+(PLAN_LABEL[userPlan]||userPlan.toUpperCase())+" plan has expired. Renew to keep trading!");
+    setTimeout(()=>location.href="plans.html", 1200);
+    closeTrade();
+    return;
+  }
   const remaining = getTradesRemainingToday();
   if(remaining <= 0){
     const err = document.getElementById("m-err");
@@ -697,6 +710,14 @@ function confirmTrade(){
     return;
   }
   const px = getPrice(tradeSym) || 1;
+  const tradeValuePreCheck = tradeQty * px;
+  const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
+  if(tradeValuePreCheck > tradeCap){
+    const err = document.getElementById("m-err");
+    err.textContent = `Max ₹${fmtInt(tradeCap)} per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
+    err.style.display = "block";
+    return;
+  }
   const value = tradeQty * px;
   const ch = calcCharges(value);
   const err = document.getElementById("m-err");
