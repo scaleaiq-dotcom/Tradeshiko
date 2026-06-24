@@ -58,6 +58,8 @@
   .sec-hdr{padding:6px 16px 9px;display:flex;justify-content:space-between;align-items:center}
   .sec-title{font-size:12.5px;font-weight:800}
   .sec-sub{font-size:10px;color:var(--muted)}
+  .view-select{background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);
+    font-size:10.5px;font-weight:700;padding:6px 9px;font-family:'Inter',sans-serif;cursor:pointer}
 
   /* List */
   .ldr-list{padding:0 14px;display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
@@ -128,8 +130,14 @@
     <div id="podium-zone"></div>
 
     <div class="sec-hdr">
-      <span class="sec-title">Full Rankings</span>
-      <span class="sec-sub" id="rank-note">Ranked by trading return %</span>
+      <div>
+        <span class="sec-title">Full Rankings</span>
+        <div class="sec-sub" id="rank-note" style="margin-top:1px">Ranked by trading return %</div>
+      </div>
+      <select class="view-select" id="view-select" onchange="renderFullList()">
+        <option value="top50">Top 50</option>
+        <option value="yourrank">Your Rank</option>
+      </select>
     </div>
 
     <div id="ldr-list">
@@ -196,11 +204,18 @@ function avatarGrad(i){
   return grads[i % grads.length];
 }
 
+let _ldrEntries = [];
+let _ldrMyUid = null;
+
 function renderLeaderboard(entries, myUid){
   document.getElementById("trader-count").textContent = entries.length;
 
-  // sort by peakValue desc (already queried sorted, but ensure)
-  entries.sort((a,b)=>(b.peakValue||0)-(a.peakValue||0));
+  // Sort by the ACTUAL ranking metric (trading return %) — the Firestore
+  // query already sorts this way, but re-sorting client-side as a safety
+  // net must use the same field, not the old peakValue metric.
+  entries.sort((a,b)=>(b.tradingReturnPct||0)-(a.tradingReturnPct||0));
+  _ldrEntries = entries;
+  _ldrMyUid = myUid;
 
   const myIndex = entries.findIndex(e=>e.uid === myUid);
   document.getElementById("your-rank").textContent = myIndex >= 0 ? "#"+(myIndex+1) : "—";
@@ -211,7 +226,7 @@ function renderLeaderboard(entries, myUid){
     return;
   }
 
-  // Podium (top 3)
+  // Podium (top 3) — always shown regardless of the Top 50 / Your Rank dropdown
   const top3 = entries.slice(0,3);
   const podiumHeights = [60,72,48]; // visual order: 2nd,1st,3rd
   const podOrder = top3.length >= 3 ? [1,0,2] : top3.length === 2 ? [1,0] : [0];
@@ -234,29 +249,58 @@ function renderLeaderboard(entries, myUid){
   podiumHtml += '</div>';
   document.getElementById("podium-zone").innerHTML = entries.length ? podiumHtml : "";
 
-  // Full list
+  renderFullList();
+}
+
+function ldrRowHtml(e, rankNumber, myUid){
+  const isYou = e.uid === myUid;
+  const startAmt = e.totalCapitalIn || PLAN_START[e.plan] || PLAN_START.trial;
+  const pnl = (e.peakValue||0) - startAmt;
+  const pct = typeof e.tradingReturnPct === "number" ? e.tradingReturnPct : (pnl/startAmt*100);
+  const pctCls = pct >= 0 ? "g" : "r";
+  const rankColor = rankNumber===1?"var(--gold)":rankNumber===2?"var(--subtle)":rankNumber===3?"#CD7C3A":"var(--muted)";
+  const planLabel = ({trial:'Trial',basic:'Basic',growth:'Growth',pro:'Pro'})[e.plan] || 'Trial';
+  return `<div class="ldr ${isYou?'you':''}">
+    <span class="ldr-rank" style="color:${rankColor}">${rankNumber}</span>
+    <div class="ldr-av" style="background:${avatarGrad(rankNumber-1)};${e.photoURL?`background-image:url(${e.photoURL});`:''}">${e.photoURL?'':initialOf(e.displayName)}</div>
+    <div class="ldr-info">
+      <div class="ldr-name">${isYou?'You · ':''}${e.displayName||'Trader'}</div>
+      <div class="ldr-plan">${planLabel}</div>
+    </div>
+    <div class="ldr-profit">
+      <div class="ldr-pct ${pctCls}">${pct>=0?'+':''}${pct.toFixed(1)}%</div>
+      <div class="ldr-amt">${pnl>=0?'+':''}${fmtInt(pnl)}</div>
+    </div>
+  </div>`;
+}
+
+// Renders either "Top 50" (unchanged default) or "Your Rank" — a small
+// window of entries centered on the current user's own position, so
+// someone ranked e.g. #75 (outside the visible top 50) can actually see
+// themselves with nearby competitors, instead of just a rank NUMBER with
+// no way to locate themselves in the list.
+function renderFullList(){
   const listEl = document.getElementById("ldr-list");
-  listEl.innerHTML = entries.slice(0,50).map((e,i)=>{
-    const isYou = e.uid === myUid;
-    const startAmt = e.totalCapitalIn || PLAN_START[e.plan] || PLAN_START.trial;
-    const pnl = (e.peakValue||0) - startAmt;
-    const pct = typeof e.tradingReturnPct === "number" ? e.tradingReturnPct : (pnl/startAmt*100);
-    const pctCls = pct >= 0 ? "g" : "r";
-    const rankColor = i===0?"var(--gold)":i===1?"var(--subtle)":i===2?"#CD7C3A":"var(--muted)";
-    const planLabel = ({trial:'Trial',basic:'Basic',growth:'Growth',pro:'Pro'})[e.plan] || 'Trial';
-    return `<div class="ldr ${isYou?'you':''}">
-      <span class="ldr-rank" style="color:${rankColor}">${i+1}</span>
-      <div class="ldr-av" style="background:${avatarGrad(i)};${e.photoURL?`background-image:url(${e.photoURL});`:''}">${e.photoURL?'':initialOf(e.displayName)}</div>
-      <div class="ldr-info">
-        <div class="ldr-name">${isYou?'You · ':''}${e.displayName||'Trader'}</div>
-        <div class="ldr-plan">${planLabel}</div>
-      </div>
-      <div class="ldr-profit">
-        <div class="ldr-pct ${pctCls}">${pct>=0?'+':''}${pct.toFixed(1)}%</div>
-        <div class="ldr-amt">${pnl>=0?'+':''}${fmtInt(pnl)}</div>
-      </div>
-    </div>`;
-  }).join("");
+  const viewSel = document.getElementById("view-select");
+  const mode = viewSel ? viewSel.value : "top50";
+  const entries = _ldrEntries;
+  const myUid = _ldrMyUid;
+
+  if(mode === "top50"){
+    listEl.innerHTML = entries.slice(0,50).map((e,i)=>ldrRowHtml(e, i+1, myUid)).join("");
+    return;
+  }
+
+  // "Your Rank" view
+  const myIndex = entries.findIndex(e=>e.uid === myUid);
+  if(myIndex === -1){
+    listEl.innerHTML = `<div class="empty">You're ranked outside the top 100 right now. Keep trading to climb up! 🚀</div>`;
+    return;
+  }
+  const windowStart = Math.max(0, myIndex - 5);
+  const windowEnd = Math.min(entries.length, myIndex + 5);
+  const windowEntries = entries.slice(windowStart, windowEnd);
+  listEl.innerHTML = windowEntries.map((e,i)=>ldrRowHtml(e, windowStart+i+1, myUid)).join("");
 }
 
 function renderTicker(prices){

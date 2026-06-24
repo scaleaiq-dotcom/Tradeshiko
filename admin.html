@@ -42,10 +42,12 @@
   .badge.basic{background:rgba(100,116,139,0.2);color:#CBD5E1}
   .badge.growth{background:rgba(59,130,246,0.15);color:#93C5FD}
   .badge.pro{background:rgba(245,158,11,0.15);color:var(--gold)}
+  .badge.sub-badge{background:rgba(34,197,94,0.15);color:#4ADE80;font-size:9px}
 
   .msg{font-size:12px;padding:9px 12px;border-radius:9px;margin-bottom:12px;display:none}
   .msg.success{background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.25);display:block}
   .msg.error{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.25);display:block}
+  .msg.info{background:rgba(59,130,246,0.1);color:#93C5FD;border:1px solid rgba(59,130,246,0.25);display:block}
 
   .empty{color:var(--muted);font-size:12px;text-align:center;padding:16px}
 
@@ -104,6 +106,15 @@
   <div class="card">
     <h2>📋 Active Grants</h2>
     <div id="grants-list"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- Manual subscription cancellation -->
+  <div class="card">
+    <h2>🔄 Cancel a User's Subscription</h2>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px">For when someone asks you directly (e.g. via WhatsApp) to cancel their auto-renewing plan — saves them from doing it themselves.</p>
+    <input type="email" id="cancel-sub-email" placeholder="their-email@gmail.com">
+    <button class="btn-primary" onclick="cancelUserSubscription()">Cancel Their Subscription</button>
+    <div id="cancel-sub-msg" style="margin-top:8px;font-size:11.5px"></div>
   </div>
 
   <!-- Coupon codes -->
@@ -165,7 +176,7 @@ const CONFIG = {
 const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
 const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } =
   await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-const { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } =
+const { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, where } =
   await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
 const app = initializeApp(CONFIG.firebase);
@@ -210,22 +221,66 @@ window.revokeGrant = async function(email){
   }catch(e){ alert("Error: "+e.message); }
 };
 
+window.cancelUserSubscription = async function(){
+  const emailInput = document.getElementById("cancel-sub-email");
+  const email = emailInput.value.trim();
+  if(!email || !email.includes("@")){ showMsg("cancel-sub-msg","Enter a valid email","error"); return; }
+  try{
+    const userQuery = query(collection(db,"users"), where("email","==",email));
+    const userSnap = await getDocs(userQuery);
+    if(userSnap.empty){ showMsg("cancel-sub-msg","No account found with that email","error"); return; }
+    const userDoc = userSnap.docs[0];
+    const uid = userDoc.id;
+    if(!userDoc.data().razorpaySubscriptionId){
+      showMsg("cancel-sub-msg","This user doesn't have an active subscription to cancel","error");
+      return;
+    }
+    showMsg("cancel-sub-msg","Cancelling...","info");
+    const resp = await fetch("/api/cancel-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid })
+    });
+    const result = await resp.json();
+    if(result.success && result.cancelled){
+      showMsg("cancel-sub-msg", `✅ Subscription cancelled for ${email}. Their access continues until the current cycle ends.`, "success");
+      emailInput.value = "";
+      loadGrants(); // refresh in case this email also has a grant badge
+    } else if(result.success && !result.cancelled){
+      showMsg("cancel-sub-msg", "No active subscription found on file for this user.", "error");
+    } else {
+      showMsg("cancel-sub-msg", "Error: " + (result.error||"unknown"), "error");
+    }
+  }catch(e){ showMsg("cancel-sub-msg","Error: "+e.message,"error"); }
+};
+
 async function loadGrants(){
   const listEl = document.getElementById("grants-list");
   try{
     const snap = await getDocs(collection(db,"grants"));
     if(snap.empty){ listEl.innerHTML = `<div class="empty">No grants yet</div>`; return; }
     let html = "";
-    snap.forEach(d=>{
+    for(const d of snap.docs){
       const v = d.data();
+      // Check if this email's actual account also has a real, auto-renewing
+      // Razorpay subscription (separate from the manual grant itself).
+      let subBadge = "";
+      try{
+        const userQuery = query(collection(db,"users"), where("email","==",d.id));
+        const userSnap = await getDocs(userQuery);
+        if(!userSnap.empty && userSnap.docs[0].data().razorpaySubscriptionId){
+          subBadge = `<span class="badge sub-badge" title="Has an active auto-renewing subscription">🔄 Subscribed</span>`;
+        }
+      }catch(e){ /* non-critical — just skip the badge if lookup fails */ }
       html += `<div class="list-item">
         <div><div class="li-main">${d.id}</div><div class="li-sub">${v.note||"—"} · by ${v.grantedBy||"admin"}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="badge ${v.plan}">${planLabel(v.plan)}</span>
+          ${subBadge}
           <button class="btn-danger" onclick="revokeGrant('${d.id}')">Revoke</button>
         </div>
       </div>`;
-    });
+    }
     listEl.innerHTML = html;
   }catch(e){ listEl.innerHTML = `<div class="empty">Error loading grants</div>`; }
 }

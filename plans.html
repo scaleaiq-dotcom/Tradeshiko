@@ -283,12 +283,54 @@ if(highlightPlan){
 
 async function startUpgrade(plan){
   if(!window.myUid){ showToast("Please login first (go to Market tab)"); return; }
-  await openRazorpayCheckout({ kind: "plan", id: plan, description: plan.charAt(0).toUpperCase()+plan.slice(1)+" Plan — TradeSeekho" });
+  await openRazorpaySubscriptionCheckout(plan);
 }
 async function startTopup(price, amount){
   if(!window.myUid){ showToast("Please login first (go to Market tab)"); return; }
   const paise = Math.round(price * 100);
   await openRazorpayCheckout({ kind: "topup", id: String(paise), description: "Top-up: +"+fmtInt(amount)+" virtual capital" });
+}
+
+// Subscriptions (Basic/Growth/Pro) — true recurring auto-billing via
+// UPI AutoPay / saved card. Renews automatically every month, zero
+// manual action needed from the user. Top-ups stay as one-time Orders
+// (see openRazorpayCheckout below) since they're inherently single
+// purchases, not recurring.
+async function openRazorpaySubscriptionCheckout(planId){
+  showToast("Setting up your subscription...");
+  try{
+    const resp = await fetch("/api/create-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid: window.myUid, planId })
+    });
+    const sub = await resp.json();
+    if(!sub.success){ showToast("Couldn't start subscription: " + (sub.error||"try again")); return; }
+
+    const options = {
+      key: sub.keyId,
+      subscription_id: sub.subscriptionId,
+      name: "ScaleAIQ",
+      description: planId.charAt(0).toUpperCase()+planId.slice(1)+" Plan — TradeSeekho (auto-renews monthly)",
+      prefill: { email: (window.firebase_currentUserEmail || "") },
+      theme: { color: "#3B82F6" },
+      handler: function(response){
+        showToast("✅ Subscription activated! Updating your account...");
+        waitForGrantAndRefresh();
+      },
+      modal: {
+        ondismiss: function(){ /* user closed checkout — no action needed */ }
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.on("payment.failed", function(resp){
+      showToast("❌ Payment failed: " + (resp.error?.description || "please try again"));
+    });
+    rzp.open();
+  }catch(e){
+    console.error("Subscription checkout failed", e);
+    showToast("Couldn't start subscription — check your connection and try again");
+  }
 }
 
 async function openRazorpayCheckout({ kind, id, description }){
@@ -463,6 +505,16 @@ if(!DEMO_MODE){
         await setDoc(doc(db,"leaderboard",uid), { plan: newPlan }, {merge:true});
         userPlan = newPlan;
         updateButtonsForPlan();
+        // If they had an active auto-renewing subscription for their OLD
+        // (higher) plan, cancel it — otherwise they'd keep getting charged
+        // the old, higher amount next month despite downgrading.
+        try{
+          await fetch("/api/cancel-subscription", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uid })
+          });
+        }catch(e){ console.error("Subscription cancel call failed (non-blocking)", e); }
         showToast("Switched to "+newPlan.toUpperCase()+". Your cash and holdings are unchanged.");
       }catch(e){
         console.error("Downgrade failed", e);
