@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Community — TradeSeekho</title>
 <meta name="theme-color" content="#090D16">
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TradeSeekho">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -477,6 +482,13 @@ if(!DEMO_MODE){
 } else {
   document.getElementById("auth-loading").style.display = "none";
   renderFeed([]);
+}
+</script>
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("/sw.js").catch(e=>console.error("SW registration failed", e));
+  });
 }
 </script>
 </body>
