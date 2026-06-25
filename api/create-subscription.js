@@ -11,9 +11,15 @@ const { getDb } = require('../lib/firebase-admin');
 const { createSubscription } = require('../lib/razorpay');
 
 const VALID_PLANS = ['basic', 'growth', 'pro'];
-// ~10 years of monthly billing cycles — effectively indefinite in
-// practice; the user can cancel anytime via Razorpay's cancellation flow.
-const TOTAL_BILLING_CYCLES = 120;
+// 12 months of auto-renewal. Razorpay's checkout shows the resulting end
+// date upfront as a transparency disclosure (e.g. "will charge until
+// [date]") — a 10-year total_count made this read as "until 2036", which
+// felt like a decade-long lock-in even though cancellation is fully
+// supported at any time. 12 cycles keeps that disclosure date looking
+// completely normal (~1 year out). When it naturally completes, the
+// existing 30-day manual-renewal flow takes over automatically — no
+// extra logic needed, the user just renews the same way as before.
+const TOTAL_BILLING_CYCLES = 12;
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
