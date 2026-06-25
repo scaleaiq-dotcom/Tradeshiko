@@ -125,6 +125,32 @@
 
   #auth-loading{position:fixed;inset:0;background:var(--bg);z-index:70;display:flex;align-items:center;justify-content:center}
   @keyframes fadepulse{0%,100%{opacity:0.4}50%{opacity:1}}
+  .install-banner{position:fixed;left:14px;right:14px;bottom:calc(80px + env(safe-area-inset-bottom));
+    background:var(--card2);border:1px solid var(--accent);border-radius:16px;padding:13px 14px;
+    display:flex;align-items:center;gap:11px;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    transform:translateY(120%);opacity:0;transition:transform .35s,opacity .35s;max-width:480px;margin:0 auto}
+  .install-banner.show{transform:translateY(0);opacity:1}
+  .install-banner-logo{width:38px;height:38px;border-radius:9px;flex-shrink:0}
+  .install-banner-text{flex:1;min-width:0}
+  .install-banner-title{font-size:12.5px;font-weight:800;color:var(--text)}
+  .install-banner-sub{font-size:10px;color:var(--muted);margin-top:1px;line-height:1.3}
+  .install-banner-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+    padding:8px 14px;border-radius:9px;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0;white-space:nowrap}
+  .install-banner-close{font-size:14px;color:var(--muted);cursor:pointer;padding:2px 4px;flex-shrink:0}
+  .ios-install-modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;
+    align-items:flex-end;justify-content:center;z-index:60;backdrop-filter:blur(3px)}
+  .ios-install-modal.show{display:flex}
+  .ios-install-card{background:var(--card2);border-radius:20px 20px 0 0;padding:24px 22px calc(24px + env(safe-area-inset-bottom));
+    max-width:480px;width:100%;text-align:center}
+  .ios-install-logo{width:56px;height:56px;border-radius:14px;margin-bottom:12px}
+  .ios-install-card h3{font-size:16px;font-weight:800;margin-bottom:16px}
+  .ios-step{display:flex;align-items:center;gap:11px;text-align:left;font-size:12.5px;color:var(--subtle);
+    margin-bottom:12px;line-height:1.4}
+  .ios-step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;
+    font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ios-share-icon{font-size:14px}
+  .ios-install-close{width:100%;margin-top:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#fff;border:none;padding:13px;border-radius:12px;font-size:13px;font-weight:800;cursor:pointer}
 </style>
 </head>
 <body>
@@ -473,6 +499,89 @@ if(!DEMO_MODE){
 } else {
   document.getElementById("auth-loading").style.display = "none";
 }
+</script>
+
+<!-- Add to Home Screen prompt -->
+<div id="install-banner" class="install-banner">
+  <img src="/icon-192.png" class="install-banner-logo" alt="TradeSeekho">
+  <div class="install-banner-text">
+    <div class="install-banner-title">Install TradeSeekho</div>
+    <div class="install-banner-sub" id="install-banner-sub">Add to your home screen for the best experience</div>
+  </div>
+  <button class="install-banner-btn" id="install-banner-btn">Install</button>
+  <span class="install-banner-close" onclick="dismissInstallBanner()">✕</span>
+</div>
+
+<div id="ios-install-modal" class="ios-install-modal" onclick="if(event.target===this) closeIosModal()">
+  <div class="ios-install-card">
+    <img src="/icon-192.png" class="ios-install-logo" alt="TradeSeekho">
+    <h3>Install TradeSeekho</h3>
+    <div class="ios-step"><span class="ios-step-num">1</span><span>Tap the <strong>Share</strong> button <span class="ios-share-icon">⬆️</span> at the bottom of Safari</span></div>
+    <div class="ios-step"><span class="ios-step-num">2</span><span>Scroll down and tap <strong>"Add to Home Screen"</strong></span></div>
+    <div class="ios-step"><span class="ios-step-num">3</span><span>Tap <strong>"Add"</strong> in the top right corner</span></div>
+    <button class="ios-install-close" onclick="closeIosModal()">Got it</button>
+  </div>
+</div>
+
+<script>
+// ===== Add to Home Screen prompt =====
+let deferredInstallPrompt = null;
+function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+function isIOSDevice(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function shouldShowInstallBanner(){
+  if(isStandalone()) return false; // already installed — never show
+  try{
+    const dismissedAt = localStorage.getItem("installBannerDismissedAt");
+    if(dismissedAt && (Date.now() - parseInt(dismissedAt,10)) < 7*24*60*60*1000) return false; // dismissed within last 7 days
+  }catch(e){ /* localStorage unavailable — just show it */ }
+  return true;
+}
+function showInstallBanner(platform){
+  const banner = document.getElementById("install-banner");
+  if(!banner) return;
+  const sub = document.getElementById("install-banner-sub");
+  const btn = document.getElementById("install-banner-btn");
+  if(platform === "ios"){
+    sub.textContent = "Tap below to see how to add it";
+    btn.textContent = "Show Me";
+    btn.onclick = ()=>{ document.getElementById("ios-install-modal").classList.add("show"); banner.classList.remove("show"); };
+  } else {
+    sub.textContent = "Add to your home screen for the best experience";
+    btn.textContent = "Install";
+    btn.onclick = handleAndroidInstallClick;
+  }
+  banner.classList.add("show");
+}
+async function handleAndroidInstallClick(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  try{ await deferredInstallPrompt.userChoice; }catch(e){}
+  dismissInstallBanner();
+}
+function dismissInstallBanner(){
+  const banner = document.getElementById("install-banner");
+  if(banner) banner.classList.remove("show");
+  try{ localStorage.setItem("installBannerDismissedAt", String(Date.now())); }catch(e){}
+}
+function closeIosModal(){
+  const modal = document.getElementById("ios-install-modal");
+  if(modal) modal.classList.remove("show");
+  try{ localStorage.setItem("installBannerDismissedAt", String(Date.now())); }catch(e){}
+}
+window.addEventListener("beforeinstallprompt", (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if(shouldShowInstallBanner()) showInstallBanner("android");
+});
+window.addEventListener("load", ()=>{
+  if(isIOSDevice() && !isStandalone() && shouldShowInstallBanner()){
+    showInstallBanner("ios");
+  }
+});
 </script>
 <script>
 if("serviceWorker" in navigator){
