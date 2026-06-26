@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>TradeSeekho — Learn. Trade. Grow.</title>
-<meta name="theme-color" content="#090D16"> 
-<meta name="google-site-verification" content="UIeemLVvp8kfOVZsLCHw5FADDHD6Qujdg-KrWQ76Msk" />
+<meta name="theme-color" content="#090D16">
 <link rel="manifest" href="/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -175,22 +174,48 @@
   .nav-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
   .nav-i.act .nav-lbl{color:var(--accent)}
 
-  /* ===== Login Screen ===== */
-  #login-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;
-    align-items:center;justify-content:center;padding:24px}
-  .login-box{max-width:340px;width:100%;text-align:center}
-  .login-logo{width:88px;height:88px;border-radius:22px;object-fit:contain;background:#fff;padding:8px;margin:0 auto 18px;
-    box-shadow:0 0 40px rgba(59,130,246,0.25)}
-  .login-box h1{font-size:24px;font-weight:800;margin-bottom:6px;
-    background:linear-gradient(90deg,#60A5FA,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .login-box p{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:28px}
-  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;
-    border:none;border-radius:13px;background:#fff;color:#1a1a1a;font-weight:700;font-size:14.5px;
-    cursor:pointer;font-family:'Inter',sans-serif}
+  /* ===== Login / Landing Screen ===== */
+  #login-screen{display:none;position:fixed;inset:0;z-index:50;
+    background:linear-gradient(160deg,#f0f4ff 0%,#e8eeff 40%,#f5f0ff 100%);
+    overflow-y:auto;align-items:flex-start;justify-content:center;padding:0}
+  .landing-wrap{width:100%;max-width:480px;margin:0 auto;padding:36px 24px 48px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:0}
+  .landing-logo{width:140px;height:140px;border-radius:32px;object-fit:contain;background:#fff;padding:12px;
+    box-shadow:0 8px 32px rgba(99,102,241,0.18);margin-bottom:22px}
+  .landing-h1{font-size:28px;font-weight:900;line-height:1.25;color:#1e2340;margin-bottom:12px;letter-spacing:-0.5px}
+  .landing-h1 span{background:linear-gradient(90deg,#4f46e5,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .landing-sub{font-size:15px;color:#4a5270;line-height:1.6;margin-bottom:24px}
+  .feature-pills{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:32px}
+  .fpill{background:#fff;border:1.5px solid #dde2f5;border-radius:30px;padding:8px 16px;
+    font-size:13px;font-weight:600;color:#3730a3;box-shadow:0 2px 8px rgba(99,102,241,0.08)}
+  .phone-mockup{width:200px;height:360px;background:linear-gradient(160deg,#1e2340,#2d3561);
+    border-radius:32px;border:6px solid #fff;box-shadow:0 20px 60px rgba(99,102,241,0.25),0 4px 16px rgba(0,0,0,0.12);
+    margin-bottom:36px;position:relative;overflow:hidden;flex-shrink:0}
+  .phone-mockup::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:80px;height:22px;background:#fff;border-radius:0 0 14px 14px}
+  .phone-screen{position:absolute;inset:22px 0 0;display:flex;flex-direction:column;gap:8px;padding:12px 10px}
+  .ps-bar{height:10px;border-radius:5px;background:rgba(255,255,255,0.15)}
+  .ps-bar.w80{width:80%} .ps-bar.w60{width:60%} .ps-bar.w70{width:70%} .ps-bar.w50{width:50%} .ps-bar.w90{width:90%}
+  .ps-card{background:rgba(255,255,255,0.08);border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px}
+  .ps-dot{width:28px;height:28px;border-radius:8px;flex-shrink:0}
+  .ps-dot.g{background:#10b981} .ps-dot.r{background:#f43f5e} .ps-dot.b{background:#6366f1}
+  .ps-lines{flex:1;display:flex;flex-direction:column;gap:5px}
+  .ps-line{height:7px;border-radius:4px;background:rgba(255,255,255,0.2)}
+  .ps-line.s{width:50%}
+  .ps-green{color:#10b981;font-size:11px;font-weight:700;margin-left:auto;white-space:nowrap}
+  .ps-red{color:#f43f5e;font-size:11px;font-weight:700;margin-left:auto;white-space:nowrap}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:360px;padding:15px;
+    border:none;border-radius:14px;background:#fff;color:#1a1a1a;font-weight:700;font-size:15px;
+    cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 20px rgba(99,102,241,0.15),0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom:10px}
   .google-btn:active{transform:scale(0.98)}
-  #login-err{color:var(--red);font-size:12px;margin-top:12px;display:none}
-  .login-foot{color:var(--muted);font-size:11px;margin-top:22px;line-height:1.6}
-  .login-foot a{color:var(--accent)}
+  .no-card-note{font-size:12px;color:#6b7a99;margin-bottom:16px}
+  .free-plans-row{display:flex;align-items:center;gap:10px;font-size:13px;color:#4a5270;margin-bottom:20px}
+  .free-plans-row a{color:#4f46e5;font-weight:600;text-decoration:none}
+  .free-plans-row a:hover{text-decoration:underline}
+  .dot-sep{color:#c0c8e0}
+  #login-err{color:#dc2626;font-size:12px;margin-top:4px;margin-bottom:8px;display:none}
+  .login-foot{color:#8892b0;font-size:11px;line-height:1.8}
+  .login-foot a{color:#4f46e5}
 
   /* ===== Toast ===== */
   .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(140px);
@@ -336,19 +361,62 @@
 
 <div class="app">
 
-  <!-- ===== Login Screen ===== -->
+  <!-- ===== Login / Landing Screen ===== -->
   <div id="login-screen">
-    <div class="login-box">
-      <img class="login-logo" id="login-logo" src="" alt="TradeSeekho">
-      <h1>TradeSeekho</h1>
-      <p>Virtual ₹20 lakh se stock market seekho.<br>Zero risk, full practice. 📈</p>
+    <div class="landing-wrap">
+
+      <img class="landing-logo" id="login-logo" src="" alt="TradeSeekho">
+
+      <h1 class="landing-h1">Practice Stock Trading<br><span>Without Losing Real Money</span></h1>
+
+      <p class="landing-sub">Trade with <strong>₹20,00,000 virtual money</strong><br>using live market data.</p>
+
+      <div class="feature-pills">
+        <div class="fpill">📈 Live Data</div>
+        <div class="fpill">🏆 Leaderboard</div>
+        <div class="fpill">💰 ₹20L Virtual</div>
+      </div>
+
+      <!-- Phone mockup -->
+      <div class="phone-mockup">
+        <div class="phone-screen">
+          <div style="height:8px"></div>
+          <div class="ps-bar w80"></div>
+          <div class="ps-bar w50" style="margin-bottom:6px"></div>
+          <div class="ps-card">
+            <div class="ps-dot g"></div>
+            <div class="ps-lines"><div class="ps-line"></div><div class="ps-line s"></div></div>
+            <span class="ps-green">+2.4%</span>
+          </div>
+          <div class="ps-card">
+            <div class="ps-dot r"></div>
+            <div class="ps-lines"><div class="ps-line"></div><div class="ps-line s"></div></div>
+            <span class="ps-red">−1.1%</span>
+          </div>
+          <div class="ps-card">
+            <div class="ps-dot b"></div>
+            <div class="ps-lines"><div class="ps-line"></div><div class="ps-line s"></div></div>
+            <span class="ps-green">+0.8%</span>
+          </div>
+          <div style="flex:1"></div>
+          <div class="ps-bar w90" style="height:14px;border-radius:8px;background:rgba(99,102,241,0.6)"></div>
+          <div style="height:4px"></div>
+        </div>
+      </div>
+
       <button class="google-btn" onclick="doLogin()">
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-        Google se login karo
+        Continue with Google
       </button>
+
+      <p class="no-card-note">No credit card required</p>
+
       <div id="login-err"></div>
-      <p class="login-foot"><a href="plans.html">View Plans & Pricing</a> · <a href="rules.html">Rules</a><br>
-      Login karke aap hamari <a href="terms.html">Terms</a> aur <a href="privacy.html">Privacy Policy</a> se agree karte ho.</p>
+
+      <p class="login-foot">
+        <a href="terms.html">Terms</a> &nbsp;•&nbsp; <a href="privacy.html">Privacy</a>
+      </p>
+
     </div>
   </div>
 
