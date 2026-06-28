@@ -3,7 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>TradeSeekho — Learn. Trade. Grow.</title>
+<title>TradeSeekho — Practice Stock Trading With ₹20 Lakh Virtual Money</title>
+
+<!-- SEO -->
+<meta name="description" content="Practice stock trading risk-free with ₹20,00,000 virtual money and live NSE market data. Compete on the leaderboard, learn strategies, and build confidence before investing real money.">
+<meta name="keywords" content="virtual stock trading, paper trading India, stock market practice, NSE virtual trading, learn stock trading, TradeSeekho">
+<meta name="author" content="ScaleAIQ">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://trade.scaleaiq.in/">
+
+<!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://trade.scaleaiq.in/">
+<meta property="og:title" content="TradeSeekho — Practice Stock Trading With ₹20 Lakh Virtual Money">
+<meta property="og:description" content="Trade risk-free with ₹20L virtual money and live market data. Build skills, climb the leaderboard, and invest with confidence.">
+<meta property="og:image" content="https://trade.scaleaiq.in/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="TradeSeekho">
+<meta property="og:locale" content="en_IN">
+
+<!-- Twitter / X Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://trade.scaleaiq.in/">
+<meta name="twitter:title" content="TradeSeekho — Practice Stock Trading With ₹20 Lakh Virtual Money">
+<meta name="twitter:description" content="Trade risk-free with ₹20L virtual money and live market data. Build skills, climb the leaderboard, and invest with confidence.">
+<meta name="twitter:image" content="https://trade.scaleaiq.in/og-image.png">
+
+<!-- PWA & App -->
 <meta name="theme-color" content="#090D16">
 <link rel="manifest" href="/manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -203,19 +230,105 @@
   .ps-line.s{width:50%}
   .ps-green{color:#10b981;font-size:11px;font-weight:700;margin-left:auto;white-space:nowrap}
   .ps-red{color:#f43f5e;font-size:11px;font-weight:700;margin-left:auto;white-space:nowrap}
-  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:360px;padding:15px;
+  /* Auth buttons */
+  .auth-btns{display:flex;flex-direction:column;gap:10px;width:100%;max-width:360px;margin-bottom:6px}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;
     border:none;border-radius:14px;background:#fff;color:#1a1a1a;font-weight:700;font-size:15px;
-    cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 20px rgba(99,102,241,0.15),0 1px 4px rgba(0,0,0,0.08);
-    margin-bottom:10px}
+    cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 20px rgba(99,102,241,0.15),0 1px 4px rgba(0,0,0,0.08)}
   .google-btn:active{transform:scale(0.98)}
+  .phone-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;
+    border:none;border-radius:14px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-weight:700;font-size:15px;
+    cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 4px 20px rgba(99,102,241,0.25)}
+  .phone-btn:active{transform:scale(0.98)}
+  .guest-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;
+    border:1.5px solid #c7d2fe;border-radius:14px;background:rgba(238,242,255,0.8);color:#4338ca;font-weight:600;font-size:14px;
+    cursor:pointer;font-family:'Inter',sans-serif}
+  .guest-btn:active{transform:scale(0.98)}
+  .auth-divider{display:flex;align-items:center;gap:10px;width:100%;max-width:360px;margin:4px 0}
+  .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:#dde2f5}
+  .auth-divider span{font-size:11px;color:#8892b0;white-space:nowrap}
   .no-card-note{font-size:12px;color:#6b7a99;margin-bottom:16px}
-  .free-plans-row{display:flex;align-items:center;gap:10px;font-size:13px;color:#4a5270;margin-bottom:20px}
-  .free-plans-row a{color:#4f46e5;font-weight:600;text-decoration:none}
-  .free-plans-row a:hover{text-decoration:underline}
-  .dot-sep{color:#c0c8e0}
   #login-err{color:#dc2626;font-size:12px;margin-top:4px;margin-bottom:8px;display:none}
   .login-foot{color:#8892b0;font-size:11px;line-height:1.8}
   .login-foot a{color:#4f46e5}
+  /* Phone OTP screens (overlaid on login-screen) */
+  .phone-auth-screen{display:none;position:absolute;inset:0;background:linear-gradient(160deg,#f0f4ff 0%,#e8eeff 40%,#f5f0ff 100%);
+    align-items:center;justify-content:center;padding:24px;z-index:2}
+  .phone-auth-box{background:#fff;border-radius:20px;padding:28px 24px;max-width:360px;width:100%;
+    box-shadow:0 8px 40px rgba(99,102,241,0.18)}
+  .pa-back{background:none;border:none;color:#4f46e5;font-size:14px;font-weight:600;cursor:pointer;
+    font-family:'Inter',sans-serif;margin-bottom:16px;padding:0;text-align:left}
+  .pa-title{font-size:20px;font-weight:800;color:#1e2340;margin-bottom:6px}
+  .pa-sub{font-size:13px;color:#4a5270;line-height:1.55;margin-bottom:20px}
+  .pa-phone-row{display:flex;gap:8px;margin-bottom:8px}
+  .pa-cc{background:#eef2ff;border:1.5px solid #c7d2fe;border-radius:10px;padding:11px 12px;
+    font-size:15px;font-weight:700;color:#4338ca;width:70px;text-align:center;font-family:'Inter',sans-serif}
+  .pa-inp{flex:1;border:1.5px solid #c7d2fe;border-radius:10px;padding:11px 14px;
+    font-size:15px;font-family:'Inter',sans-serif;color:#1e2340;outline:none;background:#fff;width:100%}
+  .pa-inp:focus{border-color:#4f46e5}
+  .pa-otp-row{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+  .pa-otp-digit{width:44px;height:52px;border:2px solid #c7d2fe;border-radius:12px;text-align:center;
+    font-size:22px;font-weight:700;color:#1e2340;font-family:'JetBrains Mono',monospace;
+    background:#fff;outline:none;transition:border-color .15s}
+  .pa-otp-digit:focus{border-color:#4f46e5}
+  .pa-hint{font-size:12px;color:#6b7a99;margin-bottom:16px}
+  .pa-submit{width:100%;padding:14px;border:none;border-radius:12px;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:15px;font-weight:700;
+    cursor:pointer;font-family:'Inter',sans-serif;transition:opacity .15s}
+  .pa-submit:disabled{opacity:.4;cursor:not-allowed}
+  .pa-err{font-size:13px;color:#dc2626;margin-top:8px;display:none}
+  .pa-resend{font-size:12px;color:#4f46e5;cursor:pointer;text-align:center;margin-top:12px;display:none}
+  /* Upgrade prompt modal */
+  #upgrade-prompt{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:70;
+    align-items:flex-end;justify-content:center;padding:0}
+  .upg-sheet{background:#fff;border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;
+    box-shadow:0 -8px 40px rgba(0,0,0,0.15)}
+  .upg-emoji{font-size:36px;text-align:center;margin-bottom:12px}
+  .upg-title{font-size:20px;font-weight:800;color:#1e2340;text-align:center;margin-bottom:8px}
+  .upg-msg{font-size:14px;color:#4a5270;text-align:center;line-height:1.6;margin-bottom:24px}
+  .upg-phone-row{display:flex;gap:8px;margin-bottom:12px}
+  .upg-cta{width:100%;padding:15px;border:none;border-radius:14px;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:15px;font-weight:700;
+    cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:10px}
+  .upg-google{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;
+    border:1.5px solid #dde2f5;border-radius:14px;background:#fff;color:#1a1a1a;font-size:14px;font-weight:600;
+    cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:8px}
+  .upg-dismiss{font-size:13px;color:#8892b0;text-align:center;cursor:pointer;padding:4px}
+  /* Guest banner in header */
+  .guest-banner{background:linear-gradient(90deg,#eef2ff,#e0e7ff);border-bottom:1px solid #c7d2fe;
+    padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .guest-banner-txt{font-size:12px;color:#3730a3;font-weight:600}
+  .guest-banner-cta{font-size:11px;font-weight:700;color:#fff;background:#4f46e5;
+    border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
+  .plan-badge.guest{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+
+  /* ===== Username Picker Modal ===== */
+  #username-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:60;
+    align-items:center;justify-content:center;padding:24px}
+  .uname-box{background:#eef2ff;border-radius:18px;padding:28px 24px;max-width:360px;width:100%}
+  .uname-avatar-row{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .uname-av{width:46px;height:46px;border-radius:50%;background:#c7d2fe;display:flex;align-items:center;
+    justify-content:center;font-size:19px;font-weight:700;color:#4338ca;flex-shrink:0;
+    background-size:cover;background-position:center}
+  .uname-gname{font-size:14px;font-weight:600;color:#1e2340}
+  .uname-gemail{font-size:12px;color:#6b7a99;margin-top:2px}
+  .uname-title{font-size:18px;font-weight:800;color:#1e2340;margin-bottom:6px}
+  .uname-sub{font-size:13px;color:#4a5270;line-height:1.55;margin-bottom:18px}
+  .uname-inp-wrap{position:relative;margin-bottom:8px}
+  .uname-at{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:#6b7a99;pointer-events:none}
+  .uname-inp{width:100%;padding:10px 12px 10px 28px;border:1.5px solid #c7d2fe;border-radius:10px;
+    background:#fff;color:#1e2340;font-size:15px;font-family:'Inter',sans-serif;outline:none;box-sizing:border-box}
+  .uname-inp:focus{border-color:#4f46e5}
+  .uname-hint{font-size:12px;color:#6b7a99;margin-bottom:12px}
+  .uname-hint.err{color:#dc2626}
+  .uname-status{font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;display:none}
+  .uname-status.ok{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+  .uname-status.err{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+  .uname-status.checking{background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
+  .uname-btn{width:100%;padding:13px;border:none;border-radius:10px;background:#4f46e5;color:#fff;
+    font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:opacity .15s}
+  .uname-btn:disabled{opacity:.4;cursor:not-allowed}
+  .uname-btn:not(:disabled):hover{opacity:.88}
 
   /* ===== Toast ===== */
   .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(140px);
@@ -377,6 +490,11 @@
         <div class="fpill">💰 ₹20L Virtual</div>
       </div>
 
+      <!-- Guest CTA — visible without scrolling -->
+      <button class="guest-btn" style="width:100%;max-width:360px;margin-bottom:18px" onclick="doGuestLogin()">
+        👀 Try as Guest &nbsp;<span style="font-size:11px;opacity:0.7">· No signup · 5 trades/day</span>
+      </button>
+
       <!-- Phone mockup -->
       <div class="phone-mockup">
         <div class="phone-screen">
@@ -404,10 +522,18 @@
         </div>
       </div>
 
-      <button class="google-btn" onclick="doLogin()">
-        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-        Continue with Google
-      </button>
+      <p style="font-size:13px;color:#4a5270;margin-bottom:16px;font-weight:600">Want full access? Sign up free ↓</p>
+
+      <div class="auth-btns">
+        <button class="phone-btn" onclick="showPhoneScreen()">
+          📱 Continue with Phone
+        </button>
+        <div class="auth-divider"><span>or</span></div>
+        <button class="google-btn" onclick="doLogin()">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+          Continue with Google
+        </button>
+      </div>
 
       <p class="no-card-note">No credit card required</p>
 
@@ -417,7 +543,90 @@
         <a href="terms.html">Terms</a> &nbsp;•&nbsp; <a href="privacy.html">Privacy</a>
       </p>
 
+      <!-- Phone number input screen -->
+      <div id="phone-screen" class="phone-auth-screen">
+        <div class="phone-auth-box">
+          <button class="pa-back" onclick="hidePhoneScreen()">← Back</button>
+          <div class="pa-title">Enter your phone number</div>
+          <div class="pa-sub">We'll send a 6-digit OTP to verify your number. No spam, ever.</div>
+          <div class="pa-phone-row">
+            <div class="pa-cc">+91</div>
+            <input id="pa-phone" class="pa-inp" type="tel" inputmode="numeric" maxlength="10" placeholder="98765 43210" oninput="onPhoneInput(this.value)">
+          </div>
+          <div class="pa-hint">Indian numbers only (+91)</div>
+          <div id="pa-phone-err" class="pa-err"></div>
+          <button id="pa-send-btn" class="pa-submit" onclick="sendOTP()" disabled>Send OTP</button>
+          <div id="recaptcha-container"></div>
+        </div>
+      </div>
+
+      <!-- OTP verification screen -->
+      <div id="otp-screen" class="phone-auth-screen">
+        <div class="phone-auth-box">
+          <button class="pa-back" onclick="hideOtpScreen()">← Back</button>
+          <div class="pa-title">Enter OTP</div>
+          <div class="pa-sub" id="otp-sent-to">OTP sent to +91 XXXXXXXXXX</div>
+          <div class="pa-otp-row">
+            <input class="pa-otp-digit" id="otp-0" type="text" inputmode="numeric" maxlength="1" oninput="otpDigit(0,this)">
+            <input class="pa-otp-digit" id="otp-1" type="text" inputmode="numeric" maxlength="1" oninput="otpDigit(1,this)">
+            <input class="pa-otp-digit" id="otp-2" type="text" inputmode="numeric" maxlength="1" oninput="otpDigit(2,this)">
+            <input class="pa-otp-digit" id="otp-3" type="text" inputmode="numeric" maxlength="1" oninput="otpDigit(3,this)">
+            <input class="pa-otp-digit" id="otp-4" type="text" inputmode="numeric" maxlength="1" oninput="otpDigit(4,this)">
+            <input class="pa-otp-digit" id="otp-5" type="text" inputmode="numeric" maxlength="1" oninput="otpDigit(5,this)">
+          </div>
+          <div id="pa-otp-err" class="pa-err"></div>
+          <button id="pa-verify-btn" class="pa-submit" onclick="verifyOTP()" disabled>Verify & Continue</button>
+          <div id="pa-resend" class="pa-resend" onclick="resendOTP()">Didn't receive? Resend OTP</div>
+        </div>
+      </div>
+
     </div>
+  </div>
+
+  <!-- ===== Upgrade Prompt (guest limits) ===== -->
+  <div id="upgrade-prompt">
+    <div class="upg-sheet">
+      <div class="upg-emoji" id="upg-emoji">🚀</div>
+      <div class="upg-title" id="upg-title">Unlock Full Access</div>
+      <div class="upg-msg" id="upg-msg">Sign up free to get unlimited trades, all 50 stocks, and compete on the leaderboard.</div>
+      <button class="upg-cta" onclick="showPhoneFromPrompt()">📱 Continue with Phone — Free</button>
+      <button class="upg-google" onclick="doLoginFromPrompt()">
+        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+        Continue with Google
+      </button>
+      <div class="upg-dismiss" onclick="closeUpgradePrompt()">Maybe later</div>
+    </div>
+  </div>
+
+  <!-- ===== Username Picker Modal ===== -->
+  <div id="username-modal">
+    <div class="uname-box">
+      <div class="uname-avatar-row">
+        <div class="uname-av" id="uname-av"></div>
+        <div>
+          <div class="uname-gname" id="uname-gname"></div>
+          <div class="uname-gemail" id="uname-gemail"></div>
+        </div>
+      </div>
+      <div class="uname-title">Choose your username</div>
+      <div class="uname-sub">This is how you'll appear on the leaderboard and community posts.</div>
+      <div class="uname-inp-wrap">
+        <span class="uname-at">@</span>
+        <input id="uname-inp" class="uname-inp" type="text" placeholder="trader_raj" maxlength="20" oninput="window.onUsernameInput(this.value)">
+      </div>
+      <div id="uname-hint" class="uname-hint">3–20 characters · letters, numbers, underscore only</div>
+      <div id="uname-status" class="uname-status"></div>
+      <button id="uname-btn" class="uname-btn" onclick="window.submitUsername()" disabled>Continue</button>
+      <div id="uname-skip" style="display:none;text-align:center;margin-top:12px">
+        <span style="font-size:13px;color:#6b7a99;cursor:pointer" onclick="window.skipUsername()">Skip for now</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Guest Banner (shown for anonymous users) ===== -->
+  <div id="guest-banner" class="guest-banner" style="display:none">
+    <span class="guest-banner-txt">👀 Guest Mode · 5 trades/day · 10 stocks</span>
+    <button class="guest-banner-cta" onclick="showUpgradePrompt('banner')">Sign Up Free →</button>
   </div>
 
   <!-- ===== Live Ticker Bar ===== -->
@@ -791,6 +1000,13 @@ const HISTORY_DAYS = {trial:3, basic:5, growth:15, pro:30};
 const PLAN_LABEL = {trial:"TRIAL", basic:"BASIC", growth:"GROWTH", pro:"PRO"};
 const PLAN_PRICE = {basic:149, growth:299, pro:599}; // ₹/month
 
+// ===== Guest Mode =====
+const GUEST_CAPITAL = 500000;
+const GUEST_TRADE_LIMIT = 5;
+const GUEST_STOCKS = new Set(["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","BHARTIARTL","ITC","HINDUNILVR","WIPRO"]);
+let isGuestMode = false;
+let guestTradesUsedToday = 0;
+
 let cash = PLAN_START.trial;
 let holdings = {};
 let peakValue = PLAN_START.trial;
@@ -935,7 +1151,10 @@ function renderWatchlist(){
   const viewMode = viewSel ? viewSel.value : "active"; // "active" = My Stocks (default), "all" = All 50
 
   // Build list with original index preserved (gating depends on original index)
-  let list = stocks.map((s,i)=>({s, i, locked: i >= visibleCount}));
+  let list = stocks.map((s,i)=>({
+    s, i,
+    locked: isGuestMode ? !GUEST_STOCKS.has(s.sym) : i >= visibleCount
+  }));
 
   // Default view: only show stocks the user can actually trade (no locked clutter).
   // "All 50 Stocks" view shows everything, including locked ones with upsell.
@@ -966,10 +1185,12 @@ function renderWatchlist(){
       const sign = chg >= 0 ? "+":"";
       const initials = s.sym.slice(0,2);
       if(o.locked){
-        return `<div class="stk-lock" onclick="location.href='plans.html'">
+        const lockClick = isGuestMode ? `showUpgradePrompt('stock')` : `location.href='plans.html'`;
+        const lockLabel = isGuestMode ? 'Sign up' : 'Pro only';
+        return `<div class="stk-lock" onclick="${lockClick}">
           <div class="stk-ico">🔒</div>
           <div class="stk-info"><div class="stk-name" style="color:var(--muted)">${s.sym}</div><div class="stk-sec">${s.sector}</div></div>
-          <div class="stk-price-col"><div class="stk-price" style="color:var(--muted)">₹ ---</div><div class="stk-chg" style="color:var(--muted)">Pro only</div></div>
+          <div class="stk-price-col"><div class="stk-price" style="color:var(--muted)">₹ ---</div><div class="stk-chg" style="color:var(--muted)">${lockLabel}</div></div>
         </div>`;
       }
       return `<div class="stk" onclick="openDetail(${i})">
@@ -1256,6 +1477,10 @@ function recordTradeForLimit(){
   const today = todayStr();
   if(dailyTradeDate !== today){ dailyTradeDate = today; dailyTradeCount = 0; }
   dailyTradeCount++;
+  if(isGuestMode){
+    guestTradesUsedToday++;
+    if(window.saveGuestRecord) window.saveGuestRecord();
+  }
 }
 
 function confirmTrade(){
@@ -1263,6 +1488,18 @@ function confirmTrade(){
     showToast("🌙 Market is closed. Trading resumes 9:15 AM–3:30 PM IST (Mon–Fri, excluding holidays).");
     closeModal();
     return;
+  }
+  if(isGuestMode){
+    if(guestTradesUsedToday >= GUEST_TRADE_LIMIT){
+      closeModal();
+      showUpgradePrompt('trade_limit');
+      return;
+    }
+    if(!GUEST_STOCKS.has(modalStock.sym)){
+      closeModal();
+      showUpgradePrompt('stock');
+      return;
+    }
   }
   if(isTrialExpired()){
     showToast("⏰ Your trial has ended. Subscribe to keep trading!");
@@ -1594,7 +1831,8 @@ function postStockComment(){
 if(!DEMO_MODE){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } =
+    const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut,
+      signInAnonymously, signInWithPhoneNumber, RecaptchaVerifier, PhoneAuthProvider, linkWithCredential } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
     const { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, query, where, orderBy, limit, getDocs, increment, updateDoc, onSnapshot } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
@@ -1665,7 +1903,7 @@ if(!DEMO_MODE){
       try{
         await addDoc(collection(db,"posts"), {
           uid, text, stockTag, sentiment,
-          displayName: auth.currentUser?.displayName || "Trader",
+          displayName: window._username || auth.currentUser?.displayName || "Trader",
           photoURL: auth.currentUser?.photoURL || "",
           likes: 0, replyCount: 0, createdAt: Date.now()
         });
@@ -1802,7 +2040,7 @@ if(!DEMO_MODE){
       try{
         await addDoc(collection(db,"replies"), {
           postId, uid, text,
-          displayName: auth.currentUser?.displayName || "Trader",
+          displayName: window._username || auth.currentUser?.displayName || "Trader",
           photoURL: auth.currentUser?.photoURL || "",
           createdAt: Date.now()
         });
@@ -1899,7 +2137,257 @@ if(!DEMO_MODE){
 
     window.doLogout = async function(){ await signOut(auth); location.reload(); };
 
+    // ===== Guest Mode =====
+    window.doGuestLogin = async function(){
+      try{
+        await signInAnonymously(auth);
+        track("login", {method: "guest"});
+      }catch(e){
+        const err = document.getElementById("login-err");
+        err.textContent = "Guest login failed. Please try again.";
+        err.style.display = "block";
+      }
+    };
+
+    // ===== Phone Auth =====
+    let phoneRecaptcha = null;
+    let phoneConfirmResult = null;
+
+    window.showPhoneScreen = function(){
+      document.getElementById("phone-screen").style.display = "flex";
+      document.getElementById("pa-phone").value = "";
+      document.getElementById("pa-phone-err").style.display = "none";
+      document.getElementById("pa-send-btn").disabled = true;
+    };
+    window.hidePhoneScreen = function(){
+      document.getElementById("phone-screen").style.display = "none";
+    };
+    window.showPhoneFromPrompt = function(){
+      closeUpgradePrompt();
+      document.getElementById("login-screen").style.display = "flex";
+      showPhoneScreen();
+    };
+    window.doLoginFromPrompt = function(){
+      closeUpgradePrompt();
+      window.doLogin();
+    };
+
+    window.onPhoneInput = function(val){
+      const clean = val.replace(/\D/g,"");
+      document.getElementById("pa-send-btn").disabled = clean.length !== 10;
+    };
+
+    window.sendOTP = async function(){
+      const num = document.getElementById("pa-phone").value.replace(/\D/g,"");
+      const errEl = document.getElementById("pa-phone-err");
+      errEl.style.display = "none";
+      const btn = document.getElementById("pa-send-btn");
+      btn.disabled = true; btn.textContent = "Sending…";
+      try{
+        if(!phoneRecaptcha){
+          phoneRecaptcha = new RecaptchaVerifier(auth, "recaptcha-container", {size:"invisible"});
+        }
+        phoneConfirmResult = await signInWithPhoneNumber(auth, "+91" + num, phoneRecaptcha);
+        document.getElementById("otp-sent-to").textContent = "OTP sent to +91 " + num;
+        document.getElementById("phone-screen").style.display = "none";
+        document.getElementById("otp-screen").style.display = "flex";
+        // clear OTP boxes
+        for(let i=0;i<6;i++) document.getElementById("otp-"+i).value = "";
+        document.getElementById("pa-otp-err").style.display = "none";
+        document.getElementById("pa-verify-btn").disabled = true;
+        document.getElementById("otp-0").focus();
+        setTimeout(()=>{ document.getElementById("pa-resend").style.display = "block"; }, 30000);
+        track("otp_sent");
+      }catch(e){
+        errEl.textContent = e.message || "Failed to send OTP. Please try again.";
+        errEl.style.display = "block";
+        btn.disabled = false; btn.textContent = "Send OTP";
+        // reset recaptcha on error so next attempt works
+        phoneRecaptcha = null;
+      }
+    };
+
+    window.hideOtpScreen = function(){
+      document.getElementById("otp-screen").style.display = "none";
+      document.getElementById("phone-screen").style.display = "flex";
+      const btn = document.getElementById("pa-send-btn");
+      btn.disabled = false; btn.textContent = "Send OTP";
+    };
+
+    window.otpDigit = function(idx, el){
+      el.value = el.value.replace(/\D/g,"").slice(-1);
+      if(el.value && idx < 5) document.getElementById("otp-"+(idx+1)).focus();
+      const full = Array.from({length:6}, (_,i) => document.getElementById("otp-"+i).value).join("");
+      document.getElementById("pa-verify-btn").disabled = full.length < 6;
+    };
+
+    window.verifyOTP = async function(){
+      const code = Array.from({length:6}, (_,i) => document.getElementById("otp-"+i).value).join("");
+      const errEl = document.getElementById("pa-otp-err");
+      const btn = document.getElementById("pa-verify-btn");
+      errEl.style.display = "none";
+      btn.disabled = true; btn.textContent = "Verifying…";
+      try{
+        const credential = PhoneAuthProvider.credential(phoneConfirmResult.verificationId, code);
+        if(auth.currentUser && auth.currentUser.isAnonymous){
+          // Link anonymous account → preserve guest UID and history
+          await linkWithCredential(auth.currentUser, credential);
+        } else {
+          await phoneConfirmResult.confirm(code);
+        }
+        document.getElementById("otp-screen").style.display = "none";
+        track("login", {method:"phone"});
+      }catch(e){
+        errEl.textContent = e.code === "auth/invalid-verification-code"
+          ? "Wrong OTP. Please check and try again."
+          : (e.message || "Verification failed.");
+        errEl.style.display = "block";
+        btn.disabled = false; btn.textContent = "Verify & Continue";
+      }
+    };
+
+    window.resendOTP = async function(){
+      document.getElementById("otp-screen").style.display = "none";
+      document.getElementById("phone-screen").style.display = "flex";
+      phoneRecaptcha = null;
+      document.getElementById("pa-resend").style.display = "none";
+    };
+
+    // ===== Upgrade Prompt =====
+    window.showUpgradePrompt = function(reason){
+      const emoji = document.getElementById("upg-emoji");
+      const title = document.getElementById("upg-title");
+      const msg = document.getElementById("upg-msg");
+      if(reason === "trade_limit"){
+        emoji.textContent = "⚡";
+        title.textContent = "Daily limit reached";
+        msg.textContent = "You've used all 5 free guest trades today. Sign up free to get full access + 1 month trial with 50 stocks and unlimited trades.";
+      } else if(reason === "stock"){
+        emoji.textContent = "🔓";
+        title.textContent = "Unlock all 50 stocks";
+        msg.textContent = "Guest mode includes 10 popular stocks. Sign up free to trade all 50 Nifty stocks with live prices.";
+      } else {
+        emoji.textContent = "🚀";
+        title.textContent = "Unlock Full Access";
+        msg.textContent = "Sign up free to get unlimited trades, all 50 stocks, leaderboard access, and a 1-month trial.";
+      }
+      document.getElementById("upgrade-prompt").style.display = "flex";
+    };
+    window.closeUpgradePrompt = function(){
+      document.getElementById("upgrade-prompt").style.display = "none";
+    };
+
+    // ===== Guest Firestore record =====
+    const todayISTStr = () => {
+      const d = new Date(Date.now() + 5.5*3600000);
+      return d.toISOString().slice(0,10);
+    };
+
+    window.saveGuestRecord = async function(){
+      if(!uid) return;
+      try{
+        await setDoc(doc(db,"guestUsers",uid), {
+          lastActiveAt: Date.now(),
+          tradesUsedToday: guestTradesUsedToday,
+          tradesUsedTodayDate: todayISTStr(),
+          totalGuestTrades: increment(1)
+        }, {merge:true});
+      }catch(e){ console.error("Guest record save failed",e); }
+    };
+
+    async function loadGuestRecord(){
+      try{
+        const today = todayISTStr();
+        const snap = await getDoc(doc(db,"guestUsers",uid));
+        if(snap.exists()){
+          const d = snap.data();
+          // Reset daily count if it's a new day
+          guestTradesUsedToday = (d.tradesUsedTodayDate === today) ? (d.tradesUsedToday || 0) : 0;
+          await setDoc(doc(db,"guestUsers",uid), {lastActiveAt: Date.now(), tradesUsedTodayDate: today, tradesUsedToday: guestTradesUsedToday}, {merge:true});
+        } else {
+          guestTradesUsedToday = 0;
+          await setDoc(doc(db,"guestUsers",uid), {
+            createdAt: Date.now(), lastActiveAt: Date.now(),
+            tradesUsedToday: 0, tradesUsedTodayDate: today, totalGuestTrades: 0
+          });
+        }
+      }catch(e){ console.error("Guest record load failed",e); }
+    }
+
     const ADMIN_EMAILS_HIDE = ["scaleaiq@gmail.com", "jitendramathur.85@gmail.com"];
+
+    // ===== Username modal =====
+    function showUsernameModal(user, optional) {
+      const av = document.getElementById('uname-av');
+      if (user.photoURL) {
+        av.style.backgroundImage = `url(${user.photoURL})`;
+        av.style.backgroundSize = 'cover';
+        av.textContent = '';
+      } else {
+        const label = user.isAnonymous ? '👀' : (user.displayName || user.email || 'T').charAt(0).toUpperCase();
+        av.style.backgroundImage = '';
+        av.textContent = label;
+      }
+      document.getElementById('uname-gname').textContent = user.isAnonymous ? 'Guest' : (user.displayName || '');
+      document.getElementById('uname-gemail').textContent = user.isAnonymous ? 'Optional — skip if you prefer' : (user.email || '');
+      document.getElementById('uname-skip').style.display = optional ? 'block' : 'none';
+      document.getElementById('username-modal').style.display = 'flex';
+    }
+
+    window.skipUsername = function(){
+      document.getElementById('username-modal').style.display = 'none';
+    };
+
+    window.onUsernameInput = function(val) {
+      const hint = document.getElementById('uname-hint');
+      const btn  = document.getElementById('uname-btn');
+      const status = document.getElementById('uname-status');
+      status.style.display = 'none';
+      status.className = 'uname-status';
+      const valid = /^[a-zA-Z0-9_]{3,20}$/.test(val);
+      hint.className = 'uname-hint' + (val && !valid ? ' err' : '');
+      btn.disabled = !valid;
+    };
+
+    window.submitUsername = async function() {
+      const val = document.getElementById('uname-inp').value.trim().toLowerCase();
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(val)) return;
+      const btn    = document.getElementById('uname-btn');
+      const status = document.getElementById('uname-status');
+
+      btn.disabled = true;
+      btn.textContent = 'Checking…';
+      status.textContent = 'Checking availability…';
+      status.className = 'uname-status checking';
+      status.style.display = 'block';
+
+      try {
+        const taken = await getDoc(doc(db, 'usernames', val));
+        if (taken.exists()) {
+          status.textContent = '@' + val + ' is already taken. Try another.';
+          status.className = 'uname-status err';
+          btn.disabled = false;
+          btn.textContent = 'Continue';
+          return;
+        }
+        // Claim it
+        await setDoc(doc(db, 'usernames', val), { uid });
+        if(isGuestMode){
+          await setDoc(doc(db,'guestUsers',uid), {username: val}, {merge:true});
+        } else {
+          await setDoc(doc(db, 'users', uid), { username: val }, { merge: true });
+        }
+        window._username = val;
+        document.getElementById('username-modal').style.display = 'none';
+        showToast('Welcome, @' + val + '! 🎉');
+        if(!isGuestMode && window.cloudSave) window.cloudSave(getState());
+      } catch(e) {
+        status.textContent = 'Something went wrong. Please try again.';
+        status.className = 'uname-status err';
+        btn.disabled = false;
+        btn.textContent = 'Continue';
+      }
+    };
     window.cloudSave = function(state){
       if(!uid) return;
       clearTimeout(saveTimer);
@@ -1907,7 +2395,8 @@ if(!DEMO_MODE){
         try{
           await setDoc(doc(db, "users", uid), {
             ...state,
-            displayName: auth.currentUser?.displayName || "",
+            username: window._username || null,
+            displayName: window._username || auth.currentUser?.displayName || "",
             email: auth.currentUser?.email || "",
             photoURL: auth.currentUser?.photoURL || ""
           }, {merge:true});
@@ -1925,7 +2414,7 @@ if(!DEMO_MODE){
           // keep cost flat regardless of user count — see hybrid model.
           const tradingReturnPct = typeof window._latestTradingReturnPct === "number" ? window._latestTradingReturnPct : 0;
           await setDoc(doc(db, "leaderboard", uid), {
-            displayName: auth.currentUser?.displayName || "Trader",
+            displayName: window._username || auth.currentUser?.displayName || "Trader",
             photoURL: auth.currentUser?.photoURL || "",
             peakValue: state.peakValue || 0,
             totalCapitalIn: state.totalCapitalIn || 0,
@@ -1945,16 +2434,45 @@ if(!DEMO_MODE){
         window.myUid = uid;
         document.getElementById("login-screen").style.display = "none";
         if(al) al.style.display = "none";
+
+        // ===== Anonymous / Guest user =====
+        if(user.isAnonymous){
+          isGuestMode = true;
+          cash = GUEST_CAPITAL;
+          peakValue = GUEST_CAPITAL;
+          totalCapitalIn = GUEST_CAPITAL;
+          userPlan = "guest";
+          // Show guest banner, update badge
+          document.getElementById("guest-banner").style.display = "flex";
+          const badge = document.getElementById("plan-badge");
+          if(badge){ badge.textContent = "GUEST"; badge.className = "plan-badge guest"; }
+          const av = document.getElementById("avatar");
+          av.textContent = "👀"; av.style.backgroundImage = "";
+          startLivePriceListener();
+          await loadGuestRecord();
+          // Optional username for guests
+          const guestSnap = await getDoc(doc(db,"guestUsers",uid)).catch(()=>null);
+          const guestUsername = guestSnap && guestSnap.exists() ? guestSnap.data().username : null;
+          if(guestUsername){
+            window._username = guestUsername;
+          } else {
+            showUsernameModal(user, true); // optional for guests
+          }
+          renderSummary(); renderWatchlist();
+          return;
+        }
+
+        // ===== Signed-in (phone or Google) =====
+        isGuestMode = false;
+        document.getElementById("guest-banner").style.display = "none";
         startLivePriceListener();
         loadMyLikesIdx();
-        // One-time cleanup: if this is an admin/test account, remove any past
-        // leaderboard entry from before this exclusion was added.
         const myEmailLower = (user.email || "").toLowerCase();
         if(ADMIN_EMAILS_HIDE.includes(myEmailLower)){
-          deleteDoc(doc(db,"leaderboard",uid)).catch(()=>{}); // silent — fine if it didn't exist
+          deleteDoc(doc(db,"leaderboard",uid)).catch(()=>{});
         }
         const av = document.getElementById("avatar");
-        const initial = (user.displayName || "T").charAt(0).toUpperCase();
+        const initial = (user.displayName || user.phoneNumber || "T").charAt(0).toUpperCase();
         if(user.photoURL){
           av.style.backgroundImage = `url(${user.photoURL})`;
           av.style.backgroundSize = "cover";
@@ -1966,53 +2484,48 @@ if(!DEMO_MODE){
           const snap = await getDoc(doc(db, "users", uid));
           if(snap.exists()){
             applyState(snap.data());
-            showToast("Welcome back, " + (user.displayName||"Trader").split(" ")[0] + "! 👋");
+            window._username = snap.data().username || null;
+            // If user just upgraded from guest, migrate guestUsers record
+            const prevGuest = await getDoc(doc(db,"guestUsers",uid)).catch(()=>null);
+            if(prevGuest && prevGuest.exists() && !prevGuest.data().migrated){
+              await setDoc(doc(db,"guestUsers",uid),{migrated:true,migratedAt:Date.now()},{merge:true});
+            }
+            if(!window._username){
+              showUsernameModal(user, false);
+            } else {
+              showToast("Welcome back, @" + window._username + "! 👋");
+            }
           } else {
-            // New user — trial starts now
+            // New user (fresh phone signup or Google) — trial starts now
             planStartDate = Date.now();
             lastTopupDate = Date.now();
-            // New user — check for referral code in URL before first save
             const urlParams = new URLSearchParams(location.search);
             const refCode = urlParams.get("ref");
-            let referralApplied = false;
             if(refCode){
               try{
                 const codeSnap = await getDoc(doc(db,"referralCodes",refCode.toUpperCase()));
                 if(codeSnap.exists()){
                   const referrerUid = codeSnap.data().uid;
-                  if(referrerUid !== uid){ // can't refer yourself
-                    cash += 50000; // referee signup bonus
-                    await addDoc(collection(db,"referrals"), {
-                      referrerUid, refereeUid: uid, claimed:false, createdAt: Date.now()
-                    });
-                    referralApplied = true;
-                  }
+                  if(referrerUid !== uid){ cash += 50000; await addDoc(collection(db,"referrals"), {referrerUid, refereeUid: uid, claimed:false, createdAt: Date.now()}); }
                 }
               }catch(e){ console.error("Referral processing failed", e); }
             }
             window.cloudSave(getState());
-            showToast(referralApplied
-              ? "🎁 Welcome! " + fmtInt(cash) + " ready (incl. ₹50,000 referral bonus)"
-              : "Account ban gaya! " + fmtInt(cash) + " virtual cash ready 🚀");
+            showUsernameModal(user, false);
           }
-          // Check if admin granted free Pro/Lite/Max to this email
           const grantedPlan = await checkGrant(user.email, userPlan);
           if(grantedPlan){
             const bonus = applyPlanUpgrade(grantedPlan);
             showToast("🎁 You've been granted " + grantedPlan.toUpperCase() + " access! +" + fmtInt(bonus) + " capital");
           }
-          // Monthly top-up: credit if a month (or more) has passed since plan start/last top-up
           const topupAmount = checkMonthlyTopup();
-          if(topupAmount > 0){
-            showToast("💰 Monthly top-up credited: +" + fmtInt(topupAmount));
-          }
-          // Mandatory Rules & Regulations gate — must agree once before using the app
+          if(topupAmount > 0){ showToast("💰 Monthly top-up credited: +" + fmtInt(topupAmount)); }
           if(!window._rulesAgreedAt && !location.pathname.includes("rules.html")){
-            location.href = "rules.html";
-            return;
+            location.href = "rules.html"; return;
           }
         }catch(e){ console.error("Load failed", e); }
       } else {
+        // No session at all — sign in anonymously so guest mode starts
         document.getElementById("login-screen").style.display = "flex";
         if(al) al.style.display = "none";
       }

@@ -27,6 +27,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Guest (anonymous) users — own-UID access only.
+    // Anonymous auth counts as request.auth != null, so standard uid check works.
+    match /guestUsers/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Live stock prices — written ONLY by the server (via Firebase Admin SDK,
     // which bypasses these rules entirely). Any logged-in user can READ the
     // live feed; no client can ever write to it directly.
@@ -65,6 +71,16 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
+    // Usernames: unique username -> uid mapping.
+    // Anyone logged in can READ (to check availability).
+    // CREATE allowed only if the uid matches the logged-in user.
+    // UPDATE and DELETE are permanently blocked — usernames are locked once claimed.
+    match /usernames/{username} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Referral codes: code -> uid mapping. Anyone logged in can read (to
     // resolve a ?ref=CODE link) and create their OWN code (uid must match).
     match /referralCodes/{code} {
@@ -89,7 +105,7 @@ service cloud.firestore {
       return request.auth != null &&
         request.auth.token.email in [
           "scaleaiq@gmail.com",
-          "YOUR-PERSONAL-EMAIL@gmail.com"
+          "jitendramathur.85@gmail.com"
         ];
     }
 
