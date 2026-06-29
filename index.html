@@ -525,10 +525,6 @@
       <p style="font-size:13px;color:#4a5270;margin-bottom:16px;font-weight:600">Want full access? Sign up free ↓</p>
 
       <div class="auth-btns">
-        <button class="phone-btn" onclick="showPhoneScreen()">
-          📱 Continue with Phone
-        </button>
-        <div class="auth-divider"><span>or</span></div>
         <button class="google-btn" onclick="doLogin()">
           <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
           Continue with Google
@@ -588,7 +584,7 @@
       <div class="upg-emoji" id="upg-emoji">🚀</div>
       <div class="upg-title" id="upg-title">Unlock Full Access</div>
       <div class="upg-msg" id="upg-msg">Sign up free to get unlimited trades, all 50 stocks, and compete on the leaderboard.</div>
-      <button class="upg-cta" onclick="showPhoneFromPrompt()">📱 Continue with Phone — Free</button>
+      <button class="upg-cta" id="upg-guest-btn" style="display:none" onclick="continueAsGuest()">👀 Continue as Guest</button>
       <button class="upg-google" onclick="doLoginFromPrompt()">
         <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.7l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
         Continue with Google
@@ -1358,7 +1354,15 @@ function openTradeFromDetail(side){
 }
 
 // ---- Trade modal ----
+let pendingTrade = null;
 function openModal(i, side){
+  // Explore-mode gate: the first time a browsing guest tries to trade,
+  // ask them to choose Guest or Google before opening the trade ticket.
+  if(isGuestMode && !sessionStorage.getItem('tradeChoiceMade')){
+    pendingTrade = {i, side};
+    showUpgradePrompt('start_trade');
+    return;
+  }
   modalStock = stocks[i]; modalSide = side; modalQty = 1;
   document.getElementById("m-title").textContent = modalStock.sym + (side==="sell" ? " — Sell" : " — Buy");
   const confirmBtn = document.getElementById("m-confirm");
@@ -2273,6 +2277,16 @@ if(!DEMO_MODE){
       const emoji = document.getElementById("upg-emoji");
       const title = document.getElementById("upg-title");
       const msg = document.getElementById("upg-msg");
+      const guestBtn = document.getElementById("upg-guest-btn");
+      // "Continue as Guest" only makes sense at the first trade gate.
+      if(guestBtn) guestBtn.style.display = (reason === "start_trade") ? "block" : "none";
+      if(reason === "start_trade"){
+        emoji.textContent = "📈";
+        title.textContent = "Start Trading";
+        msg.textContent = "Try instantly as Guest — ₹5L virtual cash, 5 trades/day, 10 stocks. Or sign in with Google for full access: 50 stocks, unlimited trades & the leaderboard.";
+        document.getElementById("upgrade-prompt").style.display = "flex";
+        return;
+      }
       if(reason === "trade_limit"){
         emoji.textContent = "⚡";
         title.textContent = "Daily limit reached";
@@ -2290,6 +2304,17 @@ if(!DEMO_MODE){
     };
     window.closeUpgradePrompt = function(){
       document.getElementById("upgrade-prompt").style.display = "none";
+    };
+    // User chose to keep exploring as a Guest at the trade gate.
+    window.continueAsGuest = function(){
+      sessionStorage.setItem('tradeChoiceMade','1');
+      closeUpgradePrompt();
+      // Resume the trade they were about to make.
+      if(pendingTrade){
+        const {i, side} = pendingTrade;
+        pendingTrade = null;
+        openModal(i, side);
+      }
     };
 
     // ===== Guest Firestore record =====
@@ -2468,12 +2493,9 @@ if(!DEMO_MODE){
           // Optional username for guests
           const guestSnap = await getDoc(doc(db,"guestUsers",uid)).catch(()=>null);
           const guestUsername = guestSnap && guestSnap.exists() ? guestSnap.data().username : null;
-          if(guestUsername){
-            window._username = guestUsername;
-          } else if(!sessionStorage.getItem('guestModalShown')){
-            sessionStorage.setItem('guestModalShown','1');
-            showUsernameModal(user, true); // optional for guests — only once per session
-          }
+          if(guestUsername){ window._username = guestUsername; }
+          // Username is optional and deferred — don't interrupt exploration.
+          // It's offered later (after they choose Guest at the trade gate).
           renderSummary(); renderWatchlist();
           return;
         }
@@ -2541,9 +2563,17 @@ if(!DEMO_MODE){
           }
         }catch(e){ console.error("Load failed", e); }
       } else {
-        // No session at all — sign in anonymously so guest mode starts
-        document.getElementById("login-screen").style.display = "flex";
+        // No session — silently sign in anonymously so the visitor lands
+        // straight in the app and can explore. The auth choice (Guest vs
+        // Google) is deferred until they actually try to trade.
         if(al) al.style.display = "none";
+        try{
+          await signInAnonymously(auth);
+        }catch(e){
+          console.error("Anonymous sign-in failed", e);
+          // Fallback: show the login screen so they can still sign in
+          document.getElementById("login-screen").style.display = "flex";
+        }
       }
     });
   }catch(e){
