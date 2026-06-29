@@ -556,7 +556,6 @@
           <div class="pa-hint">Indian numbers only (+91)</div>
           <div id="pa-phone-err" class="pa-err"></div>
           <button id="pa-send-btn" class="pa-submit" onclick="sendOTP()" disabled>Send OTP</button>
-          <div id="recaptcha-container"></div>
         </div>
       </div>
 
@@ -874,6 +873,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="recaptcha-container" style="position:fixed;bottom:0;left:0;z-index:9999"></div>
 
 <!-- Auth loading guard — prevents login screen flash for already-logged-in users -->
 <div id="auth-loading" style="position:fixed;inset:0;background:var(--bg);z-index:70;display:flex;align-items:center;justify-content:center">
