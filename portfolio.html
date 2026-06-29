@@ -402,6 +402,11 @@ const PER_TRADE_CAP = {trial:Infinity, basic:50000, growth:150000, pro:Infinity}
 const PLAN_DURATION_DAYS = 30;
 const HISTORY_DAYS = {trial:3, basic:5, growth:15, pro:30};
 const PLAN_LABEL = {trial:"TRIAL", basic:"BASIC", growth:"GROWTH", pro:"PRO"};
+const GUEST_CAPITAL = 500000;
+const GUEST_TRADE_LIMIT = 5;
+const GUEST_STOCKS = new Set(["RELIANCE","TCS","HDFCBANK","INFY","ICICIBANK","SBIN","BHARTIARTL","ITC","HINDUNILVR","WIPRO"]);
+let isGuestMode = false;
+let guestTradesUsedToday = 0;
 
 let cash = PLAN_START.trial;
 let holdings = {};
@@ -830,6 +835,13 @@ function confirmTrade(){
     closeTrade();
     return;
   }
+  if(isGuestMode){
+    if(guestTradesUsedToday >= GUEST_TRADE_LIMIT){
+      closeTrade();
+      showToast("⚡ You've used all 5 free guest trades today. Sign up for full access!");
+      return;
+    }
+  }
   if(isTrialExpired()){
     showToast("⏰ Your trial has ended. Subscribe to keep trading!");
     setTimeout(()=>location.href="plans.html", 1200);
@@ -949,10 +961,25 @@ if(!DEMO_MODE){
       if(user){
         uid = user.uid;
         startLivePriceListenerPf();
-        try{
-          const snap = await getDoc(doc(db,"users",uid));
-          if(snap.exists()) applyState(snap.data());
-        }catch(e){ console.error("Load failed", e); }
+        if(user.isAnonymous){
+          // Guest mode — load state from guestUsers, not users
+          isGuestMode = true;
+          cash = GUEST_CAPITAL; peakValue = GUEST_CAPITAL; totalCapitalIn = GUEST_CAPITAL;
+          userPlan = "guest";
+          const todayISTStr = () => new Date(Date.now()+5.5*3600000).toISOString().slice(0,10);
+          try{
+            const gSnap = await getDoc(doc(db,"guestUsers",uid));
+            if(gSnap.exists()){
+              const d = gSnap.data();
+              guestTradesUsedToday = (d.tradesUsedTodayDate === todayISTStr()) ? (d.tradesUsedToday||0) : 0;
+            }
+          }catch(e){ console.error("Guest load failed",e); }
+        } else {
+          try{
+            const snap = await getDoc(doc(db,"users",uid));
+            if(snap.exists()) applyState(snap.data());
+          }catch(e){ console.error("Load failed", e); }
+        }
         // reveal page now that we're confirmed logged in
         const al = document.getElementById("auth-loading");
         if(al) al.style.display = "none";

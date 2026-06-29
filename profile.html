@@ -464,17 +464,44 @@ if(!DEMO_MODE){
       const al = document.getElementById("auth-loading");
       if(user){
         uid = user.uid;
+
+        if(user.isAnonymous){
+          // Guest profile
+          const guestSnap = await getDoc(doc(db,"guestUsers",uid)).catch(()=>null);
+          const guestUsername = guestSnap && guestSnap.exists() ? guestSnap.data().username : null;
+          document.getElementById("prof-name").textContent = guestUsername ? "@" + guestUsername : "Guest";
+          document.getElementById("prof-email").textContent = "👀 Guest Mode";
+          const av = document.getElementById("prof-av");
+          av.textContent = "👀";
+          const badge = document.getElementById("prof-badge");
+          if(badge){ badge.className = "prof-badge trial"; badge.textContent = "GUEST"; }
+          // Hide rank and referral sections — not available for guests
+          ["rank-section","referral-section","ref-link-section","unclaimed-section"].forEach(id=>{
+            const el = document.getElementById(id); if(el) el.style.display = "none";
+          });
+          // Show sign-up CTA
+          const cta = document.createElement("div");
+          cta.style.cssText = "margin:16px;padding:14px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;text-align:center;color:#fff;font-size:14px;font-weight:600;cursor:pointer";
+          cta.textContent = "🚀 Sign up free — unlock full profile, ranks & referrals";
+          cta.onclick = () => location.href = "index.html";
+          document.getElementById("prof-av") && document.getElementById("prof-av").closest(".prof-card")
+            ? document.getElementById("prof-av").closest(".prof-card").after(cta)
+            : document.body.prepend(cta);
+          if(al) al.style.display = "none";
+          return;
+        }
+
         document.getElementById("prof-name").textContent = user.displayName || "Trader";
-        document.getElementById("prof-email").textContent = user.email || "";
+        document.getElementById("prof-email").textContent = user.email || user.phoneNumber || "";
         const av = document.getElementById("prof-av");
         if(user.photoURL){ av.style.backgroundImage = `url(${user.photoURL})`; av.textContent = ""; }
-        else { av.textContent = (user.displayName||"T").charAt(0).toUpperCase(); }
+        else { av.textContent = (user.displayName || user.phoneNumber || "T").charAt(0).toUpperCase(); }
 
         try{
           const snap = await getDoc(doc(db,"users",uid));
           const VALID_PLANS = ["trial","basic","growth","pro"];
           userData = snap.exists() ? snap.data() : {plan:"trial", peakValue:PLAN_START.trial, orders:[]};
-          if(!VALID_PLANS.includes(userData.plan)) userData.plan = "trial"; // legacy/unknown plan safety net
+          if(!VALID_PLANS.includes(userData.plan)) userData.plan = "trial";
           const plan = userData.plan || "trial";
           const badge = document.getElementById("prof-badge");
           badge.className = "prof-badge " + plan;

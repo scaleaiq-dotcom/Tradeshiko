@@ -339,8 +339,18 @@ if(!DEMO_MODE){
     const db = getFirestore(app);
     let uid = null;
 
+    let isGuestUser = false;
+
+    function showGuestUpgrade(action){
+      const msg = action === 'post'
+        ? "Sign up free to share your views with the community."
+        : "Sign up free to like and engage with community posts.";
+      if(confirm("👀 Guest mode — " + msg + "\n\nSign up now?")) location.href = "index.html";
+    }
+
     window.submitPost = async function(text, stockTag, sentiment){
       if(!uid){ alert("Please login first"); return; }
+      if(isGuestUser){ showGuestUpgrade('post'); return; }
       try{
         await addDoc(collection(db,"posts"), {
           uid, text, stockTag: stockTag||"", sentiment,
@@ -355,6 +365,7 @@ if(!DEMO_MODE){
 
     window.toggleLike = async function(postId){
       if(!uid) { alert("Please login first"); return; }
+      if(isGuestUser){ showGuestUpgrade('like'); return; }
       const likeDocId = postId + "_" + uid;
       const btn = document.getElementById("like-btn-"+postId);
       const countEl = document.getElementById("like-count-"+postId);
@@ -493,7 +504,8 @@ if(!DEMO_MODE){
       if(user){
         uid = user.uid;
         window.myUid = uid;
-        await loadMyLikes();
+        isGuestUser = user.isAnonymous;
+        if(!isGuestUser) await loadMyLikes();
         await loadFeed();
         if(al) al.style.display = "none";
       } else {

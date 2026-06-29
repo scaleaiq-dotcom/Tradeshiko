@@ -370,7 +370,21 @@ if(!DEMO_MODE){
           const snap = await getDocs(q);
           const entries = [];
           snap.forEach(d=>entries.push({uid:d.id, ...d.data()}));
-          renderLeaderboard(entries, user.uid);
+          // Guest users can VIEW leaderboard but don't appear on it
+          const myUid = user.isAnonymous ? null : user.uid;
+          renderLeaderboard(entries, myUid);
+          if(user.isAnonymous){
+            document.getElementById("your-rank").textContent = "—";
+            // Show a small guest note below the rank chip
+            const rankEl = document.getElementById("your-rank");
+            if(rankEl) rankEl.title = "Sign up to appear on the leaderboard";
+            // Insert a guest banner if not already there
+            const guestNote = document.createElement("div");
+            guestNote.style.cssText = "text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 0";
+            guestNote.textContent = "👀 Guest mode — sign up to compete on the leaderboard";
+            const ldrList = document.getElementById("ldr-list");
+            if(ldrList && ldrList.parentNode) ldrList.parentNode.insertBefore(guestNote, ldrList);
+          }
         }catch(e){
           console.error("Leaderboard load failed", e);
           document.getElementById("ldr-list").innerHTML = `<div class="empty">Couldn't load leaderboard. Pull to refresh.</div>`;

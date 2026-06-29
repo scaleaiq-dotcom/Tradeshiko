@@ -371,6 +371,16 @@ if(!DEMO_MODE){
     onAuthStateChanged(auth, async (user)=>{
       const al = document.getElementById("auth-loading");
       if(user){
+        if(user.isAnonymous){
+          renderReport([], "trial");
+          const note = document.createElement("div");
+          note.style.cssText = "text-align:center;padding:24px 20px;font-size:13px;color:var(--muted);line-height:1.6";
+          note.innerHTML = "👀 <strong style='color:var(--subtle)'>Guest Mode</strong><br>Trade history is not saved between sessions.<br><a href='index.html' style='color:var(--accent);font-weight:600'>Sign up free</a> to keep a full history.";
+          const wrap = document.querySelector(".screen") || document.body;
+          wrap.prepend(note);
+          if(al) al.style.display = "none";
+          return;
+        }
         try{
           const snap = await getDoc(doc(db,"users",user.uid));
           const data = snap.exists() ? snap.data() : {};

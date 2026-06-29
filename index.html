@@ -2455,8 +2455,9 @@ if(!DEMO_MODE){
           const guestUsername = guestSnap && guestSnap.exists() ? guestSnap.data().username : null;
           if(guestUsername){
             window._username = guestUsername;
-          } else {
-            showUsernameModal(user, true); // optional for guests
+          } else if(!sessionStorage.getItem('guestModalShown')){
+            sessionStorage.setItem('guestModalShown','1');
+            showUsernameModal(user, true); // optional for guests — only once per session
           }
           renderSummary(); renderWatchlist();
           return;
