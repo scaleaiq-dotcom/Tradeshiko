@@ -984,7 +984,7 @@ const stocks = [
 // ============================================================
 // PLAN STRUCTURE — Trial / Basic / Growth / Pro
 // ============================================================
-const TRIAL_DAYS = 3;
+const TRIAL_DAYS = 30;
 const PLAN_RANK_LOCAL = {trial:0, basic:1, growth:2, pro:3};
 const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
 const MONTHLY_TOPUP = {trial:0, basic:50000, growth:100000, pro:200000};
@@ -1676,15 +1676,23 @@ function updateStatusBanner(){
       banner.style.background = "rgba(239,68,68,0.1)";
       banner.style.border = "1px solid rgba(239,68,68,0.3)";
       banner.style.color = "var(--red)";
-      banner.innerHTML = `⏰ Your 3-day trial has ended. <a href="plans.html" style="color:var(--red);text-decoration:underline">Subscribe now →</a>`;
+      banner.innerHTML = `⏰ Your ${TRIAL_DAYS}-day trial has ended. <a href="plans.html" style="color:var(--red);text-decoration:underline">Subscribe now →</a>`;
     } else if(planStartDate){
       const msLeft = (planStartDate + TRIAL_DAYS*24*60*60*1000) - Date.now();
-      const hoursLeft = Math.max(0, Math.ceil(msLeft / (60*60*1000)));
+      const daysLeft = Math.ceil(msLeft / (24*60*60*1000));
+      // Show days when there's plenty of time, switch to hours in the final 2 days
+      let leftLabel;
+      if(daysLeft > 2){
+        leftLabel = `${daysLeft} days left`;
+      } else {
+        const hoursLeft = Math.max(0, Math.ceil(msLeft / (60*60*1000)));
+        leftLabel = `~${hoursLeft} hour${hoursLeft===1?'':'s'} left`;
+      }
       banner.style.display = "block";
       banner.style.background = "rgba(245,158,11,0.08)";
       banner.style.border = "1px solid rgba(245,158,11,0.25)";
       banner.style.color = "var(--gold)";
-      banner.innerHTML = `🎁 Trial: ~${hoursLeft} hour${hoursLeft===1?'':'s'} left · <a href="plans.html" style="color:var(--gold);text-decoration:underline">See plans →</a>`;
+      banner.innerHTML = `🎁 Trial: ${leftLabel} · <a href="plans.html" style="color:var(--gold);text-decoration:underline">See plans →</a>`;
     } else {
       banner.style.display = "none";
     }
@@ -2290,7 +2298,7 @@ if(!DEMO_MODE){
       if(reason === "trade_limit"){
         emoji.textContent = "⚡";
         title.textContent = "Daily limit reached";
-        msg.textContent = "You've used all 5 free guest trades today. Sign up free to get full access + 1 month trial with 50 stocks and unlimited trades.";
+        msg.textContent = "You've used all 5 free guest trades today. Sign up free to get full access + a 30-day trial with 50 stocks and unlimited trades.";
       } else if(reason === "stock"){
         emoji.textContent = "🔓";
         title.textContent = "Unlock all 50 stocks";
@@ -2298,7 +2306,7 @@ if(!DEMO_MODE){
       } else {
         emoji.textContent = "🚀";
         title.textContent = "Unlock Full Access";
-        msg.textContent = "Sign up free to get unlimited trades, all 50 stocks, leaderboard access, and a 1-month trial.";
+        msg.textContent = "Sign up free to get unlimited trades, all 50 stocks, leaderboard access, and a 30-day trial.";
       }
       document.getElementById("upgrade-prompt").style.display = "flex";
     };

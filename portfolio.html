@@ -392,7 +392,7 @@ function getPrice(sym){
 // ============================================================
 // PLAN STRUCTURE — Trial / Basic / Growth / Pro (matches index.html)
 // ============================================================
-const TRIAL_DAYS = 3;
+const TRIAL_DAYS = 30;
 const VALID_PLANS = ["trial","basic","growth","pro"];
 const PLAN_RANK_LOCAL = {trial:0, basic:1, growth:2, pro:3};
 const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
@@ -472,15 +472,22 @@ function updateStatusBanner(){
       banner.style.background = "rgba(239,68,68,0.1)";
       banner.style.border = "1px solid rgba(239,68,68,0.3)";
       banner.style.color = "var(--red)";
-      banner.innerHTML = `⏰ Your 3-day trial has ended. <a href="plans.html" style="color:var(--red);text-decoration:underline">Subscribe now →</a>`;
+      banner.innerHTML = `⏰ Your ${TRIAL_DAYS}-day trial has ended. <a href="plans.html" style="color:var(--red);text-decoration:underline">Subscribe now →</a>`;
     } else if(planStartDate){
       const msLeft = (planStartDate + TRIAL_DAYS*24*60*60*1000) - Date.now();
-      const hoursLeft = Math.max(0, Math.ceil(msLeft / (60*60*1000)));
+      const daysLeft = Math.ceil(msLeft / (24*60*60*1000));
+      let leftLabel;
+      if(daysLeft > 2){
+        leftLabel = `${daysLeft} days left`;
+      } else {
+        const hoursLeft = Math.max(0, Math.ceil(msLeft / (60*60*1000)));
+        leftLabel = `~${hoursLeft} hour${hoursLeft===1?'':'s'} left`;
+      }
       banner.style.display = "block";
       banner.style.background = "rgba(245,158,11,0.08)";
       banner.style.border = "1px solid rgba(245,158,11,0.25)";
       banner.style.color = "var(--gold)";
-      banner.innerHTML = `🎁 Trial: ~${hoursLeft} hour${hoursLeft===1?'':'s'} left · <a href="plans.html" style="color:var(--gold);text-decoration:underline">See plans →</a>`;
+      banner.innerHTML = `🎁 Trial: ${leftLabel} · <a href="plans.html" style="color:var(--gold);text-decoration:underline">See plans →</a>`;
     } else {
       banner.style.display = "none";
     }

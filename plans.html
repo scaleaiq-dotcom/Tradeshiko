@@ -152,7 +152,7 @@
 
   <div class="screen">
 
-    <div class="intro"><p>3-day free trial · Renews every 30 days · Cancel anytime, no lock-in</p></div>
+    <div class="intro"><p>30-day free trial · Renews every 30 days · Cancel anytime, no lock-in</p></div>
 
     <div class="launch-notice">
       <div class="launch-notice-title">🔒 Secure Payments via Razorpay</div>
@@ -289,7 +289,7 @@ const CONFIG = {
 };
 const DEMO_MODE = CONFIG.firebase.apiKey.startsWith("YOUR_");
 
-const TRIAL_DAYS = 3;
+const TRIAL_DAYS = 30;
 const VALID_PLANS = ["trial","basic","growth","pro"];
 const PLAN_RANK = {trial:0, basic:1, growth:2, pro:3};
 const PLAN_START = {trial:2000000, basic:500000, growth:1000000, pro:2000000};
@@ -436,8 +436,9 @@ function updateButtonsForPlan(){
         document.getElementById("trial-status-title").textContent = "⏰ Trial Ended";
         document.getElementById("trial-status-desc").textContent = "Choose a plan below to continue trading.";
       } else {
-        const hoursLeft = Math.max(0, Math.ceil(msLeft/(60*60*1000)));
-        document.getElementById("trial-status-title").textContent = "🎁 Trial Active — ~"+hoursLeft+"h left";
+        const daysLeft = Math.ceil(msLeft/(24*60*60*1000));
+        const leftLabel = daysLeft > 2 ? (daysLeft+" days left") : ("~"+Math.max(0, Math.ceil(msLeft/(60*60*1000)))+"h left");
+        document.getElementById("trial-status-title").textContent = "🎁 Trial Active — "+leftLabel;
         document.getElementById("trial-status-desc").textContent = "You have full access to all 50 stocks and ₹20 Lakh virtual capital during your trial.";
       }
     }
