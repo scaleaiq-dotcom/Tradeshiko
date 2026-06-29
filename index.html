@@ -2153,6 +2153,23 @@ if(!DEMO_MODE){
     let phoneRecaptcha = null;
     let phoneConfirmResult = null;
 
+    // Singleton invisible reCAPTCHA — created & rendered ONCE, then reused.
+    // Recreating it on every send is what throws "reCAPTCHA has already been rendered".
+    async function getRecaptcha(){
+      if(phoneRecaptcha) return phoneRecaptcha;
+      phoneRecaptcha = new RecaptchaVerifier(auth, "recaptcha-container", {size:"invisible"});
+      await phoneRecaptcha.render();
+      return phoneRecaptcha;
+    }
+    function resetRecaptcha(){
+      if(phoneRecaptcha){
+        try{ phoneRecaptcha.clear(); }catch(_){}
+      }
+      phoneRecaptcha = null;
+      const c = document.getElementById("recaptcha-container");
+      if(c) c.innerHTML = "";
+    }
+
     window.showPhoneScreen = function(){
       document.getElementById("phone-screen").style.display = "flex";
       document.getElementById("pa-phone").value = "";
@@ -2184,13 +2201,8 @@ if(!DEMO_MODE){
       const btn = document.getElementById("pa-send-btn");
       btn.disabled = true; btn.textContent = "Sending…";
       try{
-        if(phoneRecaptcha){
-          try{ phoneRecaptcha.clear(); }catch(_){}
-          phoneRecaptcha = null;
-        }
-        document.getElementById("recaptcha-container").innerHTML = "";
-        phoneRecaptcha = new RecaptchaVerifier(auth, "recaptcha-container", {size:"invisible"});
-        phoneConfirmResult = await signInWithPhoneNumber(auth, "+91" + num, phoneRecaptcha);
+        const verifier = await getRecaptcha();
+        phoneConfirmResult = await signInWithPhoneNumber(auth, "+91" + num, verifier);
         document.getElementById("otp-sent-to").textContent = "OTP sent to +91 " + num;
         document.getElementById("phone-screen").style.display = "none";
         document.getElementById("otp-screen").style.display = "flex";
@@ -2205,8 +2217,8 @@ if(!DEMO_MODE){
         errEl.textContent = e.message || "Failed to send OTP. Please try again.";
         errEl.style.display = "block";
         btn.disabled = false; btn.textContent = "Send OTP";
-        // reset recaptcha on error so next attempt works
-        phoneRecaptcha = null;
+        // reset recaptcha on error so next attempt gets a fresh widget
+        resetRecaptcha();
       }
     };
 
@@ -2252,8 +2264,8 @@ if(!DEMO_MODE){
     window.resendOTP = async function(){
       document.getElementById("otp-screen").style.display = "none";
       document.getElementById("phone-screen").style.display = "flex";
-      phoneRecaptcha = null;
       document.getElementById("pa-resend").style.display = "none";
+      // keep the same verifier; reset only if it got into a bad state
     };
 
     // ===== Upgrade Prompt =====
