@@ -2184,9 +2184,12 @@ if(!DEMO_MODE){
       const btn = document.getElementById("pa-send-btn");
       btn.disabled = true; btn.textContent = "Sending…";
       try{
-        if(!phoneRecaptcha){
-          phoneRecaptcha = new RecaptchaVerifier(auth, "recaptcha-container", {size:"invisible"});
+        if(phoneRecaptcha){
+          try{ phoneRecaptcha.clear(); }catch(_){}
+          phoneRecaptcha = null;
         }
+        document.getElementById("recaptcha-container").innerHTML = "";
+        phoneRecaptcha = new RecaptchaVerifier(auth, "recaptcha-container", {size:"invisible"});
         phoneConfirmResult = await signInWithPhoneNumber(auth, "+91" + num, phoneRecaptcha);
         document.getElementById("otp-sent-to").textContent = "OTP sent to +91 " + num;
         document.getElementById("phone-screen").style.display = "none";
