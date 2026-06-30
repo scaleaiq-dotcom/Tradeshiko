@@ -239,6 +239,9 @@ let _ldrEntries = [];
 let _ldrMyUid = null;
 
 function renderLeaderboard(entries, myUid){
+  // Guests never compete — defensively drop any stale guest entries that may
+  // exist in the collection (written before guest writes were disabled).
+  entries = (entries || []).filter(e => e.plan !== "guest");
   document.getElementById("trader-count").textContent = entries.length;
 
   // Sort by the ACTUAL ranking metric (trading return %) — the Firestore
