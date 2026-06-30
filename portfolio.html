@@ -120,6 +120,31 @@
   .hg .k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
   .hg .v{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600}
 
+  /* P&L breakdown card (Zerodha-style) */
+  .pnl-card{margin:0 14px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 15px}
+  .pnl-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 12px}
+  .pnl-cell{display:flex;flex-direction:column;gap:3px}
+  .pnl-k{font-size:9.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.03em}
+  .pnl-v{font-size:14px;font-weight:800;font-family:'JetBrains Mono',monospace}
+  .pnl-v .sub{font-size:10px;font-weight:600;margin-left:4px}
+  .pnl-div{height:1px;background:var(--border);margin:13px 0}
+  .pnl-total-row{display:flex;justify-content:space-between;align-items:baseline}
+  .pnl-total-k{font-size:11px;color:var(--subtle);font-weight:700}
+  .pnl-total-v{font-size:17px;font-weight:800;font-family:'JetBrains Mono',monospace}
+  .g{color:var(--green)} .r{color:var(--red)}
+
+  /* Intraday positions */
+  .pos-banner{margin:0 14px 8px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);
+    border-radius:10px;padding:8px 12px;font-size:10px;color:var(--purple);font-weight:600;display:flex;
+    align-items:center;justify-content:space-between;gap:8px}
+  .sqoff-all{background:rgba(239,68,68,0.14);border:1px solid rgba(239,68,68,0.4);color:var(--red);
+    font-size:10px;font-weight:800;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0}
+  .mis-tag{display:inline-block;font-size:8px;font-weight:800;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+  .sqoff-btn{background:linear-gradient(135deg,#7F1D1D,var(--red));color:#fff;font-size:10px;font-weight:800;
+    padding:5px 11px;border-radius:8px;cursor:pointer;border:none;font-family:'Inter',sans-serif;flex-shrink:0;margin-left:6px}
+  .sqoff-btn:active,.sqoff-all:active{transform:scale(0.95)}
+
   /* Orders */
   .order{display:flex;justify-content:space-between;align-items:center;background:var(--card);
     border:1px solid var(--border);border-radius:11px;padding:10px 13px;margin-bottom:6px;font-size:12.5px}
@@ -240,19 +265,39 @@
     <!-- Trial / plan-renewal / trade-limit status -->
     <div id="status-banner" style="display:none;margin:0 14px 14px;border-radius:12px;padding:10px 13px;font-size:11px;font-weight:700"></div>
 
-    <!-- Holdings -->
+    <!-- P&L breakdown -->
+    <div class="sec-hdr"><span class="sec-title">Profit & Loss</span></div>
+    <div class="pnl-card">
+      <div class="pnl-grid">
+        <div class="pnl-cell"><span class="pnl-k">Invested</span><span class="pnl-v" id="pl-invested">₹0</span></div>
+        <div class="pnl-cell"><span class="pnl-k">Current Value</span><span class="pnl-v" id="pl-current">₹0</span></div>
+        <div class="pnl-cell"><span class="pnl-k">Unrealized P&L</span><span class="pnl-v" id="pl-unrealized">₹0</span></div>
+        <div class="pnl-cell"><span class="pnl-k">Realized P&L</span><span class="pnl-v" id="pl-realized">₹0</span></div>
+      </div>
+      <div class="pnl-div"></div>
+      <div class="pnl-total-row">
+        <span class="pnl-total-k">Today's P&L</span>
+        <span class="pnl-total-v" id="pl-today">₹0</span>
+      </div>
+    </div>
+
+    <!-- Open Positions (Intraday / MIS) -->
+    <div class="sec-hdr" id="pos-hdr" style="display:none">
+      <span class="sec-title">Open Positions</span>
+      <span class="sec-sub" id="pos-count">0 intraday</span>
+    </div>
+    <div class="pos-banner" id="pos-banner" style="display:none">
+      <span id="pos-banner-txt">⚡ Intraday auto square-off at 3:20 PM IST</span>
+      <button class="sqoff-all" onclick="squareOffAll()">Square Off All</button>
+    </div>
+    <div id="positions"></div>
+
+    <!-- Holdings (Delivery) -->
     <div class="sec-hdr">
       <span class="sec-title">Holdings</span>
       <span class="sec-sub" id="hold-count">0 stocks</span>
     </div>
     <div id="holdings"><div class="skeleton"></div><div class="skeleton"></div></div>
-
-    <!-- Orders -->
-    <div class="sec-hdr">
-      <span class="sec-title">Recent Orders</span>
-      <a class="sec-sub" href="reports.html" style="color:var(--accent);font-weight:700">Daily Report →</a>
-    </div>
-    <div id="orders"><div class="empty">No orders yet. Make your first trade from the Market tab!</div></div>
 
     <!-- Reset -->
     <div class="reset-card">
@@ -576,6 +621,7 @@ function sectorColor(sector){
 function sectorOf(sym){ const m = stockMeta.find(x=>x[0]===sym); return m?m[2]:"NSE"; }
 
 function render(){
+  // ===== Delivery (CNC) holdings =====
   let holdval=0, invested=0;
   const syms = Object.keys(holdings);
   syms.forEach(sym=>{
@@ -583,17 +629,59 @@ function render(){
     holdval += holdings[sym].qty * px;
     invested += holdings[sym].qty * holdings[sym].avg;
   });
-  const total = cash + holdval;
+  // ===== Intraday (MIS) positions — SAME math as index.html renderSummary =====
+  let intradayEquity=0, intradayUnrealized=0, intradayInvested=0, intradayValue=0;
+  const isyms = Object.keys(intraday);
+  isyms.forEach(sym=>{
+    const p = intraday[sym];
+    const px = getPrice(sym) || p.avg;
+    const uPnl = (px - p.avg) * p.qty;
+    intradayEquity += p.margin + uPnl;
+    intradayUnrealized += uPnl;
+    intradayInvested += p.avg * p.qty;
+    intradayValue += px * p.qty;
+  });
+  const total = cash + holdval + intradayEquity; // net worth (matches index)
   if(total > peakValue) peakValue = total;
 
   document.getElementById("port-val").textContent = fmtInt(total);
   document.getElementById("s-cash").textContent = fmtInt(cash);
-  document.getElementById("s-stocks").textContent = fmtInt(holdval);
+  document.getElementById("s-stocks").textContent = fmtInt(holdval + intradayValue);
   document.getElementById("s-peak").textContent = fmtInt(peakValue);
 
+  // ===== P&L breakdown (realized / unrealized / today) =====
+  const openInvested = invested + intradayInvested;
+  const openCurrent = holdval + intradayValue;
+  const unrealized = (holdval - invested) + intradayUnrealized;
+  const realized = cumulativeRealizedGain;
+  const todayStrLocal = new Date().toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
+  const realizedToday = (orders||[])
+    .filter(o => o.side === "SELL" && typeof o.avgCost === "number" && o.date === todayStrLocal)
+    .reduce((sum,o) => sum + (o.price - o.avgCost)*o.qty - (o.charges||0), 0);
+  const todayPnl = unrealized + realizedToday;
+  const setPL = (id, val, withPct, base) => {
+    const el = document.getElementById(id); if(!el) return;
+    const cls = val >= 0 ? "g" : "r"; const sign = val >= 0 ? "+" : "−";
+    let html = `${val>=0?'':'−'}${fmtInt(Math.abs(val))}`;
+    if(withPct && base > 0){ html += `<span class="sub ${cls}">${sign}${Math.abs(val/base*100).toFixed(2)}%</span>`; }
+    el.innerHTML = html; el.className = "pnl-v " + cls;
+  };
+  document.getElementById("pl-invested").textContent = fmtInt(openInvested);
+  document.getElementById("pl-invested").className = "pnl-v";
+  document.getElementById("pl-current").textContent = fmtInt(openCurrent);
+  document.getElementById("pl-current").className = "pnl-v";
+  setPL("pl-unrealized", unrealized, true, openInvested);
+  setPL("pl-realized", realized, false, 0);
+  const todayEl = document.getElementById("pl-today");
+  todayEl.textContent = (todayPnl>=0?"+":"−") + fmtInt(Math.abs(todayPnl));
+  todayEl.className = "pnl-total-v " + (todayPnl>=0?"g":"r");
+
+  // ===== Open Positions (intraday) =====
+  renderPositions();
+
   // Live Trading Return % — same metric/explanation as index.html
-  const tradingCapitalDeployed = invested + cumulativeSoldCostBasis;
-  const tradingGain = (holdval - invested) + cumulativeRealizedGain;
+  const tradingCapitalDeployed = invested + intradayInvested + cumulativeSoldCostBasis;
+  const tradingGain = (holdval - invested) + intradayUnrealized + cumulativeRealizedGain;
   const tradingReturnPct = tradingCapitalDeployed > 0 ? (tradingGain / tradingCapitalDeployed * 100) : 0;
   window._latestTradingReturnPct = tradingReturnPct;
   const trEl = document.getElementById("trading-return-val");
@@ -655,25 +743,8 @@ function render(){
     }).join("");
   }
 
-  // orders — show only latest 5 (full history goes to daily report)
-  const oEl = document.getElementById("orders");
-  const ocEl = document.getElementById("order-count");
-  const tradeOrders = orders.filter(o=>o.side==="BUY"||o.side==="SELL");
-  if(ocEl) ocEl.textContent = tradeOrders.length ? tradeOrders.length+" total" : "—";
-  if(!orders.length){
-    oEl.innerHTML = `<div class="empty">No orders yet. Make your first trade from the Market tab!</div>`;
-  } else {
-    oEl.innerHTML = orders.slice(0,5).map(o=>{
-      if(o.side==="RESET"){
-        return `<div class="order"><span><span style="color:var(--gold);font-weight:800">RESET</span> Portfolio</span><span class="o-time">${o.t}</span></div>`;
-      }
-      const chg = o.charges ? ` <span style="font-size:9px;color:var(--muted)">−₹${o.charges.toFixed(2)}</span>` : "";
-      return `<div class="order">
-        <span><span class="o-side-${o.side.toLowerCase()}">${o.side}</span> ${o.qty} × ${o.sym}</span>
-        <span class="mono">${fmt(o.price)}${chg} <span class="o-time">${o.t}</span></span>
-      </div>`;
-    }).join("");
-  }
+  // (Recent Orders moved to the Profile page — Portfolio now focuses on
+  //  holdings, open positions and P&L.)
 
   // reset button amount
   document.getElementById("reset-amt").textContent = fmtLakh(start);
@@ -702,6 +773,102 @@ function render(){
 function toggleHold(idx){
   const el = document.getElementById("hold-"+idx);
   if(el) el.classList.toggle("open");
+}
+
+// Order log helper (mirrors index.html; supports product tag)
+function logOrder(side, sym, qty, price, charges, avgCost, product){
+  const now = new Date();
+  const t = now.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"});
+  const date = now.toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
+  const entry = {side, sym, qty, price, charges:charges||0, t, date, ts:now.getTime()};
+  if(typeof avgCost === "number") entry.avgCost = avgCost;
+  if(product) entry.product = product;
+  orders.unshift(entry);
+  if(orders.length > 100) orders.pop();
+}
+
+// ===== Open Positions (Intraday / MIS) =====
+function renderPositions(){
+  const isyms = Object.keys(intraday);
+  const posEl = document.getElementById("positions");
+  const hdr = document.getElementById("pos-hdr");
+  const banner = document.getElementById("pos-banner");
+  if(isyms.length === 0){
+    posEl.innerHTML = "";
+    hdr.style.display = "none";
+    banner.style.display = "none";
+    return;
+  }
+  hdr.style.display = "flex";
+  banner.style.display = "flex";
+  document.getElementById("pos-count").textContent = isyms.length + (isyms.length===1?" intraday":" intraday");
+  posEl.innerHTML = `<div class="hold-list">` + isyms.map(sym=>{
+    const p = intraday[sym];
+    const px = getPrice(sym) || p.avg;
+    const cur = p.qty*px;
+    const pl = (px - p.avg)*p.qty;
+    const plpct = p.avg>0 ? (pl/(p.avg*p.qty)*100) : 0;
+    const cls = pl>=0?"g":"r"; const sign = pl>=0?"+":"";
+    const sec = sectorOf(sym);
+    return `<div class="hold">
+      <div class="hold-row" style="cursor:default">
+        <div class="hold-ico" style="background:${sectorColor(sec)}">${sym.slice(0,2)}</div>
+        <div class="hold-mid">
+          <div class="hold-name">${sym}<span class="mis-tag">MIS</span></div>
+          <div class="hold-qty-line">${p.qty} ${p.qty===1?'share':'shares'} · avg ${p.avg.toFixed(2)} · LTP ${px.toFixed(2)}</div>
+        </div>
+        <div class="hold-right">
+          <div class="hold-value">${fmtInt(cur)}</div>
+          <div class="hold-pnl-sm ${cls}">${sign}${fmt(pl)} (${sign}${plpct.toFixed(1)}%)</div>
+        </div>
+        <button class="sqoff-btn" onclick="squareOffPosition('${sym}')">Square Off</button>
+      </div>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+// Close a single intraday position at market price (manual square-off).
+function squareOffPosition(sym){
+  if(!isMarketOpenNow()){ showToast("🌙 Market closed — intraday auto-squares off at 3:20 PM IST."); return; }
+  const p = intraday[sym];
+  if(!p) return;
+  const px = getPrice(sym) || p.avg;
+  const value = px * p.qty;
+  const ch = calcCharges(value);
+  const pnl = (px - p.avg) * p.qty - ch.total;
+  cash += p.margin + pnl;                 // release margin + realized P&L
+  cumulativeRealizedGain += pnl;
+  cumulativeSoldCostBasis += p.avg * p.qty;
+  logOrder("SELL", sym, p.qty, px, ch.total, p.avg, "MIS");
+  delete intraday[sym];
+  const sign = pnl>=0?"+":"−";
+  showToast(`✅ Squared off ${sym} · P&L ${sign}${fmtInt(Math.abs(pnl))}`);
+  render();
+  if(window.cloudSave) window.cloudSave(getState());
+}
+
+function squareOffAll(){
+  if(!isMarketOpenNow()){ showToast("🌙 Market closed — intraday auto-squares off at 3:20 PM IST."); return; }
+  const isyms = Object.keys(intraday);
+  if(isyms.length === 0) return;
+  let net = 0;
+  isyms.forEach(sym=>{
+    const p = intraday[sym];
+    const px = getPrice(sym) || p.avg;
+    const value = px * p.qty;
+    const ch = calcCharges(value);
+    const pnl = (px - p.avg) * p.qty - ch.total;
+    cash += p.margin + pnl;
+    cumulativeRealizedGain += pnl;
+    cumulativeSoldCostBasis += p.avg * p.qty;
+    logOrder("SELL", sym, p.qty, px, ch.total, p.avg, "MIS");
+    net += pnl;
+    delete intraday[sym];
+  });
+  const sign = net>=0?"+":"−";
+  showToast(`✅ Squared off all positions · P&L ${sign}${fmtInt(Math.abs(net))}`);
+  render();
+  if(window.cloudSave) window.cloudSave(getState());
 }
 
 function applyState(st){

@@ -68,6 +68,19 @@
 
   .sec-hdr{padding:2px 16px 9px;display:flex;justify-content:space-between;align-items:center}
   .sec-title{font-size:12.5px;font-weight:800}
+  .sec-sub{font-size:10.5px;color:var(--muted);font-weight:600}
+
+  /* Order rows */
+  .ord{display:flex;justify-content:space-between;align-items:center;background:var(--card,#141E2E);
+    border:1px solid var(--border,#1E2D45);border-radius:11px;padding:10px 13px;margin-bottom:6px;font-size:12.5px}
+  .ord-l{display:flex;flex-direction:column;gap:2px}
+  .ord-side{font-weight:800}
+  .ord-side.buy{color:var(--green,#10B981)} .ord-side.sell{color:var(--red,#EF4444)}
+  .ord-meta{font-size:9.5px;color:var(--muted)}
+  .ord-r{text-align:right;font-family:'JetBrains Mono',monospace}
+  .ord-time{color:var(--muted);font-size:10px}
+  .ord-mis{display:inline-block;font-size:7.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:4px;padding:1px 4px;margin-left:4px;vertical-align:middle}
+  .ord-empty{color:var(--muted);font-size:12px;background:var(--card,#141E2E);border:1px dashed var(--border,#1E2D45);border-radius:12px;padding:18px;text-align:center}
 
   /* Referral */
   .ref-card{margin:0 14px 14px;background:linear-gradient(135deg,#0B1628,#111E38);
@@ -184,6 +197,13 @@
       <div class="cert-desc" id="cert-desc">You've crossed a milestone. Download your certificate and share it.</div>
       <button class="cert-btn" onclick="downloadCertificate()">Download Certificate →</button>
     </div>
+
+    <!-- Recent Orders -->
+    <div class="sec-hdr" id="orders-hdr">
+      <span class="sec-title">Recent Orders</span>
+      <a class="sec-sub" href="reports.html" style="color:var(--accent);font-weight:700">Daily Report →</a>
+    </div>
+    <div id="orders-list" style="padding:0 16px 6px"><div class="ord-empty">No orders yet.</div></div>
 
     <!-- Referral -->
     <div class="ref-card">
@@ -460,6 +480,29 @@ if(!DEMO_MODE){
       }
     }
 
+    function renderOrders(orders){
+      const el = document.getElementById("orders-list");
+      if(!el) return;
+      const list = (orders||[]).filter(o => o.side==="BUY" || o.side==="SELL");
+      if(!list.length){
+        el.innerHTML = `<div class="ord-empty">No orders yet. Start trading from the Market tab!</div>`;
+        return;
+      }
+      el.innerHTML = list.slice(0,20).map(o=>{
+        const sideCls = o.side.toLowerCase();
+        const mis = o.product === "MIS" || o.product === "MIS-AUTO" ? `<span class="ord-mis">${o.product==="MIS-AUTO"?"MIS·AUTO":"MIS"}</span>` : "";
+        const chg = o.charges ? ` · −₹${(o.charges).toFixed(2)}` : "";
+        const price = "₹" + Number(o.price).toLocaleString("en-IN",{minimumFractionDigits:2, maximumFractionDigits:2});
+        return `<div class="ord">
+          <div class="ord-l">
+            <span><span class="ord-side ${sideCls}">${o.side}</span> ${o.qty} × ${o.sym}${mis}</span>
+            <span class="ord-meta">${o.date||""}${chg}</span>
+          </div>
+          <div class="ord-r">${price}<div class="ord-time">${o.t||""}</div></div>
+        </div>`;
+      }).join("");
+    }
+
     onAuthStateChanged(auth, async (user)=>{
       const al = document.getElementById("auth-loading");
       if(user){
@@ -468,7 +511,10 @@ if(!DEMO_MODE){
         if(user.isAnonymous){
           // Guest profile
           const guestSnap = await getDoc(doc(db,"guestUsers",uid)).catch(()=>null);
-          const guestUsername = guestSnap && guestSnap.exists() ? guestSnap.data().username : null;
+          const guestData = guestSnap && guestSnap.exists() ? guestSnap.data() : null;
+          const guestUsername = guestData ? guestData.username : null;
+          renderOrders(guestData ? guestData.orders : []);
+          document.getElementById("ps-trades").textContent = (guestData && guestData.orders ? guestData.orders.filter(o=>o.side==="BUY"||o.side==="SELL").length : 0);
           document.getElementById("prof-name").textContent = guestUsername ? "@" + guestUsername : "Guest";
           document.getElementById("prof-email").textContent = "👀 Guest Mode";
           const av = document.getElementById("prof-av");
@@ -508,6 +554,7 @@ if(!DEMO_MODE){
           badge.textContent = ({trial:"TRIAL",basic:"BASIC",growth:"GROWTH",pro:"PRO"})[plan] || "TRIAL";
 
           loadStats();
+          renderOrders(userData.orders);
           await ensureReferralCode();
           updateRefLinkUI();
           loadReferralCount();
