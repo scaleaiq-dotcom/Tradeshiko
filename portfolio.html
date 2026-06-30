@@ -410,6 +410,10 @@ let guestTradesUsedToday = 0;
 
 let cash = PLAN_START.trial;
 let holdings = {};
+// Intraday (MIS) positions are managed/squared-off on the main Market page.
+// Portfolio preserves them faithfully on save so they're never wiped here.
+let intraday = {};
+let squareOffDoneDate = null;
 let orders = [];
 let userPlan = "trial";
 let peakValue = PLAN_START.trial;
@@ -688,6 +692,8 @@ function applyState(st){
   if(!st) return;
   cash = typeof st.cash==="number" ? st.cash : cash;
   holdings = st.holdings || {};
+  intraday = st.intraday || {};
+  squareOffDoneDate = st.squareOffDoneDate || null;
   orders = st.orders || [];
   const isLegacyOrUnknown = !VALID_PLANS.includes(st.plan);
   if(isLegacyOrUnknown){
@@ -725,7 +731,7 @@ function applyState(st){
   }
 }
 function getState(){
-  return {cash, holdings, orders:orders.slice(0,200), plan:userPlan, peakValue, totalCapitalIn,
+  return {cash, holdings, intraday, squareOffDoneDate, orders:orders.slice(0,200), plan:userPlan, peakValue, totalCapitalIn,
     cumulativeRealizedGain, cumulativeSoldCostBasis,
     planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth, updatedAt:Date.now()};
 }
@@ -749,6 +755,7 @@ function doReset(){
   cash = start;
   totalCapitalIn = start; // P&L baseline resets too — fresh start for tracking going forward
   holdings = {};
+  intraday = {}; // clear any open intraday positions on a portfolio reset
   lastResetMonth = thisMonthStr();
   orders.unshift({side:"RESET", sym:"Portfolio", qty:"", price:0, t:new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"})});
   // peakValue stays unchanged

@@ -420,6 +420,14 @@
   .modal{background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:22px;
     width:100%;max-width:380px;margin:auto}
   .modal h3{font-size:16px;font-weight:800;margin-bottom:3px}
+  .product-toggle{display:flex;gap:8px;margin:14px 0 6px}
+  .pt-opt{flex:1;display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:9px 11px;
+    border:1.5px solid var(--border);border-radius:11px;background:var(--card);cursor:pointer;text-align:left;transition:all .15s}
+  .pt-opt.active{border-color:var(--accent,#6366f1);background:rgba(99,102,241,0.08)}
+  .pt-lbl{font-size:13px;font-weight:700;color:var(--text,#1e2340)}
+  .pt-sub{font-size:9px;color:var(--muted)}
+  .pt-x{display:inline-block;font-size:9px;font-weight:800;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    border-radius:5px;padding:1px 4px;margin-left:2px;vertical-align:middle}
   .modal .mprice{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12.5px;margin-bottom:16px}
   .qty-input-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
   .qty-input-row input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:11px;
@@ -854,6 +862,14 @@
   <div class="modal">
     <h3 id="m-title">RELIANCE — Buy</h3>
     <div class="mprice mono" id="m-price">₹2,950.00 per share</div>
+    <div class="product-toggle" id="m-product-toggle">
+      <button type="button" class="pt-opt active" id="pt-cnc" onclick="setProduct('cnc')">
+        <span class="pt-lbl">Delivery</span><span class="pt-sub">Hold any time · CNC</span>
+      </button>
+      <button type="button" class="pt-opt" id="pt-mis" onclick="setProduct('mis')">
+        <span class="pt-lbl">Intraday <span class="pt-x" id="pt-mis-x">5×</span></span><span class="pt-sub">Auto square-off 3:20 PM · MIS</span>
+      </button>
+    </div>
     <div class="qty-input-row">
       <input type="number" inputmode="numeric" min="1" id="m-qty-input" value="1" oninput="onQtyInput()">
       <button class="max-btn" id="m-max-btn" onclick="setMaxQty()">MAX</button>
@@ -1018,6 +1034,19 @@ let totalCapitalIn = PLAN_START.trial; // true cost basis: every rupee ever depo
 // since idle cash never enters the calculation.
 let cumulativeRealizedGain = 0;
 let cumulativeSoldCostBasis = 0;
+
+// ===== Intraday (MIS) trading =====
+// Delivery (CNC) positions live in `holdings`. Intraday (MIS) long positions
+// live separately in `intraday` so the two never mix. Intraday gets leverage
+// (signed-in users only) and is auto-squared-off at 3:20 PM IST daily.
+const INTRADAY_LEVERAGE = 5;        // 5× buying power for signed-in users
+const SQUAREOFF_HOUR = 15, SQUAREOFF_MIN = 20; // 3:20 PM IST auto square-off
+let intraday = {};                  // intraday[sym] = {qty, avg, margin}
+let modalProduct = "cnc";           // "cnc" (delivery) | "mis" (intraday), per-trade
+let squareOffDoneDate = null;       // guards the daily auto square-off (IST date string)
+// Leverage is a signed-in perk; guests trade plain cash (1×).
+function currentLeverage(){ return isGuestMode ? 1 : INTRADAY_LEVERAGE; }
+
 let modalStock = null, modalSide = "buy", modalQty = 1;
 let detailIdx = null;
 let userPlan = "trial"; // trial | basic | growth | pro — comes from Firestore once logged in
@@ -1245,14 +1274,28 @@ function renderSummary(){
     holdval += holdings[sym].qty * s.price;
     invested += holdings[sym].qty * holdings[sym].avg;
   }
-  const total = cash + holdval;
+  // Intraday (MIS): cash already had margin deducted, so the position's
+  // contribution to net worth is the blocked margin + its unrealized P&L.
+  // For the trading-return %, treat its exposure like delivery (cost vs live).
+  let intradayEquity = 0, intradayUnrealized = 0, intradayInvested = 0, intradayValue = 0;
+  for(const sym in intraday){
+    const s = stocks.find(x=>x.sym===sym);
+    if(!s) continue;
+    const p = intraday[sym];
+    const uPnl = (s.price - p.avg) * p.qty;
+    intradayEquity += p.margin + uPnl;
+    intradayUnrealized += uPnl;
+    intradayInvested += p.avg * p.qty;
+    intradayValue += s.price * p.qty;
+  }
+  const total = cash + holdval + intradayEquity;
   if(total > peakValue) peakValue = total;
   // Today's P&L = unrealized gain on stocks still held TODAY
   //             + realized gain/loss from any sells COMPLETED today
   // (the old formula only counted the first part, so a day spent
   // round-tripping trades — buy then sell, ending with no holdings —
   // always showed +₹0, even after real gains or losses)
-  const unrealizedToday = holdval - invested;
+  const unrealizedToday = (holdval - invested) + intradayUnrealized;
   const realizedToday = orders
     .filter(o => o.side === "SELL" && typeof o.avgCost === "number" && o.date === new Date().toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"}))
     .reduce((sum,o) => sum + (o.price - o.avgCost)*o.qty - (o.charges||0), 0);
@@ -1269,8 +1312,8 @@ function renderSummary(){
   // data already streaming in); what gets PUBLISHED to the shared
   // leaderboard only saves periodically (on trade/login/plan-change) to
   // keep costs flat regardless of user count.
-  const tradingCapitalDeployed = invested + cumulativeSoldCostBasis;
-  const tradingGain = (holdval - invested) + cumulativeRealizedGain;
+  const tradingCapitalDeployed = invested + intradayInvested + cumulativeSoldCostBasis;
+  const tradingGain = (holdval - invested) + intradayUnrealized + cumulativeRealizedGain;
   const tradingReturnPct = tradingCapitalDeployed > 0 ? (tradingGain / tradingCapitalDeployed * 100) : 0;
   window._latestTradingReturnPct = tradingReturnPct; // read by cloudSave when publishing to leaderboard
   const trEl = document.getElementById("trading-return-val");
@@ -1320,8 +1363,10 @@ function renderDetail(){
   document.getElementById("d-dhigh").textContent = s.dayHigh.toFixed(2);
   document.getElementById("d-dlow").textContent = s.dayLow.toFixed(2);
   document.getElementById("d-vol").textContent = fmtVol(s.vol);
-  const owned = holdings[s.sym] ? holdings[s.sym].qty : 0;
-  document.getElementById("d-owned").textContent = owned;
+  const ownedDelivery = holdings[s.sym] ? holdings[s.sym].qty : 0;
+  const ownedIntraday = intraday[s.sym] ? intraday[s.sym].qty : 0;
+  const owned = ownedDelivery + ownedIntraday;
+  document.getElementById("d-owned").textContent = owned + (ownedIntraday ? ` (${ownedIntraday} MIS)` : "");
   document.getElementById("d-sellbtn").disabled = !owned;
   const c = document.getElementById("d-chart");
   const ctx = c.getContext("2d");
@@ -1348,7 +1393,8 @@ function renderDetail(){
   }
 }
 function openTradeFromDetail(side){
-  const owned = holdings[stocks[detailIdx].sym];
+  const sym = stocks[detailIdx].sym;
+  const owned = holdings[sym] || intraday[sym];
   if(side === "sell" && !owned){ showToast("Pehle kharido, phir becho! 😄"); return; }
   openModal(detailIdx, side);
 }
@@ -1364,6 +1410,13 @@ function openModal(i, side){
     return;
   }
   modalStock = stocks[i]; modalSide = side; modalQty = 1;
+  // Default product: buy → delivery; sell → whichever the user actually owns
+  // (prefer intraday so an open MIS position can be squared off manually).
+  if(side === "sell"){
+    modalProduct = (intraday[modalStock.sym] && intraday[modalStock.sym].qty) ? "mis" : "cnc";
+  } else {
+    modalProduct = "cnc";
+  }
   document.getElementById("m-title").textContent = modalStock.sym + (side==="sell" ? " — Sell" : " — Buy");
   const confirmBtn = document.getElementById("m-confirm");
   confirmBtn.textContent = side==="sell" ? "Confirm Sell" : "Confirm Buy";
@@ -1373,16 +1426,32 @@ function openModal(i, side){
   // MAX button label differs for buy vs sell
   const maxBtn = document.getElementById("m-max-btn");
   maxBtn.textContent = side==="sell" ? "ALL" : "MAX";
+  // Show the 5×/1× badge per user; reflect current product selection
+  document.getElementById("pt-mis-x").textContent = currentLeverage() + "×";
+  syncProductToggle();
   updateModal();
   document.getElementById("overlay-trade").classList.add("show");
 }
+function setProduct(p){
+  modalProduct = p;
+  syncProductToggle();
+  // Clamp qty if switching to a product that affords/owns fewer shares
+  const mx = maxAffordable();
+  if(modalSide === "sell" && modalQty > mx){ modalQty = Math.max(1, mx); document.getElementById("m-qty-input").value = modalQty; }
+  updateModal();
+}
+function syncProductToggle(){
+  document.getElementById("pt-cnc").classList.toggle("active", modalProduct === "cnc");
+  document.getElementById("pt-mis").classList.toggle("active", modalProduct === "mis");
+}
 function maxAffordable(){
   if(modalSide === "buy"){
-    // account for ~0.22% charges so MAX doesn't exceed cash
-    return Math.max(0, Math.floor(cash / (modalStock.price * 1.0025)));
+    // Intraday uses leverage (signed-in only); delivery is plain cash.
+    const buyingPower = cash * (modalProduct === "mis" ? currentLeverage() : 1);
+    return Math.max(0, Math.floor(buyingPower / (modalStock.price * 1.0025)));
   } else {
-    const h = holdings[modalStock.sym];
-    return h ? h.qty : 0;
+    const pos = (modalProduct === "mis" ? intraday : holdings)[modalStock.sym];
+    return pos ? pos.qty : 0;
   }
 }
 function onQtyInput(){
@@ -1410,9 +1479,15 @@ function updateModal(){
   const mx = maxAffordable();
   const hint = document.getElementById("m-qty-hint");
   if(modalSide === "buy"){
-    hint.textContent = `You can afford up to ${mx} shares (cash ${fmtInt(cash)})`;
+    if(modalProduct === "mis"){
+      const lev = currentLeverage();
+      const marginNeeded = value / lev;
+      hint.textContent = `Intraday ${lev}× · up to ${mx} shares · margin blocked ${fmtInt(marginNeeded)} (cash ${fmtInt(cash)})`;
+    } else {
+      hint.textContent = `You can afford up to ${mx} shares (cash ${fmtInt(cash)})`;
+    }
   } else {
-    hint.textContent = `You own ${mx} shares`;
+    hint.textContent = (modalProduct === "mis" ? `You hold ${mx} intraday shares` : `You own ${mx} shares`);
   }
 }
 function closeModal(){ document.getElementById("overlay-trade").classList.remove("show"); }
@@ -1525,47 +1600,77 @@ function confirmTrade(){
     return;
   }
   const value = modalQty * modalStock.price;
+  const isMIS = modalProduct === "mis";
+  const lev = isMIS ? currentLeverage() : 1;
+  const ch = calcCharges(value);
+  const err = document.getElementById("m-err");
+  // Per-trade cap applies to CASH DEPLOYED (margin for intraday), so leverage
+  // expands notional within the plan's cash-deployment limit.
   const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
-  if(modalSide === "buy" && value > tradeCap){
-    const err = document.getElementById("m-err");
-    err.textContent = `Max ₹${fmtInt(tradeCap)} per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
+  const cashDeployed = value / lev;
+  if(modalSide === "buy" && cashDeployed > tradeCap){
+    err.textContent = `Max ₹${fmtInt(tradeCap)} cash per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
     err.style.display = "block";
     return;
   }
-  const ch = calcCharges(value);
-  const err = document.getElementById("m-err");
   if(modalSide === "buy"){
-    const totalCost = value + ch.total;
+    const margin = value / lev;          // cash blocked (full value for CNC, value/5 for MIS)
+    const totalCost = margin + ch.total;
     if(totalCost > cash){
-      err.textContent = "Cash kam hai! Need " + fmtInt(totalCost) + " (incl. ₹"+ch.total.toFixed(2)+" charges)";
+      err.textContent = "Cash kam hai! Need " + fmtInt(totalCost) + (isMIS ? " margin" : "") + " (incl. ₹"+ch.total.toFixed(2)+" charges)";
       err.style.display = "block"; return;
     }
     cash -= totalCost;
-    const h = holdings[modalStock.sym];
-    if(h){ h.avg = (h.avg*h.qty + value)/(h.qty + modalQty); h.qty += modalQty; }
-    else holdings[modalStock.sym] = {qty: modalQty, avg: modalStock.price};
-    recordTradeForLimit(); updateStatusBanner();
-    showToast(`✅ ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
-    logOrder("BUY", modalStock.sym, modalQty, modalStock.price, ch.total);
-  } else {
-    const h = holdings[modalStock.sym];
-    if(!h || modalQty > h.qty){
-      err.textContent = "Itne shares nahi hain! Aapke paas: " + (h ? h.qty : 0);
-      err.style.display = "block"; return;
+    if(isMIS){
+      const p = intraday[modalStock.sym];
+      if(p){ p.avg = (p.avg*p.qty + value)/(p.qty + modalQty); p.qty += modalQty; p.margin += margin; }
+      else intraday[modalStock.sym] = {qty: modalQty, avg: modalStock.price, margin};
+    } else {
+      const h = holdings[modalStock.sym];
+      if(h){ h.avg = (h.avg*h.qty + value)/(h.qty + modalQty); h.qty += modalQty; }
+      else holdings[modalStock.sym] = {qty: modalQty, avg: modalStock.price};
     }
-    const avgCostAtSale = h.avg; // capture before qty/holding changes below
-    const proceeds = value - ch.total;
-    cash += proceeds;
-    h.qty -= modalQty;
-    if(h.qty === 0) delete holdings[modalStock.sym];
-    // Trading-return tracking — lifetime realized gain & cost basis of
-    // everything ever sold. Immune to plan upgrades (idle cash never
-    // touches this), unlike the overall account P&L stat above.
-    cumulativeRealizedGain += (modalStock.price - avgCostAtSale) * modalQty - ch.total;
-    cumulativeSoldCostBasis += avgCostAtSale * modalQty;
     recordTradeForLimit(); updateStatusBanner();
-    showToast(`💰 ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
-    logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total, avgCostAtSale);
+    showToast(`✅ ${isMIS?"Intraday ":""}${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
+    logOrder("BUY", modalStock.sym, modalQty, modalStock.price, ch.total, undefined, isMIS?"MIS":"CNC");
+  } else {
+    if(isMIS){
+      const p = intraday[modalStock.sym];
+      if(!p || modalQty > p.qty){
+        err.textContent = "Itne intraday shares nahi hain! Aapke paas: " + (p ? p.qty : 0);
+        err.style.display = "block"; return;
+      }
+      const avgCostAtSale = p.avg;
+      const pnl = (modalStock.price - avgCostAtSale) * modalQty - ch.total;
+      const releasedMargin = p.margin * (modalQty / p.qty); // proportional margin release
+      cash += releasedMargin + pnl;        // get blocked margin back + realized P&L
+      p.qty -= modalQty; p.margin -= releasedMargin;
+      if(p.qty === 0) delete intraday[modalStock.sym];
+      cumulativeRealizedGain += pnl;
+      cumulativeSoldCostBasis += avgCostAtSale * modalQty;
+      recordTradeForLimit(); updateStatusBanner();
+      showToast(`💰 Intraday ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
+      logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total, avgCostAtSale, "MIS");
+    } else {
+      const h = holdings[modalStock.sym];
+      if(!h || modalQty > h.qty){
+        err.textContent = "Itne shares nahi hain! Aapke paas: " + (h ? h.qty : 0);
+        err.style.display = "block"; return;
+      }
+      const avgCostAtSale = h.avg; // capture before qty/holding changes below
+      const proceeds = value - ch.total;
+      cash += proceeds;
+      h.qty -= modalQty;
+      if(h.qty === 0) delete holdings[modalStock.sym];
+      // Trading-return tracking — lifetime realized gain & cost basis of
+      // everything ever sold. Immune to plan upgrades (idle cash never
+      // touches this), unlike the overall account P&L stat above.
+      cumulativeRealizedGain += (modalStock.price - avgCostAtSale) * modalQty - ch.total;
+      cumulativeSoldCostBasis += avgCostAtSale * modalQty;
+      recordTradeForLimit(); updateStatusBanner();
+      showToast(`💰 ${modalQty} × ${modalStock.sym} @ ${fmt(modalStock.price)} (charges ₹${ch.total.toFixed(2)})`);
+      logOrder("SELL", modalStock.sym, modalQty, modalStock.price, ch.total, avgCostAtSale, "CNC");
+    }
   }
   closeModal();
   renderWatchlist(); renderSummary();
@@ -1573,14 +1678,62 @@ function confirmTrade(){
   track(modalSide === "buy" ? "trade_buy" : "trade_sell", {stock: modalStock.sym, qty: modalQty});
   if(window.cloudSave) window.cloudSave(getState());
 }
-function logOrder(side, sym, qty, price, charges, avgCost){
+function logOrder(side, sym, qty, price, charges, avgCost, product){
   const now = new Date();
   const t = now.toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit", timeZone:"Asia/Kolkata"});
   const date = now.toLocaleDateString("en-IN", {timeZone:"Asia/Kolkata"});
   const entry = {side, sym, qty, price, charges:charges||0, t, date, ts:now.getTime()};
   if(typeof avgCost === "number") entry.avgCost = avgCost; // cost basis at time of SELL — needed for realized P&L
+  if(product) entry.product = product; // "CNC" | "MIS" | "MIS-AUTO" (auto square-off)
   orders.unshift(entry);
   if(orders.length > 100) orders.pop(); // keep more for reports; display limits to 5
+}
+
+// ===== Intraday auto square-off =====
+// Closes ALL open intraday (MIS) positions at the current market price,
+// realizes P&L, and releases blocked margin — exactly like a real broker's
+// 3:20 PM auto square-off. The user does not (and cannot) hold MIS overnight.
+function squareOffIntraday(reason){
+  const syms = Object.keys(intraday);
+  if(syms.length === 0) return 0;
+  let netPnl = 0, closedCount = 0;
+  syms.forEach(sym=>{
+    const p = intraday[sym];
+    const s = stocks.find(x=>x.sym===sym);
+    const price = s ? s.price : p.avg; // fall back to avg if price unavailable
+    const value = price * p.qty;
+    const ch = calcCharges(value);
+    const pnl = (price - p.avg) * p.qty - ch.total;
+    cash += p.margin + pnl;          // release margin + realized P&L
+    cumulativeRealizedGain += pnl;
+    cumulativeSoldCostBasis += p.avg * p.qty;
+    logOrder("SELL", sym, p.qty, price, ch.total, p.avg, "MIS-AUTO");
+    netPnl += pnl; closedCount += p.qty > 0 ? 1 : 0;
+    delete intraday[sym];
+  });
+  squareOffDoneDate = todayStr();
+  renderWatchlist(); renderSummary(); updateStatusBanner();
+  if(detailIdx !== null) renderDetail();
+  if(window.cloudSave) window.cloudSave(getState());
+  const sign = netPnl >= 0 ? "+" : "−";
+  showToast(`🔔 ${reason||"Auto square-off"}: ${closedCount} intraday position${closedCount===1?"":"s"} closed · P&L ${sign}${fmtInt(Math.abs(netPnl))}`);
+  return netPnl;
+}
+// Runs periodically and on load: trigger square-off at/after 3:20 PM IST, or
+// immediately if intraday positions were somehow carried into a new day.
+function checkIntradaySquareOff(){
+  if(Object.keys(intraday).length === 0) return;
+  const ist = new Date(Date.now() + 5.5*3600000);
+  const istDate = ist.toISOString().slice(0,10);
+  const mins = ist.getUTCHours()*60 + ist.getUTCMinutes();
+  const cutoff = SQUAREOFF_HOUR*60 + SQUAREOFF_MIN;
+  const carriedFromPastDay = (squareOffDoneDate && squareOffDoneDate !== istDate) ||
+                             orders.some(o=>o.product==="MIS" && o.date !== ist.toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"}));
+  if(mins >= cutoff && squareOffDoneDate !== istDate){
+    squareOffIntraday("3:20 PM auto square-off");
+  } else if(carriedFromPastDay){
+    squareOffIntraday("Intraday closed (new day)");
+  }
 }
 
 function showToast(msg){
@@ -1607,7 +1760,7 @@ function thisMonthStr(){
 }
 
 function getState(){
-  return {cash, holdings, orders: orders.slice(0,200), plan: userPlan, peakValue, totalCapitalIn,
+  return {cash, holdings, intraday, squareOffDoneDate, orders: orders.slice(0,200), plan: userPlan, peakValue, totalCapitalIn,
     cumulativeRealizedGain, cumulativeSoldCostBasis,
     planStartDate, lastTopupDate, dailyTradeDate, dailyTradeCount, lastResetMonth,
     rulesAgreedAt: window._rulesAgreedAt || null, updatedAt: Date.now()};
@@ -1617,6 +1770,8 @@ function applyState(st){
   if(!st) return;
   cash = typeof st.cash === "number" ? st.cash : cash;
   holdings = st.holdings || {};
+  intraday = st.intraday || {};
+  squareOffDoneDate = st.squareOffDoneDate || null;
   const isLegacyOrUnknown = !VALID_PLANS.includes(st.plan);
   if(isLegacyOrUnknown){
     // Old/unrecognized plan value (e.g. pre-rebuild "free"/"lite"/"max") —
@@ -1654,6 +1809,7 @@ function applyState(st){
   (st.orders || []).forEach(o=>orders.push(o));
   updatePlanBadge();
   renderWatchlist(); renderSummary();
+  checkIntradaySquareOff(); // close any intraday carried past 3:20 PM / into a new day
   const needsMigrationSave = isLegacyOrUnknown || typeof st.totalCapitalIn !== "number";
   if(needsMigrationSave && window.cloudSave) window.cloudSave(getState()); // persist the migration
 }
@@ -1807,6 +1963,7 @@ for(let i=0;i<35;i++){
 
 renderTicker(); renderWatchlist(); renderSummary(); updateClock(); updatePlanBadge();
 setInterval(tick, 5000); // 5-second refresh, matches Angel One Phase 2 plan
+setInterval(checkIntradaySquareOff, 30000); // auto-close intraday at 3:20 PM IST
 
 // ===== Stock detail comments (sentiment toggle + post trigger) =====
 let currentSentiment = "neutral";
