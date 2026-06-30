@@ -1826,6 +1826,23 @@ function updateStatusBanner(){
   if(updateMarketClosedUI()) return; // market closed banner takes priority, already shown (also disables buy/sell buttons)
   // market is open — re-enable buy/sell buttons before showing trial/trade-limit info
   document.querySelectorAll(".btn-buy, .btn-sell").forEach(btn=>{ btn.disabled = false; btn.style.opacity = "1"; });
+  // ===== Guest mode has its own limits (not the paid-plan table) =====
+  if(isGuestMode){
+    const left = Math.max(0, GUEST_TRADE_LIMIT - guestTradesUsedToday);
+    banner.style.display = "block";
+    if(left === 0){
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `🚫 Guest limit reached (${GUEST_TRADE_LIMIT} trades/day). <a href="javascript:showUpgradePrompt('trade_limit')" style="color:var(--red);text-decoration:underline">Sign up free →</a>`;
+    } else {
+      banner.style.background = "rgba(99,102,241,0.07)";
+      banner.style.border = "1px solid rgba(99,102,241,0.2)";
+      banner.style.color = "var(--subtle)";
+      banner.innerHTML = `👀 Guest: ${left} of ${GUEST_TRADE_LIMIT} trades left today · 10 stocks · <a href="javascript:showUpgradePrompt('banner')" style="color:#6366f1;text-decoration:underline">Sign up free →</a>`;
+    }
+    return;
+  }
   if(userPlan === "trial"){
     if(isTrialExpired()){
       banner.style.display = "block";
