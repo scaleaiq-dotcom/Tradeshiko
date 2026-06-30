@@ -847,10 +847,11 @@ function squareOffPosition(sym){
   if(window.cloudSave) window.cloudSave(getState());
 }
 
-function squareOffAll(){
-  if(!isMarketOpenNow()){ showToast("🌙 Market closed — intraday auto-squares off at 3:20 PM IST."); return; }
+// Shared close routine — closes every intraday position at market price.
+// `auto` tags orders as MIS-AUTO (3:20 PM / new-day square-off).
+function closeAllIntraday(auto){
   const isyms = Object.keys(intraday);
-  if(isyms.length === 0) return;
+  if(isyms.length === 0) return 0;
   let net = 0;
   isyms.forEach(sym=>{
     const p = intraday[sym];
@@ -861,14 +862,40 @@ function squareOffAll(){
     cash += p.margin + pnl;
     cumulativeRealizedGain += pnl;
     cumulativeSoldCostBasis += p.avg * p.qty;
-    logOrder("SELL", sym, p.qty, px, ch.total, p.avg, "MIS");
+    logOrder("SELL", sym, p.qty, px, ch.total, p.avg, auto ? "MIS-AUTO" : "MIS");
     net += pnl;
     delete intraday[sym];
   });
-  const sign = net>=0?"+":"−";
-  showToast(`✅ Squared off all positions · P&L ${sign}${fmtInt(Math.abs(net))}`);
   render();
   if(window.cloudSave) window.cloudSave(getState());
+  return net;
+}
+
+function squareOffAll(){
+  if(!isMarketOpenNow()){ showToast("🌙 Market closed — intraday auto-squares off at 3:20 PM IST."); return; }
+  if(Object.keys(intraday).length === 0) return;
+  const net = closeAllIntraday(false);
+  const sign = net>=0?"+":"−";
+  showToast(`✅ Squared off all positions · P&L ${sign}${fmtInt(Math.abs(net))}`);
+}
+
+// Auto square-off at 3:20 PM IST (and on load if positions carried into a new
+// day) — same rule as the Market page, so it fires regardless of which page
+// the user is sitting on.
+function checkAutoSquareOff(){
+  if(Object.keys(intraday).length === 0) return;
+  const ist = new Date(Date.now() + 5.5*3600000);
+  const istDate = ist.toISOString().slice(0,10);
+  const mins = ist.getUTCHours()*60 + ist.getUTCMinutes();
+  const cutoff = 15*60 + 20; // 3:20 PM IST
+  const carriedNewDay = squareOffDoneDate && squareOffDoneDate !== istDate;
+  if((mins >= cutoff && squareOffDoneDate !== istDate) || carriedNewDay){
+    const net = closeAllIntraday(true);
+    squareOffDoneDate = istDate;
+    if(window.cloudSave) window.cloudSave(getState());
+    const sign = net>=0?"+":"−";
+    showToast(`🔔 Auto square-off (3:20 PM): positions closed · P&L ${sign}${fmtInt(Math.abs(net))}`);
+  }
 }
 
 function applyState(st){
@@ -906,6 +933,7 @@ function applyState(st){
   dailyTradeCount = typeof st.dailyTradeCount === "number" ? st.dailyTradeCount : 0;
   lastResetMonth = st.lastResetMonth || null;
   render();
+  checkAutoSquareOff(); // close intraday carried past 3:20 PM / into a new day
   const needsMigrationSave = isLegacyOrUnknown || typeof st.totalCapitalIn !== "number";
   if(needsMigrationSave && window.cloudSave) window.cloudSave(getState());
   // Mandatory Rules & Regulations gate — must agree once before using the app
@@ -1122,6 +1150,7 @@ if(!DEMO_MODE){
         render();
       }, (err)=>{ console.error("Live price listener error (using simulated prices):", err); });
     }
+    setInterval(checkAutoSquareOff, 30000); // auto-close intraday at 3:20 PM IST
     const app = initializeApp(CONFIG.firebase);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -1199,6 +1228,7 @@ if(!DEMO_MODE){
             }
           }catch(e){ console.error("Guest load failed",e); }
           render();
+          checkAutoSquareOff(); // close intraday carried past 3:20 PM / into a new day
         } else {
           try{
             const snap = await getDoc(doc(db,"users",uid));
