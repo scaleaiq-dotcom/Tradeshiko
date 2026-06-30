@@ -1604,14 +1604,15 @@ function confirmTrade(){
   const lev = isMIS ? currentLeverage() : 1;
   const ch = calcCharges(value);
   const err = document.getElementById("m-err");
-  // Per-trade cap applies to CASH DEPLOYED (margin for intraday), so leverage
-  // expands notional within the plan's cash-deployment limit.
-  const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
-  const cashDeployed = value / lev;
-  if(modalSide === "buy" && cashDeployed > tradeCap){
-    err.textContent = `Max ₹${fmtInt(tradeCap)} cash per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
-    err.style.display = "block";
-    return;
+  // Per-trade capital cap applies to DELIVERY only. Intraday has NO per-trade
+  // cap — you can deploy up to your full (leveraged) buying power in one shot.
+  if(!isMIS){
+    const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
+    if(modalSide === "buy" && value > tradeCap){
+      err.textContent = `Max ₹${fmtInt(tradeCap)} per delivery trade on your plan. Reduce quantity or upgrade for a higher limit.`;
+      err.style.display = "block";
+      return;
+    }
   }
   if(modalSide === "buy"){
     const margin = value / lev;          // cash blocked (full value for CNC, value/5 for MIS)
@@ -2612,6 +2613,27 @@ if(!DEMO_MODE){
     };
     window.cloudSave = function(state){
       if(!uid) return;
+      // Guests persist their trading state to guestUsers ONLY — never to the
+      // users collection or the public leaderboard (guests don't compete).
+      if(isGuestMode){
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async ()=>{
+          try{
+            await setDoc(doc(db,"guestUsers",uid), {
+              cash: state.cash,
+              holdings: state.holdings || {},
+              intraday: state.intraday || {},
+              squareOffDoneDate: state.squareOffDoneDate || null,
+              orders: (state.orders || []).slice(0,100),
+              cumulativeRealizedGain: state.cumulativeRealizedGain || 0,
+              cumulativeSoldCostBasis: state.cumulativeSoldCostBasis || 0,
+              peakValue: state.peakValue || 0,
+              lastActiveAt: Date.now()
+            }, {merge:true});
+          }catch(e){ console.error("Guest state save failed", e); }
+        }, 400);
+        return;
+      }
       clearTimeout(saveTimer);
       saveTimer = setTimeout(async ()=>{
         try{
@@ -2672,12 +2694,26 @@ if(!DEMO_MODE){
           av.textContent = "👀"; av.style.backgroundImage = "";
           startLivePriceListener();
           await loadGuestRecord();
-          // Optional username for guests
+          // Load persisted guest trading state (holdings/cash/intraday/orders)
+          // so a guest's positions survive refresh and show across all pages.
           const guestSnap = await getDoc(doc(db,"guestUsers",uid)).catch(()=>null);
-          const guestUsername = guestSnap && guestSnap.exists() ? guestSnap.data().username : null;
+          const gd = guestSnap && guestSnap.exists() ? guestSnap.data() : null;
+          if(gd && typeof gd.cash === "number"){
+            cash = gd.cash;
+            holdings = gd.holdings || {};
+            intraday = gd.intraday || {};
+            squareOffDoneDate = gd.squareOffDoneDate || null;
+            cumulativeRealizedGain = gd.cumulativeRealizedGain || 0;
+            cumulativeSoldCostBasis = gd.cumulativeSoldCostBasis || 0;
+            peakValue = gd.peakValue || GUEST_CAPITAL;
+            orders.length = 0;
+            (gd.orders || []).forEach(o=>orders.push(o));
+          }
+          const guestUsername = gd ? gd.username : null;
           if(guestUsername){ window._username = guestUsername; }
           // Username is optional and deferred — don't interrupt exploration.
           // It's offered later (after they choose Guest at the trade gate).
+          checkIntradaySquareOff(); // close any intraday carried past 3:20 PM
           renderSummary(); renderWatchlist();
           return;
         }

@@ -470,6 +470,22 @@ function updateStatusBanner(){
     banner.innerHTML = `🌙 Market is closed — trading resumes during market hours (9:15 AM–3:30 PM IST, Mon–Fri, excluding holidays)`;
     return;
   }
+  if(isGuestMode){
+    const left = Math.max(0, GUEST_TRADE_LIMIT - guestTradesUsedToday);
+    banner.style.display = "block";
+    if(left === 0){
+      banner.style.background = "rgba(239,68,68,0.1)";
+      banner.style.border = "1px solid rgba(239,68,68,0.3)";
+      banner.style.color = "var(--red)";
+      banner.innerHTML = `🚫 Guest limit reached (${GUEST_TRADE_LIMIT} trades/day). <a href="index.html" style="color:var(--red);text-decoration:underline">Sign up free →</a>`;
+    } else {
+      banner.style.background = "rgba(99,102,241,0.07)";
+      banner.style.border = "1px solid rgba(99,102,241,0.2)";
+      banner.style.color = "var(--subtle)";
+      banner.innerHTML = `👀 Guest: ${left} of ${GUEST_TRADE_LIMIT} trades left today · <a href="index.html" style="color:#6366f1;text-decoration:underline">Sign up free →</a>`;
+    }
+    return;
+  }
   if(userPlan === "trial"){
     if(isTrialExpired()){
       banner.style.display = "block";
@@ -947,6 +963,22 @@ if(!DEMO_MODE){
     const ADMIN_EMAILS_HIDE = ["scaleaiq@gmail.com", "jitendramathur.85@gmail.com"];
     window.cloudSave = function(state){
       if(!uid) return;
+      // Guests persist to guestUsers only — never users/ or the leaderboard.
+      if(isGuestMode){
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async ()=>{
+          try{
+            await setDoc(doc(db,"guestUsers",uid), {
+              cash: state.cash, holdings: state.holdings || {}, intraday: state.intraday || {},
+              squareOffDoneDate: state.squareOffDoneDate || null, orders: (state.orders||[]).slice(0,100),
+              cumulativeRealizedGain: state.cumulativeRealizedGain || 0,
+              cumulativeSoldCostBasis: state.cumulativeSoldCostBasis || 0,
+              peakValue: state.peakValue || 0, lastActiveAt: Date.now()
+            }, {merge:true});
+          }catch(e){ console.error("Guest state save failed", e); }
+        }, 400);
+        return;
+      }
       clearTimeout(saveTimer);
       saveTimer = setTimeout(async ()=>{
         try{
@@ -976,7 +1008,7 @@ if(!DEMO_MODE){
         uid = user.uid;
         startLivePriceListenerPf();
         if(user.isAnonymous){
-          // Guest mode — load state from guestUsers, not users
+          // Guest mode — load full trading state from guestUsers, not users
           isGuestMode = true;
           cash = GUEST_CAPITAL; peakValue = GUEST_CAPITAL; totalCapitalIn = GUEST_CAPITAL;
           userPlan = "guest";
@@ -986,8 +1018,20 @@ if(!DEMO_MODE){
             if(gSnap.exists()){
               const d = gSnap.data();
               guestTradesUsedToday = (d.tradesUsedTodayDate === todayISTStr()) ? (d.tradesUsedToday||0) : 0;
+              // Restore guest holdings/cash/intraday so positions show here too
+              if(typeof d.cash === "number"){
+                cash = d.cash;
+                holdings = d.holdings || {};
+                intraday = d.intraday || {};
+                squareOffDoneDate = d.squareOffDoneDate || null;
+                cumulativeRealizedGain = d.cumulativeRealizedGain || 0;
+                cumulativeSoldCostBasis = d.cumulativeSoldCostBasis || 0;
+                peakValue = d.peakValue || GUEST_CAPITAL;
+                orders = d.orders || [];
+              }
             }
           }catch(e){ console.error("Guest load failed",e); }
+          render();
         } else {
           try{
             const snap = await getDoc(doc(db,"users",uid));
