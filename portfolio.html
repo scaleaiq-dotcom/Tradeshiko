@@ -52,6 +52,14 @@
   .overlay-trade.show{display:flex}
   .modal{background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:22px;width:100%;max-width:380px}
   .modal h3{font-size:16px;font-weight:800;margin-bottom:3px}
+  .product-toggle{display:flex;gap:8px;margin:14px 0 6px}
+  .pt-opt{flex:1;display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:9px 11px;
+    border:1.5px solid var(--border);border-radius:11px;background:var(--card);cursor:pointer;text-align:left}
+  .pt-opt.active{border-color:var(--accent);background:rgba(59,130,246,0.1)}
+  .pt-lbl{font-size:13px;font-weight:700;color:var(--text)}
+  .pt-sub{font-size:9px;color:var(--muted)}
+  .pt-x{display:inline-block;font-size:9px;font-weight:800;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    border-radius:5px;padding:1px 4px;margin-left:2px;vertical-align:middle}
   .modal .mprice{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12.5px;margin-bottom:16px}
   .qty-input-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
   .qty-input-row input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:11px;
@@ -350,6 +358,14 @@
   <div class="modal">
     <h3 id="m-title">RELIANCE — Sell</h3>
     <div class="mprice" id="m-price">₹2,950.00 per share</div>
+    <div class="product-toggle" id="m-product-toggle">
+      <button type="button" class="pt-opt active" id="pt-cnc" onclick="setProduct('cnc')">
+        <span class="pt-lbl">Delivery</span><span class="pt-sub">Hold any time · CNC</span>
+      </button>
+      <button type="button" class="pt-opt" id="pt-mis" onclick="setProduct('mis')">
+        <span class="pt-lbl">Intraday <span class="pt-x" id="pt-mis-x">5×</span></span><span class="pt-sub">Auto square-off 3:20 PM · MIS</span>
+      </button>
+    </div>
     <div class="qty-input-row">
       <input type="number" inputmode="numeric" min="1" id="m-qty-input" value="1" oninput="onQtyInput()">
       <button class="max-btn" id="m-max-btn" onclick="setMaxQty()">ALL</button>
@@ -455,10 +471,13 @@ let guestTradesUsedToday = 0;
 
 let cash = PLAN_START.trial;
 let holdings = {};
-// Intraday (MIS) positions are managed/squared-off on the main Market page.
-// Portfolio preserves them faithfully on save so they're never wiped here.
-let intraday = {};
+// Intraday (MIS) — same model as index.html: separate position map, 5x
+// leverage for signed-in users (guests 1x), auto square-off at 3:20 PM.
+const INTRADAY_LEVERAGE = 5;
+let intraday = {};            // intraday[sym] = {qty, avg, margin}
 let squareOffDoneDate = null;
+let tradeProduct = "cnc";     // "cnc" (delivery) | "mis" (intraday), per-trade
+function currentLeverage(){ return isGuestMode ? 1 : INTRADAY_LEVERAGE; }
 let orders = [];
 let userPlan = "trial";
 let peakValue = PLAN_START.trial;
@@ -1001,8 +1020,13 @@ function renderTicker(){
 
 // ===== Trade (buy more / sell) from holdings =====
 let tradeSym = null, tradeSide = "sell", tradeQty = 1;
-function openTrade(sym, side){
+function openTrade(sym, side, product){
   tradeSym = sym; tradeSide = side; tradeQty = 1;
+  // Default product: explicit arg wins; else sell → whatever the user owns
+  // (prefer intraday so an open MIS position can be closed), buy → delivery.
+  if(product){ tradeProduct = product; }
+  else if(side === "sell"){ tradeProduct = (intraday[sym] && intraday[sym].qty) ? "mis" : "cnc"; }
+  else { tradeProduct = "cnc"; }
   const px = getPrice(sym) || (holdings[sym] ? holdings[sym].avg : 0);
   document.getElementById("m-title").textContent = sym + (side==="sell" ? " — Sell" : " — Buy More");
   document.getElementById("m-price").textContent = fmt(px) + " per share";
@@ -1012,13 +1036,30 @@ function openTrade(sym, side){
   cb.textContent = side==="sell" ? "Confirm Sell" : "Confirm Buy";
   cb.className = "btn " + (side==="sell" ? "btn-sell" : "btn-buy");
   document.getElementById("m-err").style.display = "none";
+  document.getElementById("pt-mis-x").textContent = currentLeverage() + "×";
+  syncProductToggle();
   updateTradeModal();
   document.getElementById("overlay-trade").classList.add("show");
 }
+function setProduct(p){
+  tradeProduct = p;
+  syncProductToggle();
+  const mx = tradeMaxQty();
+  if(tradeSide === "sell" && tradeQty > mx){ tradeQty = Math.max(1, mx); document.getElementById("m-qty-input").value = tradeQty; }
+  updateTradeModal();
+}
+function syncProductToggle(){
+  document.getElementById("pt-cnc").classList.toggle("active", tradeProduct === "cnc");
+  document.getElementById("pt-mis").classList.toggle("active", tradeProduct === "mis");
+}
 function tradeMaxQty(){
   const px = getPrice(tradeSym) || 1;
-  if(tradeSide === "buy") return Math.max(0, Math.floor(cash / (px * 1.0025)));
-  const h = holdings[tradeSym]; return h ? h.qty : 0;
+  if(tradeSide === "buy"){
+    const buyingPower = cash * (tradeProduct === "mis" ? currentLeverage() : 1);
+    return Math.max(0, Math.floor(buyingPower / (px * 1.0025)));
+  }
+  const pos = (tradeProduct === "mis" ? intraday : holdings)[tradeSym];
+  return pos ? pos.qty : 0;
 }
 function onQtyInput(){
   let v = parseInt(document.getElementById("m-qty-input").value) || 0;
@@ -1041,9 +1082,17 @@ function updateTradeModal(){
     totalEl.innerHTML = fmt(value - ch.total) + `<br><span style="font-size:9.5px;color:var(--muted);font-weight:500">${fmt(value)} − ₹${ch.total.toFixed(2)} charges</span>`;
   }
   const mx = tradeMaxQty();
-  document.getElementById("m-qty-hint").textContent = tradeSide==="buy"
-    ? `You can afford up to ${mx} shares (cash ${fmtInt(cash)})`
-    : `You own ${mx} shares`;
+  const hint = document.getElementById("m-qty-hint");
+  if(tradeSide === "buy"){
+    if(tradeProduct === "mis"){
+      const lev = currentLeverage();
+      hint.textContent = `Intraday ${lev}× · up to ${mx} shares · margin ${fmtInt(value/lev)} (cash ${fmtInt(cash)})`;
+    } else {
+      hint.textContent = `You can afford up to ${mx} shares (cash ${fmtInt(cash)})`;
+    }
+  } else {
+    hint.textContent = (tradeProduct === "mis" ? `You hold ${mx} intraday shares` : `You own ${mx} shares`);
+  }
 }
 function closeTrade(){ document.getElementById("overlay-trade").classList.remove("show"); }
 // Realistic Indian delivery charges
@@ -1087,44 +1136,67 @@ function confirmTrade(){
     return;
   }
   const px = getPrice(tradeSym) || 1;
-  const tradeValuePreCheck = tradeQty * px;
-  const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
-  if(tradeSide === "buy" && tradeValuePreCheck > tradeCap){
-    const err = document.getElementById("m-err");
-    err.textContent = `Max ₹${fmtInt(tradeCap)} per trade on your plan. Reduce quantity or upgrade for a higher limit.`;
-    err.style.display = "block";
-    return;
-  }
   const value = tradeQty * px;
+  const isMIS = tradeProduct === "mis";
+  const lev = isMIS ? currentLeverage() : 1;
   const ch = calcCharges(value);
   const err = document.getElementById("m-err");
-  const now = new Date();
-  const t = now.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Kolkata"});
-  const date = now.toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
-  if(tradeSide === "buy"){
-    const totalCost = value + ch.total;
-    if(totalCost > cash){ err.textContent = "Cash kam hai! Need "+fmtInt(totalCost)+" (incl ₹"+ch.total.toFixed(2)+" charges)"; err.style.display="block"; return; }
-    cash -= totalCost;
-    const h = holdings[tradeSym];
-    if(h){ h.avg = (h.avg*h.qty + value)/(h.qty+tradeQty); h.qty += tradeQty; }
-    else holdings[tradeSym] = {qty:tradeQty, avg:px};
-    recordTradeForLimit();
-    orders.unshift({side:"BUY", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, t, date, ts:now.getTime()});
-    showToast(`✅ ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
-  } else {
-    const h = holdings[tradeSym];
-    if(!h || tradeQty > h.qty){ err.textContent = "Itne shares nahi! Aapke paas: "+(h?h.qty:0); err.style.display="block"; return; }
-    const avgCostAtSale = h.avg; // capture before qty/holding changes below
-    cash += (value - ch.total);
-    h.qty -= tradeQty;
-    if(h.qty === 0) delete holdings[tradeSym];
-    cumulativeRealizedGain += (px - avgCostAtSale) * tradeQty - ch.total;
-    cumulativeSoldCostBasis += avgCostAtSale * tradeQty;
-    recordTradeForLimit();
-    orders.unshift({side:"SELL", sym:tradeSym, qty:tradeQty, price:px, charges:ch.total, avgCost:avgCostAtSale, t, date, ts:now.getTime()});
-    showToast(`💰 ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
+  // Per-trade capital cap applies to DELIVERY only (intraday is uncapped) —
+  // identical rule to index.html.
+  if(!isMIS){
+    const tradeCap = PER_TRADE_CAP[userPlan] ?? PER_TRADE_CAP.basic;
+    if(tradeSide === "buy" && value > tradeCap){
+      err.textContent = `Max ₹${fmtInt(tradeCap)} per delivery trade on your plan. Reduce quantity or upgrade for a higher limit.`;
+      err.style.display = "block";
+      return;
+    }
   }
-  if(orders.length > 100) orders.pop();
+  if(tradeSide === "buy"){
+    const margin = value / lev;             // full value for CNC, value/5 for MIS
+    const totalCost = margin + ch.total;
+    if(totalCost > cash){ err.textContent = "Cash kam hai! Need "+fmtInt(totalCost)+(isMIS?" margin":"")+" (incl ₹"+ch.total.toFixed(2)+" charges)"; err.style.display="block"; return; }
+    cash -= totalCost;
+    if(isMIS){
+      const p = intraday[tradeSym];
+      if(p){ p.avg = (p.avg*p.qty + value)/(p.qty+tradeQty); p.qty += tradeQty; p.margin += margin; }
+      else intraday[tradeSym] = {qty:tradeQty, avg:px, margin};
+    } else {
+      const h = holdings[tradeSym];
+      if(h){ h.avg = (h.avg*h.qty + value)/(h.qty+tradeQty); h.qty += tradeQty; }
+      else holdings[tradeSym] = {qty:tradeQty, avg:px};
+    }
+    recordTradeForLimit();
+    logOrder("BUY", tradeSym, tradeQty, px, ch.total, undefined, isMIS?"MIS":"CNC");
+    showToast(`✅ ${isMIS?"Intraday ":""}${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
+  } else {
+    if(isMIS){
+      const p = intraday[tradeSym];
+      if(!p || tradeQty > p.qty){ err.textContent = "Itne intraday shares nahi! Aapke paas: "+(p?p.qty:0); err.style.display="block"; return; }
+      const avgCostAtSale = p.avg;
+      const pnl = (px - avgCostAtSale) * tradeQty - ch.total;
+      const releasedMargin = p.margin * (tradeQty / p.qty);
+      cash += releasedMargin + pnl;
+      p.qty -= tradeQty; p.margin -= releasedMargin;
+      if(p.qty === 0) delete intraday[tradeSym];
+      cumulativeRealizedGain += pnl;
+      cumulativeSoldCostBasis += avgCostAtSale * tradeQty;
+      recordTradeForLimit();
+      logOrder("SELL", tradeSym, tradeQty, px, ch.total, avgCostAtSale, "MIS");
+      showToast(`💰 Intraday ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
+    } else {
+      const h = holdings[tradeSym];
+      if(!h || tradeQty > h.qty){ err.textContent = "Itne shares nahi! Aapke paas: "+(h?h.qty:0); err.style.display="block"; return; }
+      const avgCostAtSale = h.avg; // capture before qty/holding changes below
+      cash += (value - ch.total);
+      h.qty -= tradeQty;
+      if(h.qty === 0) delete holdings[tradeSym];
+      cumulativeRealizedGain += (px - avgCostAtSale) * tradeQty - ch.total;
+      cumulativeSoldCostBasis += avgCostAtSale * tradeQty;
+      recordTradeForLimit();
+      logOrder("SELL", tradeSym, tradeQty, px, ch.total, avgCostAtSale, "CNC");
+      showToast(`💰 ${tradeQty} × ${tradeSym} @ ${fmt(px)} (charges ₹${ch.total.toFixed(2)})`);
+    }
+  }
   closeTrade();
   render();
   track("trade_"+tradeSide, {stock:tradeSym, qty:tradeQty});
