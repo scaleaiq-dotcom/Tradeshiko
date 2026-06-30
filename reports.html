@@ -362,7 +362,7 @@ function toggleDay(idx){
 if(!DEMO_MODE){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getAuth, onAuthStateChanged, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
     const { getFirestore, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const app = initializeApp(CONFIG.firebase);
     const auth = getAuth(app);
@@ -390,7 +390,8 @@ if(!DEMO_MODE){
         }catch(e){ console.error("Load failed", e); renderReport([], "trial"); }
         if(al) al.style.display = "none";
       } else {
-        location.href = "index.html";
+        try{ await signInAnonymously(auth); }
+        catch(e){ console.error("Anon sign-in failed", e); location.href = "index.html"; }
       }
     });
   }catch(e){

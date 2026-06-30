@@ -343,7 +343,7 @@ function downloadCertificate(){
 if(!DEMO_MODE){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const { getAuth, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getAuth, onAuthStateChanged, signOut, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
     const { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, limit, addDoc, updateDoc, increment } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const app = initializeApp(CONFIG.firebase);
@@ -516,7 +516,8 @@ if(!DEMO_MODE){
         }catch(e){ console.error("Load failed", e); }
         if(al) al.style.display = "none";
       } else {
-        location.href = "index.html";
+        try{ await signInAnonymously(auth); }
+        catch(e){ console.error("Anon sign-in failed", e); location.href = "index.html"; }
       }
     });
   }catch(e){

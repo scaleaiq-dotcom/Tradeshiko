@@ -922,7 +922,7 @@ render();
 if(!DEMO_MODE){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-    const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getAuth, onAuthStateChanged, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
     const { getFirestore, doc, getDoc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
     function startLivePriceListenerPf(){
@@ -991,8 +991,9 @@ if(!DEMO_MODE){
         const al = document.getElementById("auth-loading");
         if(al) al.style.display = "none";
       } else {
-        // not logged in -> send to home where login screen shows
-        location.href = "index.html";
+        // No session yet — sign in anonymously so guests land here directly.
+        try{ await signInAnonymously(auth); }
+        catch(e){ console.error("Anon sign-in failed", e); location.href = "index.html"; }
       }
     });
   }catch(e){ console.error("Firebase init failed:", e);
